@@ -199,81 +199,67 @@ export default function Auditor() {
   };
 
   const leftPanel = (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900/50">
-      {/* Modern Header with User Info */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900">
+      {/* Clean Header */}
+      <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-              <Shield className="h-5 w-5 text-white" />
+            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+              <Shield className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">SmartAudit AI</h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400">Web3 Security Analysis</p>
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-white">SmartAudit AI</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Contract Security Analysis</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Connected</span>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => {
-                disconnect();
-                setLocation("/auth");
-              }}
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            >
-              <User className="h-4 w-4 mr-1" />
-              Logout
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Code className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Contract Analysis</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs" data-testid="text-contract-language">
-              {contractLanguage.charAt(0).toUpperCase() + contractLanguage.slice(1)}
-            </Badge>
-            {uploadedFiles && (
-              <Badge variant="secondary" className="text-xs" data-testid="text-file-info">
-                {uploadedFiles.fileCount} files uploaded
-              </Badge>
-            )}
-          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              disconnect();
+              setLocation("/auth");
+            }}
+            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 h-8 px-2"
+          >
+            <User className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {/* File Upload Section */}
-      <div className="p-6">
+      {/* Upload Section */}
+      <div className="p-6 border-b border-slate-100 dark:border-slate-800">
         <div className="mb-4">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Contract Files
-          </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-            Drag & drop or select multiple contract files for combined analysis
+          <div className="flex items-center gap-2 mb-2">
+            <Upload className="h-4 w-4 text-blue-500" />
+            <h2 className="font-medium text-slate-900 dark:text-white">Upload Files</h2>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Upload multiple contract files for comprehensive analysis
           </p>
         </div>
         <FileUploader onFilesProcessed={handleFilesProcessed} />
+        {uploadedFiles && (
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2 text-sm">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-blue-700 dark:text-blue-300 font-medium">
+                {uploadedFiles.fileCount} files ready for analysis
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Code Editor Section */}
-      <div className="flex-1 px-6 pb-6 flex flex-col overflow-hidden">
-        <div className="mb-3">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-            <Code className="h-4 w-4" />
-            Contract Code
-          </h3>
-          <div className="flex items-center gap-2">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 mb-3">
+            <Code className="h-4 w-4 text-blue-500" />
+            <h2 className="font-medium text-slate-900 dark:text-white">Smart Contract Code</h2>
+          </div>
+          <div className="flex items-center justify-between">
             <Select value={contractLanguage} onValueChange={setContractLanguage}>
-              <SelectTrigger className="w-40 h-8 text-xs">
+              <SelectTrigger className="w-36 h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -288,85 +274,92 @@ export default function Auditor() {
                 <SelectItem value="go">Go</SelectItem>
               </SelectContent>
             </Select>
-            <div className="text-xs text-slate-500 dark:text-slate-400">• Paste or edit code below</div>
+            {contractCode.trim() && (
+              <Badge variant="outline" className="text-xs">
+                {contractCode.split('\n').length} lines
+              </Badge>
+            )}
           </div>
         </div>
-        <div className="flex-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <CodeEditor
-            value={contractCode}
-            onChange={setContractCode}
-            language={contractLanguage}
-            placeholder={`// Upload contract files above or paste your code here...
-// Supported: Solidity, Vyper, Rust, Move, Cairo, JavaScript, Python, Go
+        
+        <div className="flex-1 p-6 pt-4">
+          <div className="h-full bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden">
+            <CodeEditor
+              value={contractCode}
+              onChange={setContractCode}
+              language={contractLanguage}
+              placeholder={`// Paste your smart contract code here or upload files above
+// Supported languages: Solidity, Vyper, Rust, Move, Cairo, and more
 
 pragma solidity ^0.8.19;
 
-contract SecureContract {
-    // Your smart contract code here...
-    // AI will analyze for vulnerabilities and best practices
+contract MyContract {
+    // Your contract code will be analyzed for:
+    // • Security vulnerabilities
+    // • Gas optimization opportunities  
+    // • Best practice recommendations
+    // • Code quality improvements
 }`}
-          />
+            />
+          </div>
         </div>
       </div>
       
-      {/* Action Panel - Modern Design */}
-      <div className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-6 py-5">
-        <div className="space-y-4">
-          {/* Primary Action */}
+      {/* Action Panel */}
+      <div className="border-t border-slate-200 dark:border-slate-700 p-6 bg-slate-50 dark:bg-slate-800/50">
+        <Button 
+          onClick={handleAnalyze}
+          disabled={analysisState === "loading" || analysisState === "streaming" || !contractCode.trim()}
+          className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+          data-testid="button-analyze"
+        >
+          {analysisState === "loading" || analysisState === "streaming" ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <Shield className="h-4 w-4 mr-2" />
+              Start Security Analysis
+            </>
+          )}
+        </Button>
+        
+        <div className="flex gap-3 mt-3">
           <Button 
-            onClick={handleAnalyze}
-            disabled={analysisState === "loading" || analysisState === "streaming" || !contractCode.trim()}
-            className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-            data-testid="button-analyze"
+            variant="outline" 
+            onClick={handleClear}
+            data-testid="button-clear"
+            className="flex-1 h-10 text-slate-600 dark:text-slate-300"
+            disabled={!contractCode.trim()}
           >
-            {analysisState === "loading" || analysisState === "streaming" ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Analyzing Contract...
-              </>
-            ) : (
-              <>
-                <Shield className="h-5 w-5 mr-2" />
-                Start AI Security Audit
-              </>
-            )}
+            <Trash className="h-4 w-4 mr-1" />
+            Clear
           </Button>
           
-          {/* Secondary Actions */}
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleClear}
-              data-testid="button-clear"
-              className="flex-1 h-10 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-              disabled={!contractCode.trim()}
-            >
-              <Trash className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-            
-            <Button 
-              variant="outline"
-              data-testid="button-save"
-              className="flex-1 h-10 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-              disabled={!contractCode.trim()}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save
-            </Button>
-          </div>
-          
-          {/* Quick Stats */}
-          {contractCode.trim() && (
-            <div className="flex items-center justify-center gap-4 pt-2 text-xs text-slate-500 dark:text-slate-400">
-              <span>{contractCode.split('\n').length} lines</span>
-              <span>•</span>
-              <span>{Math.ceil(contractCode.length / 1000)}k characters</span>
-              <span>•</span>
-              <span className="text-blue-600 dark:text-blue-400">Ready to analyze</span>
-            </div>
-          )}
+          <Button 
+            variant="outline"
+            data-testid="button-save"
+            className="flex-1 h-10 text-slate-600 dark:text-slate-300"
+            disabled={!contractCode.trim()}
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Save
+          </Button>
         </div>
+        
+        {contractCode.trim() && (
+          <div className="mt-4 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400">Contract ready</span>
+              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                <span>{contractCode.split('\n').length} lines</span>
+                <span>{Math.ceil(contractCode.length / 1000)}k chars</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
