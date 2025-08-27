@@ -7,6 +7,7 @@ import { Web3Provider } from "@/components/Web3Provider";
 import NotFound from "@/pages/not-found";
 import Auditor from "@/pages/auditor";
 import AuthPage from "@/pages/auth";
+import Landing from "@/pages/landing";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 
 function Router() {
@@ -15,9 +16,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <Route path="/">
+      <Route path="/app">
         {isAuthenticated && user ? <Auditor /> : <AuthPage />}
       </Route>
+      <Route path="/" component={Landing} />
       <Route component={NotFound} />
     </Switch>
   );

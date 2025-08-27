@@ -71,7 +71,7 @@ export default function Auditor() {
       const sessionResponse = await createAuditSession({
         contractCode,
         contractLanguage,
-        userId: user?.id,
+        userId: user?.id || '',
       });
 
       setCurrentSessionId(sessionResponse.sessionId);
@@ -125,7 +125,7 @@ export default function Auditor() {
 
       eventSource.addEventListener("error", (event) => {
         try {
-          const data = JSON.parse(event.data);
+          const data = JSON.parse((event as MessageEvent).data);
           setAnalysisState("error");
           eventSource.close();
           toast({
@@ -251,7 +251,7 @@ export default function Auditor() {
       </div>
 
       {/* Code Editor Section */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0">
         <div className="p-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2 mb-3">
             <Code className="h-4 w-4 text-blue-500" />
@@ -282,8 +282,8 @@ export default function Auditor() {
           </div>
         </div>
         
-        <div className="flex-1 p-6 pt-4">
-          <div className="h-full bg-muted/50 rounded-xl border-2 border-dashed border-border overflow-hidden">
+        <div className="flex-1 p-6 pt-4 min-h-0">
+          <div className="h-full bg-muted/50 rounded-xl border-2 border-dashed border-border overflow-auto">
             <CodeEditor
               value={contractCode}
               onChange={setContractCode}
@@ -613,7 +613,7 @@ contract MyContract {
         
         {activeTab === "history" && (
           <div className="p-6 h-full overflow-auto">
-            <AuditHistory userId={user?.id} />
+            <AuditHistory userId={user?.id || ''} />
           </div>
         )}
         
