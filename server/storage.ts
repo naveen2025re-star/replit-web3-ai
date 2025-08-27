@@ -16,7 +16,7 @@ import {
   type InsertAuthNonce
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, lt, and } from "drizzle-orm";
+import { eq, desc, lt, gt, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -190,8 +190,10 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(authNonces.nonce, nonceValue),
         eq(authNonces.used, false),
-        desc(authNonces.expiresAt)
-      ));
+        gt(authNonces.expiresAt, new Date())
+      ))
+      .orderBy(desc(authNonces.expiresAt))
+      .limit(1);
     return nonce || undefined;
   }
 
