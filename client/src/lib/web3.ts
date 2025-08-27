@@ -18,17 +18,18 @@ export const config = createConfig({
   },
 })
 
-// Generate secure sign message with nonce and timestamp
-export const generateSignMessage = (address: string) => {
-  const timestamp = Date.now()
-  const nonce = Math.random().toString(36).substring(2, 15)
-  return `Welcome to SmartAudit AI!
-
-Please sign this message to authenticate your wallet and access your personalized audit dashboard.
-
-Wallet: ${address}
-Timestamp: ${timestamp}
-Nonce: ${nonce}
-
-This request will not trigger any blockchain transaction or cost any gas fees.`
+// Get nonce from server for secure authentication
+export const generateNonceAndMessage = async (address: string) => {
+  const response = await fetch('/api/auth/generate-nonce', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ walletAddress: address })
+  })
+  
+  if (!response.ok) {
+    throw new Error('Failed to generate nonce')
+  }
+  
+  const { nonce, message, expiresAt } = await response.json()
+  return { nonce, message, expiresAt }
 }

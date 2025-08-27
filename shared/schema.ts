@@ -64,6 +64,17 @@ export const auditResults = pgTable("audit_results", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Authentication nonces for secure wallet signing
+export const authNonces = pgTable("auth_nonces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  nonce: text("nonce").notNull().unique(),
+  message: text("message").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   auditSessions: many(auditSessions),
@@ -94,6 +105,13 @@ export const auditResultsRelations = relations(auditResults, ({ one }) => ({
   session: one(auditSessions, {
     fields: [auditResults.sessionId],
     references: [auditSessions.id],
+  }),
+}));
+
+export const authNoncesRelations = relations(authNonces, ({ one }) => ({
+  user: one(users, {
+    fields: [authNonces.walletAddress],
+    references: [users.walletAddress],
   }),
 }));
 
@@ -141,6 +159,13 @@ export const insertAuditResultSchema = createInsertSchema(auditResults).pick({
   securityScore: true,
 });
 
+export const insertAuthNonceSchema = createInsertSchema(authNonces).pick({
+  walletAddress: true,
+  nonce: true,
+  message: true,
+  expiresAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -150,3 +175,5 @@ export type InsertAuditSession = z.infer<typeof insertAuditSessionSchema>;
 export type AuditSession = typeof auditSessions.$inferSelect;
 export type InsertAuditResult = z.infer<typeof insertAuditResultSchema>;
 export type AuditResult = typeof auditResults.$inferSelect;
+export type InsertAuthNonce = z.infer<typeof insertAuthNonceSchema>;
+export type AuthNonce = typeof authNonces.$inferSelect;

@@ -3,7 +3,7 @@ import { useAccount, useSignMessage, useDisconnect } from 'wagmi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
 import { useToast } from '@/hooks/use-toast'
-import { generateSignMessage } from '@/lib/web3'
+import { generateNonceAndMessage } from '@/lib/web3'
 import type { User } from '@shared/schema'
 
 export function useWeb3Auth() {
@@ -54,14 +54,28 @@ export function useWeb3Auth() {
 
     try {
       setIsAuthenticating(true)
-      const message = generateSignMessage(address)
+      
+      // Generate nonce and message from server
+      toast({
+        title: "Generating secure nonce",
+        description: "Creating secure authentication challenge..."
+      })
+      
+      const { message } = await generateNonceAndMessage(address)
+      
+      // Sign the message with nonce
+      toast({
+        title: "Please sign the message",
+        description: "Sign in your wallet to authenticate securely"
+      })
+      
       const signature = await signMessageAsync({ message })
       await authenticateMutation.mutateAsync({ address, signature, message })
     } catch (error) {
       console.error('Authentication error:', error)
       toast({
         title: "Authentication failed",
-        description: "Failed to sign message or authenticate",
+        description: error instanceof Error ? error.message : "Failed to authenticate with secure nonce",
         variant: "destructive"
       })
     } finally {

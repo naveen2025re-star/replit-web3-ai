@@ -3,6 +3,7 @@ import {
   auditSessions, 
   auditResults,
   githubRepositories,
+  authNonces,
   type User, 
   type InsertUser,
   type AuditSession,
@@ -10,10 +11,12 @@ import {
   type AuditResult,
   type InsertAuditResult,
   type GithubRepository,
-  type InsertGithubRepository
+  type InsertGithubRepository,
+  type AuthNonce,
+  type InsertAuthNonce
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, lt, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -39,6 +42,12 @@ export interface IStorage {
   // Audit result operations
   createAuditResult(result: InsertAuditResult): Promise<AuditResult>;
   getAuditResultBySessionId(sessionId: string): Promise<AuditResult | undefined>;
+  
+  // Auth nonce operations  
+  createAuthNonce(nonce: InsertAuthNonce): Promise<AuthNonce>;
+  getAuthNonce(nonce: string): Promise<AuthNonce | undefined>;
+  markNonceAsUsed(nonce: string): Promise<void>;
+  cleanupExpiredNonces(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -163,6 +172,40 @@ export class DatabaseStorage implements IStorage {
   async getAuditResultBySessionId(sessionId: string): Promise<AuditResult | undefined> {
     const [result] = await db.select().from(auditResults).where(eq(auditResults.sessionId, sessionId));
     return result || undefined;
+  }
+
+  // Auth nonce operations
+  async createAuthNonce(insertNonce: InsertAuthNonce): Promise<AuthNonce> {
+    const [nonce] = await db
+      .insert(authNonces)
+      .values(insertNonce)
+      .returning();
+    return nonce;
+  }
+
+  async getAuthNonce(nonceValue: string): Promise<AuthNonce | undefined> {
+    const [nonce] = await db
+      .select()
+      .from(authNonces)
+      .where(and(
+        eq(authNonces.nonce, nonceValue),
+        eq(authNonces.used, false),
+        desc(authNonces.expiresAt)
+      ));
+    return nonce || undefined;
+  }
+
+  async markNonceAsUsed(nonceValue: string): Promise<void> {
+    await db
+      .update(authNonces)
+      .set({ used: true })
+      .where(eq(authNonces.nonce, nonceValue));
+  }
+
+  async cleanupExpiredNonces(): Promise<void> {
+    await db
+      .delete(authNonces)
+      .where(lt(authNonces.expiresAt, new Date()));
   }
 }
 
