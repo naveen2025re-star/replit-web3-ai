@@ -55,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Start contract analysis
-  app.post("/api/audit/analyze/:sessionId", async (req, res) => {
+  app.get("/api/audit/analyze/:sessionId", async (req, res) => {
     try {
       const { sessionId } = req.params;
       
@@ -76,6 +76,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Access-Control-Allow-Headers": "Cache-Control"
       });
 
+      console.log(`[ANALYSIS] Starting analysis for session ${sessionId}`);
+      console.log(`[ANALYSIS] Session key: ${session.sessionKey}`);
+      console.log(`[ANALYSIS] Contract language: ${session.contractLanguage}`);
+      
       // Create FormData for the request
       const formData = new FormData();
       const requestPayload = {
@@ -89,14 +93,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       formData.append("request", JSON.stringify(requestPayload));
+      console.log(`[ANALYSIS] Request payload prepared`);
 
       // Call Shipable AI analysis endpoint
+      console.log(`[ANALYSIS] Calling Shipable API...`);
       const analysisResponse = await fetch(`${SHIPABLE_API_BASE}/chat/open-playground`, {
         method: "POST",
         body: formData
       });
 
+      console.log(`[ANALYSIS] API Response status: ${analysisResponse.status}`);
       if (!analysisResponse.ok) {
+        const errorText = await analysisResponse.text();
+        console.error(`[ANALYSIS] API Error: ${errorText}`);
         throw new Error(`Analysis failed: ${analysisResponse.statusText}`);
       }
 
@@ -114,6 +123,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const lines = chunk.split('\n');
 
             for (const line of lines) {
+              if (line.startsWith('event: processing')) {
+                console.log(`[STREAM] Processing event`);
+                continue;
+              }
+              
               if (line.startsWith('event: content')) {
                 continue;
               }
@@ -123,13 +137,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const jsonData = JSON.parse(line.slice(6));
                   if (jsonData.body) {
                     fullResponse += jsonData.body;
+                    console.log(`[STREAM] Sending chunk: ${jsonData.body.substring(0, 50)}...`);
                     
                     // Send to client
                     res.write(`event: content\n`);
                     res.write(`data: ${JSON.stringify({ body: jsonData.body })}\n\n`);
+                  } else if (jsonData.status) {
+                    console.log(`[STREAM] Status: ${jsonData.status}`);
+                    res.write(`event: status\n`);
+                    res.write(`data: ${JSON.stringify(jsonData)}\n\n`);
                   }
                 } catch (e) {
-                  // Skip invalid JSON
+                  console.log(`[STREAM] Invalid JSON in line: ${line}`);
                 }
               }
             }

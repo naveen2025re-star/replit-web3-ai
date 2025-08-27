@@ -70,39 +70,49 @@ export default function Auditor() {
 
       let accumulatedContent = "";
 
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+      eventSource.addEventListener("content", (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.body) {
+            accumulatedContent += data.body;
+            setAuditReport(accumulatedContent);
+          }
+        } catch (e) {
+          console.error("Error parsing content event:", e);
+        }
+      });
+
+      eventSource.addEventListener("complete", (event) => {
+        setAnalysisState("completed");
+        eventSource.close();
         
-        if (event.type === "content" && data.body) {
-          accumulatedContent += data.body;
-          setAuditReport(accumulatedContent);
-        } else if (event.type === "complete") {
-          setAnalysisState("completed");
-          eventSource.close();
-          
-          // Extract vulnerability stats from the report (simple pattern matching)
-          const highMatches = accumulatedContent.match(/high\s+risk|critical/gi);
-          const mediumMatches = accumulatedContent.match(/medium\s+risk|moderate/gi);
-          const lowMatches = accumulatedContent.match(/low\s+risk|minor/gi);
-          const infoMatches = accumulatedContent.match(/informational|best\s+practice/gi);
-          
-          setVulnerabilityStats({
-            high: highMatches ? Math.min(highMatches.length, 10) : 0,
-            medium: mediumMatches ? Math.min(mediumMatches.length, 10) : 0,
-            low: lowMatches ? Math.min(lowMatches.length, 10) : 0,
-            info: infoMatches ? Math.min(infoMatches.length, 10) : 0,
-          });
-          
-          // Calculate a simple security score
-          const totalIssues = (highMatches?.length || 0) * 3 + (mediumMatches?.length || 0) * 2 + (lowMatches?.length || 0);
-          const score = Math.max(1, Math.min(10, 10 - totalIssues * 0.5));
-          setSecurityScore(Math.round(score * 10) / 10);
-          
-          toast({
-            title: "Analysis completed",
-            description: "Smart contract security audit finished successfully",
-          });
-        } else if (event.type === "error") {
+        // Extract vulnerability stats from the report (simple pattern matching)
+        const highMatches = accumulatedContent.match(/high\s+risk|critical/gi);
+        const mediumMatches = accumulatedContent.match(/medium\s+risk|moderate/gi);
+        const lowMatches = accumulatedContent.match(/low\s+risk|minor/gi);
+        const infoMatches = accumulatedContent.match(/informational|best\s+practice/gi);
+        
+        setVulnerabilityStats({
+          high: highMatches ? Math.min(highMatches.length, 10) : 0,
+          medium: mediumMatches ? Math.min(mediumMatches.length, 10) : 0,
+          low: lowMatches ? Math.min(lowMatches.length, 10) : 0,
+          info: infoMatches ? Math.min(infoMatches.length, 10) : 0,
+        });
+        
+        // Calculate a simple security score
+        const totalIssues = (highMatches?.length || 0) * 3 + (mediumMatches?.length || 0) * 2 + (lowMatches?.length || 0);
+        const score = Math.max(1, Math.min(10, 10 - totalIssues * 0.5));
+        setSecurityScore(Math.round(score * 10) / 10);
+        
+        toast({
+          title: "Analysis completed",
+          description: "Smart contract security audit finished successfully",
+        });
+      });
+
+      eventSource.addEventListener("error", (event) => {
+        try {
+          const data = JSON.parse(event.data);
           setAnalysisState("error");
           eventSource.close();
           toast({
@@ -110,8 +120,16 @@ export default function Auditor() {
             description: data.message || "An error occurred during analysis",
             variant: "destructive",
           });
+        } catch (e) {
+          setAnalysisState("error");
+          eventSource.close();
+          toast({
+            title: "Connection error",
+            description: "Lost connection to the analysis service",
+            variant: "destructive",
+          });
         }
-      };
+      });
 
       eventSource.onerror = () => {
         setAnalysisState("error");
