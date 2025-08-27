@@ -415,6 +415,49 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // File upload for smart contracts
+  app.post("/api/contracts/upload", async (req, res) => {
+    try {
+      const { files } = z.object({
+        files: z.array(z.object({
+          name: z.string(),
+          content: z.string(),
+          size: z.number()
+        }))
+      }).parse(req.body);
+
+      if (files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Combine all file contents
+      const combinedContent = files.map(file => 
+        `// File: ${file.name}\n${file.content}`
+      ).join('\n\n');
+
+      // Detect contract language from file extensions
+      const extensions = files.map(f => f.name.split('.').pop()?.toLowerCase());
+      let contractLanguage = 'solidity'; // default
+      
+      if (extensions.includes('rs')) contractLanguage = 'rust';
+      else if (extensions.includes('go')) contractLanguage = 'go';
+      else if (extensions.includes('js') || extensions.includes('ts')) contractLanguage = 'javascript';
+      else if (extensions.includes('py')) contractLanguage = 'python';
+      else if (extensions.includes('sol')) contractLanguage = 'solidity';
+      else if (extensions.includes('vy')) contractLanguage = 'vyper';
+
+      res.json({
+        combinedContent,
+        contractLanguage,
+        fileCount: files.length,
+        totalSize: files.reduce((sum, f) => sum + f.size, 0)
+      });
+    } catch (error) {
+      console.error("File upload failed:", error);
+      res.status(500).json({ message: "Failed to process uploaded files" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

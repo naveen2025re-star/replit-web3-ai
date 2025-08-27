@@ -12,6 +12,7 @@ import MarkdownRenderer from "@/components/ui/markdown-renderer";
 import ResizablePanes from "@/components/ui/resizable-panes";
 import { WalletConnect } from "@/components/ui/wallet-connect";
 import { AuditHistory } from "@/components/ui/audit-history";
+import { FileUploader } from "@/components/ui/file-uploader";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { createAuditSession, analyzeContract } from "@/lib/shipable-api";
 
@@ -33,6 +34,7 @@ export default function Auditor() {
   const [vulnerabilityStats, setVulnerabilityStats] = useState<VulnerabilityCount | null>(null);
   const [securityScore, setSecurityScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("audit");
+  const [uploadedFiles, setUploadedFiles] = useState<{fileCount: number, totalSize: number} | null>(null);
   const { toast } = useToast();
   const { user, isConnected, isAuthenticated } = useWeb3Auth();
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -49,7 +51,7 @@ export default function Auditor() {
     if (!contractCode.trim()) {
       toast({
         title: "No contract code",
-        description: "Please enter smart contract code to analyze",
+        description: "Please enter smart contract code or upload files to analyze",
         variant: "destructive",
       });
       return;
@@ -165,10 +167,21 @@ export default function Auditor() {
     setVulnerabilityStats(null);
     setSecurityScore(null);
     setCurrentSessionId(null);
+    setUploadedFiles(null);
     
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
+  };
+
+  const handleFilesProcessed = (combinedContent: string, detectedLanguage: string, fileInfo: {fileCount: number, totalSize: number}) => {
+    setContractCode(combinedContent);
+    setContractLanguage(detectedLanguage);
+    setUploadedFiles(fileInfo);
+    toast({
+      title: "Files loaded successfully",
+      description: `${fileInfo.fileCount} contract files combined for analysis`
+    });
   };
 
   const handleCopyReport = async () => {
@@ -191,34 +204,31 @@ export default function Auditor() {
             <h2 className="text-lg font-semibold text-foreground">Smart Contract Code</h2>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={contractLanguage} onValueChange={setContractLanguage}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="solidity">Solidity</SelectItem>
-                <SelectItem value="vyper">Vyper</SelectItem>
-                <SelectItem value="rust">Rust</SelectItem>
-                <SelectItem value="move">Move</SelectItem>
-                <SelectItem value="cairo">Cairo</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" data-testid="button-upload">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload File
-            </Button>
+            <Badge variant="outline" data-testid="text-contract-language">
+              {contractLanguage.charAt(0).toUpperCase() + contractLanguage.slice(1)}
+            </Badge>
+            {uploadedFiles && (
+              <Badge variant="secondary" data-testid="text-file-info">
+                {uploadedFiles.fileCount} files
+              </Badge>
+            )}
           </div>
         </div>
       </div>
 
+      {/* File Upload */}
+      <div className="p-6 pb-4">
+        <FileUploader onFilesProcessed={handleFilesProcessed} />
+      </div>
+
       {/* Code Editor */}
-      <div className="flex-1 p-6 pb-0 flex flex-col overflow-hidden">
+      <div className="flex-1 p-6 pt-0 pb-0 flex flex-col overflow-hidden">
         <div className="flex-1 mb-4">
           <CodeEditor
             value={contractCode}
             onChange={setContractCode}
             language={contractLanguage}
-            placeholder={`// Paste your smart contract code here...
+            placeholder={`// Upload contract files or paste your code here...
 // Supported languages: Solidity, Vyper, Rust, Move, Cairo
 
 pragma solidity ^0.8.19;

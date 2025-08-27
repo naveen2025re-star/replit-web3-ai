@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
@@ -6,18 +6,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { History, Eye, Download, Calendar, Code, Shield, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import type { AuditSession } from "@shared/schema";
+import MarkdownRenderer from "@/components/ui/markdown-renderer";
+import type { AuditSession, AuditResult } from "@shared/schema";
 
 interface AuditHistoryProps {
   userId?: string;
 }
 
 export function AuditHistory({ userId }: AuditHistoryProps) {
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  
   const { data: sessions, isLoading, error } = useQuery<AuditSession[]>({
     queryKey: [`/api/audit/user-sessions/${userId}`],
     enabled: !!userId,
+  });
+  
+  const { data: auditData } = useQuery<{session: AuditSession, result: AuditResult}>({
+    queryKey: [`/api/audit/results/${selectedSession}`],
+    enabled: !!selectedSession,
   });
 
   if (!userId) {
@@ -134,20 +143,68 @@ export function AuditHistory({ userId }: AuditHistoryProps) {
                 </div>
                 
                 <div className="flex items-center gap-2 ml-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    title="View Results"
-                    data-testid={`button-view-${index}`}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  {session.status === 'completed' ? (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          title="View Results"
+                          data-testid={`button-view-${index}`}
+                          onClick={() => setSelectedSession(session.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <Shield className="h-5 w-5 text-primary" />
+                            Smart Contract Audit Report
+                            <Badge variant="outline" className="ml-auto">
+                              {session.contractLanguage}
+                            </Badge>
+                          </DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="h-[60vh] mt-4">
+                          {auditData?.result?.formattedReport ? (
+                            <MarkdownRenderer content={auditData.result.formattedReport} />
+                          ) : (
+                            <div className="flex items-center justify-center h-32 text-muted-foreground">
+                              Loading audit report...
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      title="Analysis not completed"
+                      disabled
+                      data-testid={`button-view-${index}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
                   {session.status === 'completed' && (
                     <Button 
                       variant="ghost" 
                       size="sm"
                       title="Download Report"
                       data-testid={`button-download-${index}`}
+                      onClick={() => {
+                        if (auditData?.result?.formattedReport) {
+                          const blob = new Blob([auditData.result.formattedReport], { type: 'text/markdown' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `audit-report-${session.id}.md`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      }}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
