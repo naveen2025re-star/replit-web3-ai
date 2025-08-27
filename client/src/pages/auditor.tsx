@@ -14,6 +14,8 @@ import { WalletConnect } from "@/components/ui/wallet-connect";
 import { AuditHistory } from "@/components/ui/audit-history";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
+import { useLocation } from "wouter";
+import { useDisconnect } from "wagmi";
 import { createAuditSession, analyzeContract } from "@/lib/shipable-api";
 
 type AnalysisState = "initial" | "loading" | "streaming" | "completed" | "error";
@@ -37,6 +39,8 @@ export default function Auditor() {
   const [uploadedFiles, setUploadedFiles] = useState<{fileCount: number, totalSize: number} | null>(null);
   const { toast } = useToast();
   const { user, isConnected, isAuthenticated } = useWeb3Auth();
+  const [, setLocation] = useLocation();
+  const { disconnect } = useDisconnect();
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -195,82 +199,173 @@ export default function Auditor() {
   };
 
   const leftPanel = (
-    <div className="flex flex-col h-full bg-background">
-      {/* Code Editor Header */}
-      <div className="bg-card border-b border-border px-6 py-3">
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900/50">
+      {/* Modern Header with User Info */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Code className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Smart Contract Code</h2>
+            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">SmartAudit AI</h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Web3 Security Analysis</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" data-testid="text-contract-language">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Connected</span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                disconnect();
+                setLocation("/auth");
+              }}
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            >
+              <User className="h-4 w-4 mr-1" />
+              Logout
+            </Button>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Code className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Contract Analysis</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs" data-testid="text-contract-language">
               {contractLanguage.charAt(0).toUpperCase() + contractLanguage.slice(1)}
             </Badge>
             {uploadedFiles && (
-              <Badge variant="secondary" data-testid="text-file-info">
-                {uploadedFiles.fileCount} files
+              <Badge variant="secondary" className="text-xs" data-testid="text-file-info">
+                {uploadedFiles.fileCount} files uploaded
               </Badge>
             )}
           </div>
         </div>
       </div>
 
-      {/* File Upload */}
-      <div className="p-6 pb-4">
+      {/* File Upload Section */}
+      <div className="p-6">
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Upload Contract Files
+          </h3>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+            Drag & drop or select multiple contract files for combined analysis
+          </p>
+        </div>
         <FileUploader onFilesProcessed={handleFilesProcessed} />
       </div>
 
-      {/* Code Editor */}
-      <div className="flex-1 p-6 pt-0 pb-0 flex flex-col overflow-hidden">
-        <div className="flex-1 mb-4">
+      {/* Code Editor Section */}
+      <div className="flex-1 px-6 pb-6 flex flex-col overflow-hidden">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+            <Code className="h-4 w-4" />
+            Contract Code
+          </h3>
+          <div className="flex items-center gap-2">
+            <Select value={contractLanguage} onValueChange={setContractLanguage}>
+              <SelectTrigger className="w-40 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="solidity">Solidity</SelectItem>
+                <SelectItem value="vyper">Vyper</SelectItem>
+                <SelectItem value="rust">Rust</SelectItem>
+                <SelectItem value="move">Move</SelectItem>
+                <SelectItem value="cairo">Cairo</SelectItem>
+                <SelectItem value="javascript">JavaScript</SelectItem>
+                <SelectItem value="typescript">TypeScript</SelectItem>
+                <SelectItem value="python">Python</SelectItem>
+                <SelectItem value="go">Go</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="text-xs text-slate-500 dark:text-slate-400">• Paste or edit code below</div>
+          </div>
+        </div>
+        <div className="flex-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
           <CodeEditor
             value={contractCode}
             onChange={setContractCode}
             language={contractLanguage}
-            placeholder={`// Upload contract files or paste your code here...
-// Supported languages: Solidity, Vyper, Rust, Move, Cairo
+            placeholder={`// Upload contract files above or paste your code here...
+// Supported: Solidity, Vyper, Rust, Move, Cairo, JavaScript, Python, Go
 
 pragma solidity ^0.8.19;
 
-contract Example {
-    // Your contract code...
+contract SecureContract {
+    // Your smart contract code here...
+    // AI will analyze for vulnerabilities and best practices
 }`}
           />
         </div>
       </div>
       
-      {/* Action Buttons - Fixed at bottom */}
-      <div className="border-t border-border bg-card/50 px-6 py-4">
-        <div className="flex gap-3 flex-wrap">
+      {/* Action Panel - Modern Design */}
+      <div className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-6 py-5">
+        <div className="space-y-4">
+          {/* Primary Action */}
           <Button 
             onClick={handleAnalyze}
-            disabled={analysisState === "loading" || analysisState === "streaming"}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 min-w-[180px]"
+            disabled={analysisState === "loading" || analysisState === "streaming" || !contractCode.trim()}
+            className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
             data-testid="button-analyze"
           >
-            <Search className="h-4 w-4 mr-2" />
-            {analysisState === "loading" || analysisState === "streaming" ? "Analyzing..." : "Start Security Audit"}
+            {analysisState === "loading" || analysisState === "streaming" ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Analyzing Contract...
+              </>
+            ) : (
+              <>
+                <Shield className="h-5 w-5 mr-2" />
+                Start AI Security Audit
+              </>
+            )}
           </Button>
           
-          <Button 
-            variant="secondary" 
-            onClick={handleClear}
-            data-testid="button-clear"
-            className="min-w-[100px]"
-          >
-            <Trash className="h-4 w-4 mr-2" />
-            Clear
-          </Button>
+          {/* Secondary Actions */}
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleClear}
+              data-testid="button-clear"
+              className="flex-1 h-10 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+              disabled={!contractCode.trim()}
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              Clear
+            </Button>
+            
+            <Button 
+              variant="outline"
+              data-testid="button-save"
+              className="flex-1 h-10 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+              disabled={!contractCode.trim()}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </div>
           
-          <Button 
-            variant="outline"
-            data-testid="button-save"
-            className="min-w-[120px]"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Draft
-          </Button>
+          {/* Quick Stats */}
+          {contractCode.trim() && (
+            <div className="flex items-center justify-center gap-4 pt-2 text-xs text-slate-500 dark:text-slate-400">
+              <span>{contractCode.split('\n').length} lines</span>
+              <span>•</span>
+              <span>{Math.ceil(contractCode.length / 1000)}k characters</span>
+              <span>•</span>
+              <span className="text-blue-600 dark:text-blue-400">Ready to analyze</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -6,11 +6,18 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Web3Provider } from "@/components/Web3Provider";
 import NotFound from "@/pages/not-found";
 import Auditor from "@/pages/auditor";
+import AuthPage from "@/pages/auth";
+import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 
 function Router() {
+  const { isAuthenticated, user } = useWeb3Auth();
+
   return (
     <Switch>
-      <Route path="/" component={Auditor} />
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/">
+        {isAuthenticated && user ? <Auditor /> : <AuthPage />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
