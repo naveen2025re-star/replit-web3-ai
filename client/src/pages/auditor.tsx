@@ -212,12 +212,13 @@ export default function Auditor() {
       </div>
 
       {/* Code Editor */}
-      <div className="flex-1 p-6 overflow-hidden">
-        <CodeEditor
-          value={contractCode}
-          onChange={setContractCode}
-          language={contractLanguage}
-          placeholder={`// Paste your smart contract code here...
+      <div className="flex-1 p-6 pb-0 flex flex-col overflow-hidden">
+        <div className="flex-1 mb-4">
+          <CodeEditor
+            value={contractCode}
+            onChange={setContractCode}
+            language={contractLanguage}
+            placeholder={`// Paste your smart contract code here...
 // Supported languages: Solidity, Vyper, Rust, Move, Cairo
 
 pragma solidity ^0.8.19;
@@ -225,14 +226,17 @@ pragma solidity ^0.8.19;
 contract Example {
     // Your contract code...
 }`}
-        />
-        
-        {/* Action Buttons */}
-        <div className="mt-4 flex gap-3">
+          />
+        </div>
+      </div>
+      
+      {/* Action Buttons - Fixed at bottom */}
+      <div className="border-t border-border bg-card/50 px-6 py-4">
+        <div className="flex gap-3 flex-wrap">
           <Button 
             onClick={handleAnalyze}
             disabled={analysisState === "loading" || analysisState === "streaming"}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 min-w-[180px]"
             data-testid="button-analyze"
           >
             <Search className="h-4 w-4 mr-2" />
@@ -243,6 +247,7 @@ contract Example {
             variant="secondary" 
             onClick={handleClear}
             data-testid="button-clear"
+            className="min-w-[100px]"
           >
             <Trash className="h-4 w-4 mr-2" />
             Clear
@@ -251,6 +256,7 @@ contract Example {
           <Button 
             variant="outline"
             data-testid="button-save"
+            className="min-w-[120px]"
           >
             <Save className="h-4 w-4 mr-2" />
             Save Draft
