@@ -151,14 +151,20 @@ export function FileUploader({ onFilesProcessed, maxFiles = 10, maxFileSize = 10
   };
 
   return (
-    <Card className="p-4">
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Upload className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Upload Contract Files</h3>
+    <div className="space-y-4">
+      <div className="bg-gradient-to-r from-primary/10 to-blue-500/10 border border-primary/20 rounded-lg p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2 bg-primary/20 rounded-lg">
+            <Upload className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">Upload Contract Files</h3>
+            <p className="text-xs text-muted-foreground">Drag & drop or select multiple files</p>
+          </div>
         </div>
 
-        <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+        <div className="border-2 border-dashed border-primary/30 bg-card/50 hover:bg-card/80 transition-colors rounded-lg p-8 text-center group cursor-pointer"
+             onClick={() => fileInputRef.current?.click()}>
           <input
             ref={fileInputRef}
             type="file"
@@ -168,48 +174,65 @@ export function FileUploader({ onFilesProcessed, maxFiles = 10, maxFileSize = 10
             className="hidden"
             data-testid="input-file-upload"
           />
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading || files.length >= maxFiles}
-            data-testid="button-select-files"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? "Processing..." : "Select Files"}
-          </Button>
-          <p className="text-sm text-muted-foreground mt-2">
-            Supported: .sol, .rs, .go, .js, .ts, .py, .vy files
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Max {maxFiles} files, {Math.round(maxFileSize / 1024)}KB each
-          </p>
+          <div className="space-y-3">
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <Upload className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isUploading || files.length >= maxFiles}
+                data-testid="button-select-files"
+                className="pointer-events-none"
+              >
+                {isUploading ? "Processing..." : "Select Files"}
+              </Button>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-foreground">
+                Drop files here or click to browse
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                .sol .rs .go .js .ts .py .vy • Max {maxFiles} files • {Math.round(maxFileSize / 1024)}KB each
+              </p>
+            </div>
+          </div>
         </div>
 
-        {files.length > 0 && (
-          <div className="space-y-3">
+      </div>
+
+      {files.length > 0 && (
+        <Card className="p-4">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Selected Files</span>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">Selected Files</span>
+              </div>
               <Badge variant="secondary" data-testid="text-file-count">
                 {files.length} files
               </Badge>
             </div>
             
-            <ScrollArea className="h-48 border rounded-lg p-2">
+            <ScrollArea className="max-h-48">
               <div className="space-y-2">
                 {files.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                    className="flex items-center justify-between p-3 bg-muted/50 hover:bg-muted rounded-lg transition-colors"
                     data-testid={`file-item-${index}`}
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="p-1.5 bg-primary/10 rounded">
+                        <FileText className="h-3.5 w-3.5 text-primary" />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate" title={file.name}>
                           {file.name}
                         </p>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
                             {getFileLanguage(file.name)}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
@@ -223,6 +246,7 @@ export function FileUploader({ onFilesProcessed, maxFiles = 10, maxFileSize = 10
                       size="sm"
                       onClick={() => removeFile(index)}
                       data-testid={`button-remove-file-${index}`}
+                      className="h-8 w-8 p-0 hover:bg-destructive/20 hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -231,28 +255,37 @@ export function FileUploader({ onFilesProcessed, maxFiles = 10, maxFileSize = 10
               </div>
             </ScrollArea>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between pt-3 border-t">
+              <div className="text-xs text-muted-foreground">
+                Total: {formatFileSize(files.reduce((sum, f) => sum + f.size, 0))}
+              </div>
               <Button
                 onClick={handleProcess}
                 disabled={files.length === 0}
                 data-testid="button-process-files"
+                className="bg-primary hover:bg-primary/90"
               >
+                <Upload className="h-4 w-4 mr-2" />
                 Process Files for Analysis
               </Button>
-              <span className="text-xs text-muted-foreground">
-                Total: {formatFileSize(files.reduce((sum, f) => sum + f.size, 0))}
-              </span>
             </div>
           </div>
-        )}
+        </Card>
+      )}
 
-        {files.length === 0 && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <AlertCircle className="h-4 w-4" />
-            <span>Upload multiple contract files to combine them for comprehensive analysis</span>
+      {files.length === 0 && (
+        <div className="bg-card/50 border border-border/50 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Pro Tip</p>
+              <p className="text-sm text-muted-foreground">
+                Upload multiple contract files to combine them for comprehensive analysis across your entire project
+              </p>
+            </div>
           </div>
-        )}
-      </div>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }

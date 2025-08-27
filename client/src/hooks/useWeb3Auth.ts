@@ -14,11 +14,12 @@ export function useWeb3Auth() {
   const queryClient = useQueryClient()
   
   const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false)
 
-  // Get user data if wallet is connected
+  // Get user data only after authentication attempt
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: [`/api/auth/user/${address}`],
-    enabled: isConnected && !!address,
+    enabled: isConnected && !!address && hasAttemptedAuth,
     retry: false,
   })
 
@@ -33,6 +34,7 @@ export function useWeb3Auth() {
       return response.json()
     },
     onSuccess: (data) => {
+      setHasAttemptedAuth(true)
       queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${address}`] })
       queryClient.setQueryData([`/api/auth/user/${address}`], data.user)
       toast({
@@ -85,6 +87,7 @@ export function useWeb3Auth() {
 
   const handleDisconnect = () => {
     disconnect()
+    setHasAttemptedAuth(false)
     queryClient.removeQueries({ queryKey: [`/api/auth/user/${address}`] })
     toast({
       title: "Disconnected",
