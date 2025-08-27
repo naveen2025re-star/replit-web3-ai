@@ -1,19 +1,49 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  walletAddress: text("wallet_address").unique(),
+  ensName: text("ens_name"),
+  username: text("username"),
+  email: text("email"),
+  githubId: text("github_id").unique(),
+  githubUsername: text("github_username"),
+  githubAccessToken: text("github_access_token"),
+  profileImageUrl: text("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const githubRepositories = pgTable("github_repositories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  repoId: integer("repo_id").notNull(),
+  name: text("name").notNull(),
+  fullName: text("full_name").notNull(),
+  description: text("description"),
+  private: boolean("private").notNull().default(false),
+  htmlUrl: text("html_url").notNull(),
+  defaultBranch: text("default_branch").notNull().default("main"),
+  language: text("language"),
+  stargazersCount: integer("stargazers_count").notNull().default(0),
+  forksCount: integer("forks_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const auditSessions = pgTable("audit_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
   sessionKey: text("session_key").notNull(),
   contractCode: text("contract_code").notNull(),
   contractLanguage: text("contract_language").notNull().default("solidity"),
+  contractSource: text("contract_source").default("manual"), // manual, github
+  githubRepoId: varchar("github_repo_id").references(() => githubRepositories.id),
+  githubFilePath: text("github_file_path"),
   status: text("status").notNull().default("pending"), // pending, analyzing, completed, failed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
@@ -34,15 +64,73 @@ export const auditResults = pgTable("audit_results", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  auditSessions: many(auditSessions),
+  githubRepositories: many(githubRepositories),
+}));
+
+export const githubRepositoriesRelations = relations(githubRepositories, ({ one, many }) => ({
+  user: one(users, {
+    fields: [githubRepositories.userId],
+    references: [users.id],
+  }),
+  auditSessions: many(auditSessions),
+}));
+
+export const auditSessionsRelations = relations(auditSessions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [auditSessions.userId],
+    references: [users.id],
+  }),
+  githubRepository: one(githubRepositories, {
+    fields: [auditSessions.githubRepoId],
+    references: [githubRepositories.id],
+  }),
+  results: many(auditResults),
+}));
+
+export const auditResultsRelations = relations(auditResults, ({ one }) => ({
+  session: one(auditSessions, {
+    fields: [auditResults.sessionId],
+    references: [auditSessions.id],
+  }),
+}));
+
+// Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
+  walletAddress: true,
+  ensName: true,
   username: true,
-  password: true,
+  email: true,
+  githubId: true,
+  githubUsername: true,
+  githubAccessToken: true,
+  profileImageUrl: true,
+});
+
+export const insertGithubRepositorySchema = createInsertSchema(githubRepositories).pick({
+  userId: true,
+  repoId: true,
+  name: true,
+  fullName: true,
+  description: true,
+  private: true,
+  htmlUrl: true,
+  defaultBranch: true,
+  language: true,
+  stargazersCount: true,
+  forksCount: true,
 });
 
 export const insertAuditSessionSchema = createInsertSchema(auditSessions).pick({
+  userId: true,
   sessionKey: true,
   contractCode: true,
   contractLanguage: true,
+  contractSource: true,
+  githubRepoId: true,
+  githubFilePath: true,
 });
 
 export const insertAuditResultSchema = createInsertSchema(auditResults).pick({
@@ -53,8 +141,11 @@ export const insertAuditResultSchema = createInsertSchema(auditResults).pick({
   securityScore: true,
 });
 
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertGithubRepository = z.infer<typeof insertGithubRepositorySchema>;
+export type GithubRepository = typeof githubRepositories.$inferSelect;
 export type InsertAuditSession = z.infer<typeof insertAuditSessionSchema>;
 export type AuditSession = typeof auditSessions.$inferSelect;
 export type InsertAuditResult = z.infer<typeof insertAuditResultSchema>;

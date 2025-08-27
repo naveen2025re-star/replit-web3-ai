@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAuditSessionSchema, insertAuditResultSchema } from "@shared/schema";
+import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 
 const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
@@ -9,12 +9,84 @@ const JWT_TOKEN = process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Web3 Authentication
+  app.post("/api/auth/web3", async (req, res) => {
+    try {
+      const { walletAddress, signature, message } = z.object({
+        walletAddress: z.string(),
+        signature: z.string(),
+        message: z.string()
+      }).parse(req.body);
+
+      // For now, skip signature verification and trust the frontend
+      // In production, you would verify the signature using ethers.js
+      // TODO: Add proper signature verification
+
+      // Check if user exists
+      let user = await storage.getUserByWallet(walletAddress);
+      
+      if (!user) {
+        // Create new user
+        user = await storage.createUser({
+          walletAddress: walletAddress.toLowerCase(),
+          username: `user_${walletAddress.slice(0, 8).toLowerCase()}`,
+        });
+      }
+
+      res.json({
+        user: {
+          id: user.id,
+          walletAddress: user.walletAddress,
+          username: user.username,
+          ensName: user.ensName,
+          profileImageUrl: user.profileImageUrl,
+          createdAt: user.createdAt
+        }
+      });
+    } catch (error) {
+      console.error("Web3 auth failed:", error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Authentication failed" 
+      });
+    }
+  });
+
+  // Get authenticated user
+  app.get("/api/auth/user", async (req, res) => {
+    const { address } = req.query;
+    
+    if (!address || typeof address !== 'string') {
+      return res.status(401).json({ message: "No wallet address provided" });
+    }
+
+    try {
+      const user = await storage.getUserByWallet(address.toLowerCase());
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        id: user.id,
+        walletAddress: user.walletAddress,
+        username: user.username,
+        ensName: user.ensName,
+        profileImageUrl: user.profileImageUrl,
+        createdAt: user.createdAt
+      });
+    } catch (error) {
+      console.error("Get user failed:", error);
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+  
   // Create new audit session
   app.post("/api/audit/sessions", async (req, res) => {
     try {
-      const { contractCode, contractLanguage } = z.object({
+      const { contractCode, contractLanguage, userId } = z.object({
         contractCode: z.string().min(1),
-        contractLanguage: z.string().default("solidity")
+        contractLanguage: z.string().default("solidity"),
+        userId: z.string().optional()
       }).parse(req.body);
 
       // Step 1: Create session with Shipable AI
@@ -38,6 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionKey,
         contractCode,
         contractLanguage,
+        userId,
       });
 
       res.json({
@@ -223,6 +296,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Failed to get audit sessions:", error);
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to get audit sessions" 
+      });
+    }
+  });
+
+  // Get user audit sessions
+  app.get("/api/audit/user-sessions/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const sessions = await storage.getUserAuditSessions(userId, 50);
+      res.json(sessions);
+    } catch (error) {
+      console.error("Failed to get user audit sessions:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to get user audit sessions" 
       });
     }
   });

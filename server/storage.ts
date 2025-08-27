@@ -2,38 +2,59 @@ import {
   users, 
   auditSessions, 
   auditResults,
+  githubRepositories,
   type User, 
   type InsertUser,
   type AuditSession,
   type InsertAuditSession,
   type AuditResult,
-  type InsertAuditResult
+  type InsertAuditResult,
+  type GithubRepository,
+  type InsertGithubRepository
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByWallet(walletAddress: string): Promise<User | undefined>;
+  getUserByGithubId(githubId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
   
+  // GitHub repository operations
+  createGithubRepository(repo: InsertGithubRepository): Promise<GithubRepository>;
+  getUserGithubRepositories(userId: string): Promise<GithubRepository[]>;
+  getGithubRepository(id: string): Promise<GithubRepository | undefined>;
+  updateGithubRepositories(userId: string, repos: InsertGithubRepository[]): Promise<GithubRepository[]>;
+  
+  // Audit session operations
   createAuditSession(session: InsertAuditSession): Promise<AuditSession>;
   getAuditSession(id: string): Promise<AuditSession | undefined>;
   updateAuditSessionStatus(id: string, status: string, completedAt?: Date): Promise<void>;
   getRecentAuditSessions(limit?: number): Promise<AuditSession[]>;
+  getUserAuditSessions(userId: string, limit?: number): Promise<AuditSession[]>;
   
+  // Audit result operations
   createAuditResult(result: InsertAuditResult): Promise<AuditResult>;
   getAuditResultBySessionId(sessionId: string): Promise<AuditResult | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+  async getUserByWallet(walletAddress: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.walletAddress, walletAddress));
+    return user || undefined;
+  }
+
+  async getUserByGithubId(githubId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.githubId, githubId));
     return user || undefined;
   }
 
@@ -45,6 +66,52 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  // GitHub repository operations
+  async createGithubRepository(insertRepo: InsertGithubRepository): Promise<GithubRepository> {
+    const [repo] = await db
+      .insert(githubRepositories)
+      .values(insertRepo)
+      .returning();
+    return repo;
+  }
+
+  async getUserGithubRepositories(userId: string): Promise<GithubRepository[]> {
+    return await db
+      .select()
+      .from(githubRepositories)
+      .where(eq(githubRepositories.userId, userId))
+      .orderBy(desc(githubRepositories.updatedAt));
+  }
+
+  async getGithubRepository(id: string): Promise<GithubRepository | undefined> {
+    const [repo] = await db.select().from(githubRepositories).where(eq(githubRepositories.id, id));
+    return repo || undefined;
+  }
+
+  async updateGithubRepositories(userId: string, repos: InsertGithubRepository[]): Promise<GithubRepository[]> {
+    // Delete existing repos for user
+    await db.delete(githubRepositories).where(eq(githubRepositories.userId, userId));
+    
+    // Insert new repos
+    if (repos.length > 0) {
+      return await db.insert(githubRepositories).values(repos).returning();
+    }
+    return [];
+  }
+
+  // Audit session operations
   async createAuditSession(insertSession: InsertAuditSession): Promise<AuditSession> {
     const [session] = await db
       .insert(auditSessions)
@@ -72,6 +139,15 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(auditSessions)
+      .orderBy(desc(auditSessions.createdAt))
+      .limit(limit);
+  }
+
+  async getUserAuditSessions(userId: string, limit = 50): Promise<AuditSession[]> {
+    return await db
+      .select()
+      .from(auditSessions)
+      .where(eq(auditSessions.userId, userId))
       .orderBy(desc(auditSessions.createdAt))
       .limit(limit);
   }

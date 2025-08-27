@@ -3,6 +3,7 @@ import { apiRequest } from "./queryClient";
 export interface CreateSessionRequest {
   contractCode: string;
   contractLanguage: string;
+  userId?: string;
 }
 
 export interface CreateSessionResponse {

@@ -4,11 +4,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Code, Upload, Search, Trash, Save, History, Settings, User, Download, Copy, Share, CheckCircle, AlertCircle, TriangleAlert, Info, Lightbulb } from "lucide-react";
+import { Shield, Code, Upload, Search, Trash, Save, History, Settings, User, Download, Copy, Share, CheckCircle, AlertCircle, TriangleAlert, Info, Lightbulb, Wallet, Github } from "lucide-react";
 import CodeEditor from "@/components/ui/code-editor";
 import MarkdownRenderer from "@/components/ui/markdown-renderer";
 import ResizablePanes from "@/components/ui/resizable-panes";
+import { WalletConnect } from "@/components/ui/wallet-connect";
+import { AuditHistory } from "@/components/ui/audit-history";
+import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { createAuditSession, analyzeContract } from "@/lib/shipable-api";
 
 type AnalysisState = "initial" | "loading" | "streaming" | "completed" | "error";
@@ -28,7 +32,9 @@ export default function Auditor() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [vulnerabilityStats, setVulnerabilityStats] = useState<VulnerabilityCount | null>(null);
   const [securityScore, setSecurityScore] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("audit");
   const { toast } = useToast();
+  const { user, isConnected, isAuthenticated } = useWeb3Auth();
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -59,6 +65,7 @@ export default function Auditor() {
       const sessionResponse = await createAuditSession({
         contractCode,
         contractLanguage,
+        userId: user?.id,
       });
 
       setCurrentSessionId(sessionResponse.sessionId);
@@ -419,31 +426,52 @@ contract Example {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">SmartAudit AI</h1>
-              <p className="text-xs text-muted-foreground">Blockchain Smart Contract Security Auditor</p>
+              <p className="text-xs text-muted-foreground">Web3 Smart Contract Security Auditor</p>
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" title="Audit History" data-testid="button-history">
-              <History className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" title="Settings" data-testid="button-settings">
-              <Settings className="h-4 w-4" />
-            </Button>
-            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex items-center">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="audit" data-testid="tab-audit">Audit</TabsTrigger>
+                <TabsTrigger value="history" data-testid="tab-history">History</TabsTrigger>
+                <TabsTrigger value="github" data-testid="tab-github">GitHub</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <WalletConnect />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <ResizablePanes
-          leftPanel={leftPanel}
-          rightPanel={rightPanel}
-          initialLeftWidth={50}
-        />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+          <TabsContent value="audit" className="h-full mt-0">
+            <ResizablePanes
+              leftPanel={leftPanel}
+              rightPanel={rightPanel}
+              initialLeftWidth={50}
+            />
+          </TabsContent>
+          
+          <TabsContent value="history" className="h-full mt-0 p-6">
+            <AuditHistory userId={user?.id} />
+          </TabsContent>
+          
+          <TabsContent value="github" className="h-full mt-0 p-6">
+            <Card className="p-6 text-center">
+              <Github className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">GitHub Integration</h3>
+              <p className="text-muted-foreground mb-4">
+                Connect your GitHub account to scan repositories for smart contracts
+              </p>
+              <Button disabled data-testid="button-connect-github">
+                <Github className="h-4 w-4 mr-2" />
+                Connect GitHub (Coming Soon)
+              </Button>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
