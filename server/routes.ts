@@ -22,14 +22,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In production, you would verify the signature using ethers.js
       // TODO: Add proper signature verification
 
-      // Check if user exists
-      let user = await storage.getUserByWallet(walletAddress);
+      // Check if user exists or create new one
+      let user = await storage.getUserByWallet(walletAddress.toLowerCase());
       
       if (!user) {
-        // Create new user
+        // Generate unique username
+        const timestamp = Date.now().toString(36);
+        const addressPart = walletAddress.slice(2, 10).toLowerCase();
+        const username = `user_${addressPart}_${timestamp}`;
+        
         user = await storage.createUser({
           walletAddress: walletAddress.toLowerCase(),
-          username: `user_${walletAddress.slice(0, 8).toLowerCase()}`,
+          username,
         });
       }
 
@@ -51,12 +55,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get authenticated user
-  app.get("/api/auth/user", async (req, res) => {
-    const { address } = req.query;
+  // Get authenticated user by address
+  app.get("/api/auth/user/:address", async (req, res) => {
+    const { address } = req.params;
     
-    if (!address || typeof address !== 'string') {
-      return res.status(401).json({ message: "No wallet address provided" });
+    if (!address) {
+      return res.status(400).json({ message: "No wallet address provided" });
     }
 
     try {
