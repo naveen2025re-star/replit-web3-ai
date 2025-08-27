@@ -94,8 +94,46 @@ const communityAudits = [
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [contractInput, setContractInput] = useState("");
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [displayText, setDisplayText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
   const mountRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number>();
+  
+  // Web3 terms to cycle through
+  const web3Terms = ["DeFi", "Smart Contracts", "NFTs", "Tokens", "DAOs", "Web3", "Protocols", "dApps"];
+
+  // Typewriter effect for Web3 terms
+  useEffect(() => {
+    const typeSpeed = 100;
+    const deleteSpeed = 50;
+    const pauseTime = 2000;
+
+    const currentWord = web3Terms[currentWordIndex];
+    
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        // Typing
+        if (displayText.length < currentWord.length) {
+          setDisplayText(currentWord.slice(0, displayText.length + 1));
+        } else {
+          // Pause before deleting
+          setTimeout(() => setIsDeleting(true), pauseTime);
+        }
+      } else {
+        // Deleting
+        if (displayText.length > 0) {
+          setDisplayText(currentWord.slice(0, displayText.length - 1));
+        } else {
+          // Move to next word
+          setIsDeleting(false);
+          setCurrentWordIndex((prev) => (prev + 1) % web3Terms.length);
+        }
+      }
+    }, isDeleting ? deleteSpeed : typeSpeed);
+
+    return () => clearTimeout(timeout);
+  }, [displayText, isDeleting, currentWordIndex, web3Terms]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -229,7 +267,10 @@ export default function Landing() {
         <div className="px-6 py-16 text-center">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Defend Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">DeFi</span>
+              Defend Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400 min-w-[200px] inline-block">
+                {displayText}
+                <span className="animate-pulse">|</span>
+              </span>
             </h1>
             
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
