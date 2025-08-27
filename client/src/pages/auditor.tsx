@@ -266,11 +266,29 @@ contract Example {
       <div className="bg-card border-b border-border px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${analysisState === "streaming" ? "bg-yellow-500 animate-pulse" : analysisState === "completed" ? "bg-green-500" : analysisState === "error" ? "bg-red-500" : "bg-gray-400"}`}></div>
             <Shield className="h-5 w-5 text-chart-1" />
             <h2 className="text-lg font-semibold text-foreground">Security Audit Report</h2>
+            {analysisState === "streaming" && (
+              <Badge variant="secondary" className="animate-pulse">
+                Analyzing...
+              </Badge>
+            )}
+            {analysisState === "completed" && (
+              <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                Complete
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" title="Export Report" data-testid="button-export">
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              title="Export Report" 
+              data-testid="button-export"
+              disabled={analysisState !== "completed"}
+              className="hover:bg-muted border border-border/50 hover:border-border"
+            >
               <Download className="h-4 w-4" />
             </Button>
             <Button 
@@ -279,10 +297,19 @@ contract Example {
               title="Copy to Clipboard"
               onClick={handleCopyReport}
               data-testid="button-copy"
+              disabled={analysisState !== "completed"}
+              className="hover:bg-muted border border-border/50 hover:border-border"
             >
               <Copy className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" title="Share Report" data-testid="button-share">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              title="Share Report" 
+              data-testid="button-share"
+              disabled={analysisState !== "completed"}
+              className="hover:bg-muted border border-border/50 hover:border-border"
+            >
               <Share className="h-4 w-4" />
             </Button>
           </div>
@@ -418,8 +445,8 @@ contract Example {
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
       {/* Navigation Header */}
-      <header className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between max-w-full">
+      <header className="bg-card border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Shield className="h-4 w-4 text-primary-foreground" />
@@ -430,48 +457,78 @@ contract Example {
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex items-center">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="audit" data-testid="tab-audit">Audit</TabsTrigger>
-                <TabsTrigger value="history" data-testid="tab-history">History</TabsTrigger>
-                <TabsTrigger value="github" data-testid="tab-github">GitHub</TabsTrigger>
+          <div className="flex items-center gap-6">
+            <WalletConnect />
+          </div>
+        </div>
+        
+        {/* Navigation Tabs */}
+        <div className="border-t border-border/50">
+          <div className="px-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="bg-transparent border-none h-auto p-0 grid w-auto grid-cols-3 gap-0">
+                <TabsTrigger 
+                  value="audit" 
+                  data-testid="tab-audit"
+                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent hover:border-muted-foreground/50 transition-colors px-4 py-3"
+                >
+                  <Code className="h-4 w-4 mr-2" />
+                  Audit
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="history" 
+                  data-testid="tab-history"
+                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent hover:border-muted-foreground/50 transition-colors px-4 py-3"
+                >
+                  <History className="h-4 w-4 mr-2" />
+                  History
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="github" 
+                  data-testid="tab-github"
+                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent hover:border-muted-foreground/50 transition-colors px-4 py-3"
+                >
+                  <Github className="h-4 w-4 mr-2" />
+                  GitHub
+                </TabsTrigger>
               </TabsList>
             </Tabs>
-            <WalletConnect />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-          <TabsContent value="audit" className="h-full mt-0">
-            <ResizablePanes
-              leftPanel={leftPanel}
-              rightPanel={rightPanel}
-              initialLeftWidth={50}
-            />
-          </TabsContent>
-          
-          <TabsContent value="history" className="h-full mt-0 p-6">
+        {activeTab === "audit" && (
+          <ResizablePanes
+            leftPanel={leftPanel}
+            rightPanel={rightPanel}
+            initialLeftWidth={50}
+          />
+        )}
+        
+        {activeTab === "history" && (
+          <div className="p-6 h-full overflow-auto">
             <AuditHistory userId={user?.id} />
-          </TabsContent>
-          
-          <TabsContent value="github" className="h-full mt-0 p-6">
-            <Card className="p-6 text-center">
-              <Github className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">GitHub Integration</h3>
-              <p className="text-muted-foreground mb-4">
-                Connect your GitHub account to scan repositories for smart contracts
+          </div>
+        )}
+        
+        {activeTab === "github" && (
+          <div className="p-6 h-full flex items-center justify-center">
+            <Card className="p-8 max-w-md text-center">
+              <Github className="h-16 w-16 mx-auto mb-6 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-3">GitHub Integration</h3>
+              <p className="text-muted-foreground mb-6">
+                Connect your GitHub account to scan repositories for smart contracts and audit them automatically.
               </p>
-              <Button disabled data-testid="button-connect-github">
-                <Github className="h-4 w-4 mr-2" />
-                Connect GitHub (Coming Soon)
+              <Button disabled size="lg" data-testid="button-connect-github">
+                <Github className="h-5 w-5 mr-2" />
+                Connect GitHub
               </Button>
+              <p className="text-xs text-muted-foreground mt-3">Coming Soon</p>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
     </div>
   );

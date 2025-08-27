@@ -38,7 +38,7 @@ export function WalletConnect({ children }: WalletConnectProps) {
         >
           {isAuthenticating ? "Authenticating..." : "Sign Message"}
         </Button>
-        <Button variant="ghost" onClick={disconnect} className="ml-2">
+        <Button variant="ghost" onClick={() => disconnect()} className="ml-2">
           Disconnect
         </Button>
       </Card>
@@ -81,13 +81,14 @@ export function WalletConnect({ children }: WalletConnectProps) {
 }
 
 function ConnectedWallet() {
-  const { user, disconnect } = useWeb3Auth();
+  const { user, disconnect, address } = useWeb3Auth();
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const copyAddress = async () => {
-    if (user?.walletAddress) {
-      await navigator.clipboard.writeText(user.walletAddress);
+    const walletAddress = user?.walletAddress || address;
+    if (walletAddress) {
+      await navigator.clipboard.writeText(walletAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
@@ -101,12 +102,14 @@ function ConnectedWallet() {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  const walletAddress = user?.walletAddress || address || "";
+
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-lg">
         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         <span className="font-mono text-sm" data-testid="text-wallet-address">
-          {formatAddress(user?.walletAddress || "")}
+          {formatAddress(walletAddress)}
         </span>
         <Button 
           variant="ghost" 
@@ -120,7 +123,7 @@ function ConnectedWallet() {
       <Button 
         variant="ghost" 
         size="sm" 
-        onClick={disconnect}
+        onClick={() => disconnect()}
         title="Disconnect Wallet"
         data-testid="button-disconnect"
       >

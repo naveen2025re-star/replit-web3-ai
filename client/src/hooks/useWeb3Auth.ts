@@ -17,7 +17,7 @@ export function useWeb3Auth() {
 
   // Get user data if wallet is connected
   const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ['/api/auth/user', address],
+    queryKey: [`/api/auth/user/${address}`],
     enabled: isConnected && !!address,
     retry: false,
   })
@@ -33,7 +33,7 @@ export function useWeb3Auth() {
       return response.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] })
+      queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${address}`] })
       toast({
         title: "Successfully authenticated",
         description: "Welcome to SmartAudit AI!"
@@ -69,7 +69,7 @@ export function useWeb3Auth() {
 
   const handleDisconnect = () => {
     disconnect()
-    queryClient.removeQueries({ queryKey: ['/api/auth/user'] })
+    queryClient.removeQueries({ queryKey: [`/api/auth/user/${address}`] })
     toast({
       title: "Disconnected",
       description: "Wallet disconnected successfully"
