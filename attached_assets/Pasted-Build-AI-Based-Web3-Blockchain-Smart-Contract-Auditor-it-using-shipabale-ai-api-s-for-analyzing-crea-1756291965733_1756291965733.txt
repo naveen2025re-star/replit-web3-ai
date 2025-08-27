@@ -1,0 +1,244 @@
+Build AI Based Web3/Blockchain Smart Contract Auditor it using shipabale ai api's for analyzing create an mnimal ease to use ui and ux similar to chatgpt user will enter the contract code or paste the code then ai will anlayzie those code for smart contract vulnerbailties
+
+Note: Just take the code or user input and send it to openplayground endpoint's -> content param and it will analyze and stream the response and take it and show it
+
+here is the railway postgres db url for db connection or integration - postgresql://postgres:FSjAleGArdMfXIEJsIJeVVNOFRQZbGdy@shinkansen.proxy.rlwy.net:26864/railway
+
+here is the shipaable ai api endpoints and both are post requests
+
+Expected Shipable API Flow:**
+
+1. **POST** ` https://api.shipable.ai/v2/chat/sessions ` with request or body payload - >`{"source":"website"}` → Get key param from response the key will be in data and key like exmple this request
+
+({
+
+"statusCode": 201,
+
+"data": {
+
+"key": "9d650212-e61c-46db-8c37-ceaf26055842",
+
+"type": 2,
+
+"source": "website",
+
+"project": {},
+
+"createdBy": null,
+
+"updatedBy": null,
+
+"countryCode": null,
+
+"createdAt": "2025-08-17T18:44:14.876Z",
+
+"deletedBy": null,
+
+"updatedAt": "2025-08-17T18:44:14.878Z",
+
+"name": null,
+
+"identifierType": null,
+
+"identifier": null,
+
+"id": 7449,
+
+"deletedAt": null
+
+},
+
+"message": "Success"
+
+})
+
+2. **POST** ` https://api.shipable.ai/v2/chat/open-playground ` with session key + contract code + JWT token → Stream response
+
+(------WebKitFormBoundary4V6CqgJQfWCWOEkE
+
+Content-Disposition: form-data; name="request"
+
+{"sessionKey":"it takes the key from the first step endpoint","messages":[{"role":"user","content":"<smart contract code goes here>"}],"token":"jwt token","stream":true}
+
+------WebKitFormBoundary4V6CqgJQfWCWOEkE--)
+
+shipabale ai jwt token - eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE" -  like api key this one is same in all request payload in token
+
+and the openplayground api endpoint will stream the response like this below - You need to read each event: content line, parse its JSON, take body, and append to the UI stream.
+
+(event: processing
+
+data: {"status": "initializing", "message": "🌞 Starting up, just a moment..."}
+
+event: content
+
+data: {"body": "Hello! I"}
+
+event: content
+
+data: {"body": "'m an AI assistant"}
+
+event: content
+
+data: {"body": " traine"}
+
+event: content
+
+data: {"body": "d to"}
+
+event: content
+
+data: {"body": " perform"}
+
+event: content
+
+data: {"body": " smart"}
+
+event: content
+
+data: {"body": " contract security audits"}
+
+event: content
+
+data: {"body": "."}
+
+event: content
+
+data: {"body": " To"}
+
+event: content
+
+data: {"body": " get"}
+
+event: content
+
+data: {"body": " started, please"}
+
+event: content
+
+data: {"body": " provide the"}
+
+event: content
+
+data: {"body": " Sol"}
+
+event: content
+
+data: {"body": "idity,"}
+
+event: content
+
+data: {"body": " Vy"}
+
+event: content
+
+data: {"body": "per,"}
+
+event: content
+
+data: {"body": " Rust"}
+
+event: content
+
+data: {"body": ", Move"}
+
+event: content
+
+data: {"body": ", or Cairo"}
+
+event: content
+
+data: {"body": " code you"}
+
+event: content
+
+data: {"body": " would like me to"}
+
+event: content
+
+data: {"body": " review. I"}
+
+event: content
+
+data: {"body": "'ll analyze"}
+
+event: content
+
+data: {"body": " the codebase"}
+
+event: content
+
+data: {"body": " for potential vulner"}
+
+event: content
+
+data: {"body": "abilities,"}
+
+event: content
+
+data: {"body": " architectural"}
+
+event: content
+
+data: {"body": " issues"}
+
+event: content
+
+data: {"body": ", and de"}
+
+event: content
+
+data: {"body": "viations from best"}
+
+event: content
+
+data: {"body": " practices. Let"}
+
+event: content
+
+data: {"body": " me know if you"}
+
+event: content
+
+data: {"body": " have any specific"}
+
+event: content
+
+data: {"body": " areas"}
+
+event: content
+
+data: {"body": " of"}
+
+event: content
+
+data: {"body": " concern you"}
+
+event: content
+
+data: {"body": "'"}
+
+event: content
+
+data: {"body": "d like me"}
+
+event: content
+
+data: {"body": " to focus"}
+
+event: content
+
+data: {"body": " on in"}
+
+event: content
+
+data: {"body": " the audit."}
+
+)
+
+we need to fetch:
+
+data: {"body": " <this content>"}
+
+and format it proper audit reprort format and present it
+
