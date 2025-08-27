@@ -199,17 +199,17 @@ export default function Auditor() {
   };
 
   const leftPanel = (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900">
+    <div className="flex flex-col h-full bg-card">
       {/* Clean Header */}
-      <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+      <div className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
               <Shield className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-white">SmartAudit AI</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Contract Security Analysis</p>
+              <h1 className="text-lg font-semibold text-foreground">SmartAudit AI</h1>
+              <p className="text-xs text-muted-foreground">Contract Security Analysis</p>
             </div>
           </div>
           <Button 
@@ -219,7 +219,7 @@ export default function Auditor() {
               disconnect();
               setLocation("/auth");
             }}
-            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 h-8 px-2"
+            className="text-muted-foreground hover:text-foreground h-8 px-2"
           >
             <User className="h-4 w-4" />
           </Button>
@@ -227,13 +227,13 @@ export default function Auditor() {
       </div>
 
       {/* Upload Section */}
-      <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+      <div className="p-6 border-b border-border">
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Upload className="h-4 w-4 text-blue-500" />
-            <h2 className="font-medium text-slate-900 dark:text-white">Upload Files</h2>
+            <h2 className="font-medium text-foreground">Upload Files</h2>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Upload multiple contract files for comprehensive analysis
           </p>
         </div>
@@ -252,10 +252,10 @@ export default function Auditor() {
 
       {/* Code Editor Section */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="p-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2 mb-3">
             <Code className="h-4 w-4 text-blue-500" />
-            <h2 className="font-medium text-slate-900 dark:text-white">Smart Contract Code</h2>
+            <h2 className="font-medium text-foreground">Smart Contract Code</h2>
           </div>
           <div className="flex items-center justify-between">
             <Select value={contractLanguage} onValueChange={setContractLanguage}>
@@ -283,7 +283,7 @@ export default function Auditor() {
         </div>
         
         <div className="flex-1 p-6 pt-4">
-          <div className="h-full bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="h-full bg-muted/50 rounded-xl border-2 border-dashed border-border overflow-hidden">
             <CodeEditor
               value={contractCode}
               onChange={setContractCode}
@@ -306,11 +306,11 @@ contract MyContract {
       </div>
       
       {/* Action Panel */}
-      <div className="border-t border-slate-200 dark:border-slate-700 p-6 bg-slate-50 dark:bg-slate-800/50">
+      <div className="border-t border-border p-6 bg-muted/50">
         <Button 
           onClick={handleAnalyze}
           disabled={analysisState === "loading" || analysisState === "streaming" || !contractCode.trim()}
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+          className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-muted text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
           data-testid="button-analyze"
         >
           {analysisState === "loading" || analysisState === "streaming" ? (
@@ -331,7 +331,7 @@ contract MyContract {
             variant="outline" 
             onClick={handleClear}
             data-testid="button-clear"
-            className="flex-1 h-10 text-slate-600 dark:text-slate-300"
+            className="flex-1 h-10 text-muted-foreground border-border hover:bg-muted"
             disabled={!contractCode.trim()}
           >
             <Trash className="h-4 w-4 mr-1" />
@@ -341,7 +341,7 @@ contract MyContract {
           <Button 
             variant="outline"
             data-testid="button-save"
-            className="flex-1 h-10 text-slate-600 dark:text-slate-300"
+            className="flex-1 h-10 text-muted-foreground border-border hover:bg-muted"
             disabled={!contractCode.trim()}
           >
             <Save className="h-4 w-4 mr-1" />
@@ -350,10 +350,10 @@ contract MyContract {
         </div>
         
         {contractCode.trim() && (
-          <div className="mt-4 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="mt-4 p-3 bg-muted rounded-lg border border-border">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">Contract ready</span>
-              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-muted-foreground">Contract ready</span>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>{contractCode.split('\n').length} lines</span>
                 <span>{Math.ceil(contractCode.length / 1000)}k chars</span>
               </div>
