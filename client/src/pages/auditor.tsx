@@ -3,7 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { 
   Send, 
   Paperclip, 
@@ -17,14 +20,18 @@ import {
   Copy,
   Download,
   Share,
-  ChevronDown,
+  Clock,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Trash2,
+  MoreVertical,
+  Plus
 } from "lucide-react";
 import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { createAuditSession } from "@/lib/shipable-api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type AnalysisState = "initial" | "loading" | "streaming" | "completed" | "error";
 
@@ -49,9 +56,18 @@ interface ChatMessage {
   isStreaming?: boolean;
 }
 
+interface AuditSession {
+  id: string;
+  title: string;
+  timestamp: Date;
+  isPublic: boolean;
+  status: string;
+}
+
 export default function AuditorPage() {
   const { user } = useWeb3Auth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -67,6 +83,12 @@ export default function AuditorPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Fetch audit history
+  const { data: auditHistory = [] } = useQuery({
+    queryKey: ['/api/audit/sessions'],
+    enabled: !!user,
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -135,7 +157,7 @@ export default function AuditorPage() {
 
       const sessionResponse = await createAuditSession({
         contractCode: inputValue,
-        contractLanguage: "solidity", // Auto-detect or default
+        contractLanguage: "solidity",
         userId: user.id,
         isPublic: auditVisibility.isPublic,
         title: auditVisibility.title,
@@ -161,6 +183,8 @@ export default function AuditorPage() {
                 ? { ...msg, isStreaming: false }
                 : msg
             ));
+            // Invalidate audit history to refresh
+            queryClient.invalidateQueries({ queryKey: ['/api/audit/sessions'] });
             return;
           }
           
@@ -199,6 +223,7 @@ export default function AuditorPage() {
             ? { ...msg, isStreaming: false }
             : msg
         ));
+        queryClient.invalidateQueries({ queryKey: ['/api/audit/sessions'] });
       });
       
       eventSource.onerror = (error) => {
@@ -234,7 +259,7 @@ export default function AuditorPage() {
         variant: "destructive",
       });
     }
-  }, [inputValue, user, auditVisibility, toast, analysisState]);
+  }, [inputValue, user, auditVisibility, toast, analysisState, queryClient]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -251,71 +276,175 @@ export default function AuditorPage() {
     });
   };
 
+  const loadAuditSession = async (sessionId: string) => {
+    // Load a previous audit session
+    setMessages([]);
+    setCurrentSessionId(sessionId);
+    // You would fetch the session messages here
+  };
+
+  const newAuditSession = () => {
+    setMessages([]);
+    setAnalysisState("initial");
+    setInputValue("");
+    setUploadedFiles(null);
+    setCurrentSessionId(null);
+  };
+
   return (
     <div className="flex h-screen bg-slate-950">
       {/* Sidebar */}
-      <div className="w-64 bg-slate-900 border-r border-slate-700 flex flex-col">
+      <div className="w-72 bg-slate-900 border-r border-slate-700 flex flex-col">
+        {/* Header */}
         <div className="p-4 border-b border-slate-700">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-6 w-6 text-blue-500" />
+            <h1 className="font-semibold text-white">SmartAudit AI</h1>
+          </div>
           <Button 
-            onClick={() => {
-              setMessages([]);
-              setAnalysisState("initial");
-              setInputValue("");
-              setUploadedFiles(null);
-            }}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            onClick={newAuditSession}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
-            + New chat
+            <Plus className="h-4 w-4 mr-2" />
+            New Audit
           </Button>
         </div>
 
-        <div className="flex-1 p-4">
-          <div className="space-y-1">
-            <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Recent</div>
-            {/* Recent audit sessions would go here */}
-            <div className="text-sm text-slate-500 py-4 text-center">
-              No recent audits
+        {/* Audit History */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
+              <History className="h-4 w-4" />
+              <span>Recent Audits</span>
             </div>
+            
+            {auditHistory.length === 0 ? (
+              <div className="text-sm text-slate-500 py-4 text-center">
+                No audit history yet
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {auditHistory.slice(0, 10).map((session: AuditSession) => (
+                  <Card 
+                    key={session.id}
+                    className="p-3 cursor-pointer hover:bg-slate-800 transition-colors bg-slate-800/30 border-slate-700"
+                    onClick={() => loadAuditSession(session.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-white font-medium truncate">
+                          {session.title || "Untitled Audit"}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-1 text-xs text-slate-400">
+                            <Clock className="h-3 w-3" />
+                            {session.timestamp.toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {session.isPublic ? (
+                              <Globe className="h-3 w-3 text-blue-400" />
+                            ) : (
+                              <Lock className="h-3 w-3 text-slate-400" />
+                            )}
+                            <Badge 
+                              variant={session.status === 'completed' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {session.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="p-4 border-t border-slate-700">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
-            onClick={() => setShowSettings(!showSettings)}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-          
-          {showSettings && (
-            <div className="mt-3 p-3 bg-slate-800 rounded-lg">
-              <AuditVisibilitySelector
-                value={auditVisibility}
-                onChange={setAuditVisibility}
-                disabled={analysisState === "loading" || analysisState === "streaming"}
-              />
-            </div>
-          )}
-
-          {user && (
-            <div className="flex items-center gap-2 text-sm mt-3 p-2 bg-slate-800 rounded-lg">
-              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+        {/* User Profile */}
+        {user && (
+          <div className="p-4 border-t border-slate-700">
+            <div className="flex items-center gap-2 text-sm">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
                 {user.walletAddress?.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-slate-300 text-xs truncate">
+                <div className="text-slate-300 text-sm truncate">
                   {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
                 </div>
+                <div className="text-xs text-slate-500">Connected</div>
               </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowSettings(!showSettings)}
+                className="text-slate-400 hover:text-white"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-        </div>
+
+            {showSettings && (
+              <div className="mt-3 p-3 bg-slate-800 rounded-lg">
+                <AuditVisibilitySelector
+                  value={auditVisibility}
+                  onChange={setAuditVisibility}
+                  disabled={analysisState === "loading" || analysisState === "streaming"}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-slate-950">
+        {/* Header */}
+        <div className="border-b border-slate-700 p-4 bg-slate-900">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-white">Smart Contract Analysis</h2>
+              {currentSessionId && (
+                <Badge variant="outline" className="text-slate-400 border-slate-600">
+                  Session Active
+                </Badge>
+              )}
+            </div>
+            
+            {/* Visibility Toggle - Prominent placement */}
+            <div className="flex items-center gap-2">
+              <Select 
+                value={auditVisibility.isPublic ? "public" : "private"}
+                onValueChange={(value) => setAuditVisibility({...auditVisibility, isPublic: value === "public"})}
+                disabled={analysisState === "loading" || analysisState === "streaming"}
+              >
+                <SelectTrigger className="w-32 bg-slate-800 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="private">
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      Private
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="public">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Public
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-6">
           {messages.length === 0 ? (
@@ -323,9 +452,9 @@ export default function AuditorPage() {
               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
                 <Bot className="h-8 w-8 text-blue-500" />
               </div>
-              <h2 className="text-2xl font-semibold mb-2 text-white">How can I help you today?</h2>
+              <h2 className="text-2xl font-semibold mb-2 text-white">Smart Contract Security Analysis</h2>
               <p className="text-slate-400 mb-8 max-w-md">
-                I'm here to analyze your smart contracts for security vulnerabilities, gas optimization, and best practices.
+                Upload your smart contract or paste the code to get comprehensive security analysis with vulnerability detection and optimization recommendations.
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
@@ -336,9 +465,9 @@ export default function AuditorPage() {
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
                     <div>
-                      <div className="font-medium text-white mb-1">Security Analysis</div>
+                      <div className="font-medium text-white mb-1">Security Audit</div>
                       <div className="text-sm text-slate-400">
-                        Analyze smart contract for vulnerabilities and security issues
+                        Comprehensive vulnerability analysis and security recommendations
                       </div>
                     </div>
                   </div>
@@ -353,7 +482,7 @@ export default function AuditorPage() {
                     <div>
                       <div className="font-medium text-white mb-1">Gas Optimization</div>
                       <div className="text-sm text-slate-400">
-                        Find opportunities to reduce gas costs and improve efficiency
+                        Identify opportunities to reduce gas costs and improve efficiency
                       </div>
                     </div>
                   </div>
@@ -378,10 +507,10 @@ export default function AuditorPage() {
                   
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">
+                      <span className="font-medium text-white">
                         {message.type === "user" ? "You" : "SmartAudit AI"}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-slate-400">
                         {message.timestamp.toLocaleTimeString()}
                       </span>
                     </div>
@@ -395,8 +524,28 @@ export default function AuditorPage() {
                         </div>
                       ) : (
                         <div className="text-slate-100">
-                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                            {message.content}
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              className="whitespace-pre-wrap text-sm leading-relaxed"
+                              components={{
+                                // Custom styling for markdown elements
+                                h1: ({children}) => <h1 className="text-xl font-bold text-white mb-3">{children}</h1>,
+                                h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-2">{children}</h2>,
+                                h3: ({children}) => <h3 className="text-base font-medium text-white mb-2">{children}</h3>,
+                                p: ({children}) => <p className="text-slate-100 mb-3 leading-relaxed">{children}</p>,
+                                ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1 text-slate-100">{children}</ul>,
+                                ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1 text-slate-100">{children}</ol>,
+                                li: ({children}) => <li className="text-slate-100">{children}</li>,
+                                code: ({children}) => <code className="bg-slate-800 px-2 py-1 rounded text-sm font-mono text-blue-300">{children}</code>,
+                                pre: ({children}) => <pre className="bg-slate-800 border border-slate-700 rounded-lg p-3 overflow-x-auto mb-3">{children}</pre>,
+                                blockquote: ({children}) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-slate-300 mb-3">{children}</blockquote>,
+                                strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
+                                em: ({children}) => <em className="italic text-slate-200">{children}</em>,
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
                             {message.isStreaming && (
                               <span className="inline-block w-2 h-4 bg-green-500 animate-pulse ml-1"></span>
                             )}
@@ -458,7 +607,7 @@ export default function AuditorPage() {
                     onClick={() => setUploadedFiles(null)}
                     className="ml-auto h-6 text-blue-400 hover:text-white"
                   >
-                    ×
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
@@ -471,11 +620,11 @@ export default function AuditorPage() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Paste your smart contract code here or describe what you'd like me to analyze..."
-                className="w-full min-h-[80px] max-h-[200px] pr-20 resize-none rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full min-h-[100px] max-h-[200px] pr-20 resize-none rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={analysisState === "loading" || analysisState === "streaming"}
               />
               
-              <div className="absolute bottom-2 right-2 flex items-center gap-2">
+              <div className="absolute bottom-3 right-3 flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -504,7 +653,7 @@ export default function AuditorPage() {
             <div className="flex items-center justify-between mt-2 text-xs text-slate-400">
               <span>
                 {auditVisibility.isPublic ? (
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 text-blue-400">
                     <Globe className="h-3 w-3" />
                     Public audit - will appear in community
                   </span>
