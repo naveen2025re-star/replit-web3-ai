@@ -1,11 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema } from "@shared/schema";
+import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions } from "@shared/schema";
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { db } from "./db";
+import { eq, desc, and, isNull, sql } from "drizzle-orm";
 
 const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
 const JWT_TOKEN = process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE";
@@ -774,6 +776,31 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     await capturePaypalOrder(req, res);
   });
 
+  // Check if user has claimed free credits
+  app.get("/api/credits/check-free-claim", async (req, res) => {
+    try {
+      const { userId } = req.query;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID required" });
+      }
+
+      const existingFreeClaim = await db.select()
+        .from(creditTransactions)
+        .where(and(
+          eq(creditTransactions.userId, userId as string),
+          eq(creditTransactions.type, "purchase"),
+          sql`${creditTransactions.reason} LIKE '%Free package%'`
+        ))
+        .limit(1);
+
+      res.json({ hasClaimed: existingFreeClaim.length > 0 });
+    } catch (error) {
+      console.error("Check free claim failed:", error);
+      res.status(500).json({ message: "Failed to check claim status" });
+    }
+  });
+
   // Purchase credits (PayPal integration)
   app.post("/api/credits/purchase", async (req, res) => {
     try {
@@ -796,7 +823,25 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
       // Handle Free package (no payment required)
       if (selectedPackage.price === 0 && selectedPackage.name === 'Free') {
-        // Directly add free credits
+        // Check if user has already claimed free credits
+        const existingFreeClaim = await db.select()
+          .from(creditTransactions)
+          .where(and(
+            eq(creditTransactions.userId, userId),
+            eq(creditTransactions.type, "purchase"),
+            sql`${creditTransactions.reason} LIKE '%Free package%'`
+          ))
+          .limit(1);
+
+        if (existingFreeClaim.length > 0) {
+          return res.status(400).json({ 
+            message: "Free credits already claimed",
+            error: "already_claimed",
+            hint: "Free credits can only be claimed once per account. Upgrade to Pro for more credits!"
+          });
+        }
+
+        // Directly add free credits (first time only)
         const result = await CreditService.addCredits(
           userId,
           selectedPackage.totalCredits,

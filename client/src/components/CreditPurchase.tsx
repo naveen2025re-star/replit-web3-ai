@@ -42,6 +42,18 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
     enabled: open,
   });
 
+  // Check if user has already claimed free credits
+  const { data: hasClaimedFree } = useQuery({
+    queryKey: ['/api/credits/check-free-claim', userId],
+    queryFn: async () => {
+      if (!userId) return false;
+      const response = await fetch(`/api/credits/check-free-claim?userId=${userId}`);
+      const data = await response.json();
+      return data.hasClaimed || false;
+    },
+    enabled: open && !!userId,
+  });
+
   const [paymentData, setPaymentData] = useState<any>(null);
 
   const purchaseMutation = useMutation({
@@ -70,6 +82,16 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
       }
     },
     onError: (error: any) => {
+      // Handle already claimed free credits error
+      if (error.message?.includes('already claimed')) {
+        toast({
+          title: "Free Credits Already Claimed",
+          description: "You've already received your free credits! Upgrade to Pro or Pro+ for more credits.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "Purchase Failed",
         description: error.message || "Failed to process purchase. Please try again.",
@@ -290,7 +312,7 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                   <Button
                     className="w-full"
                     variant={pkg.popular ? "default" : "outline"}
-                    disabled={purchaseMutation.isPending}
+                    disabled={purchaseMutation.isPending || (pkg.price === 0 && hasClaimedFree)}
                     onClick={(e) => {
                       e.stopPropagation();
                       handlePurchase(pkg.id);
@@ -310,7 +332,7 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                     ) : pkg.price === 0 ? (
                       <>
                         <Coins className="h-4 w-4 mr-2" />
-                        Get Free Credits
+                        {hasClaimedFree ? 'Already Claimed' : 'Get Free Credits'}
                       </>
                     ) : (
                       <>
