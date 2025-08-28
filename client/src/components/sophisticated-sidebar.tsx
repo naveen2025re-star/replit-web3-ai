@@ -107,10 +107,10 @@ export function SophisticatedSidebar({
             <p className="text-xs text-slate-400">Professional Contract Analysis</p>
           </div>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Button 
             onClick={onNewAudit}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] h-11 font-medium"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] h-12 font-medium text-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Security Audit
@@ -118,22 +118,22 @@ export function SophisticatedSidebar({
           <Link href="/history">
             <Button 
               variant="outline"
-              className="w-full bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 h-10"
+              className="w-full bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 h-10 text-sm"
             >
               <Archive className="h-4 w-4 mr-2" />
               Audit History
             </Button>
           </Link>
         </div>
-        
-        {/* Credit Display */}
-        <div className="px-5 pb-4">
-          <CreditDisplay 
-            userId={user?.id}
-            compact={true}
-            onPurchaseClick={onPurchaseCredits}
-          />
-        </div>
+      </div>
+
+      {/* Credit Display */}
+      <div className="px-5 pb-4 border-b border-slate-700/30">
+        <CreditDisplay 
+          userId={user?.id}
+          compact={true}
+          onPurchaseClick={onPurchaseCredits}
+        />
       </div>
 
       {/* Content Area - My Audits */}

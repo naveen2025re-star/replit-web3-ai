@@ -241,33 +241,17 @@ export default function AuditorPage() {
       
       abortControllerRef.current = new AbortController();
 
-      try {
-        const sessionResponse = await createAuditSession({
-          contractCode: inputValue,
-          contractLanguage: "solidity",
-          userId: user.id,
-          isPublic: auditVisibility.isPublic,
-          title: auditVisibility.title,
-          description: auditVisibility.description,
-          tags: auditVisibility.tags
-        });
+      const sessionResponse = await createAuditSession({
+        contractCode: inputValue,
+        contractLanguage: "solidity",
+        userId: user.id,
+        isPublic: auditVisibility.isPublic,
+        title: auditVisibility.title,
+        description: auditVisibility.description,
+        tags: auditVisibility.tags
+      });
 
-        setCurrentSessionId(sessionResponse.sessionId);
-      } catch (error: any) {
-        // Handle insufficient credits error
-        if (error.message?.includes('Insufficient credits') || error.error === 'insufficient_credits') {
-          toast({
-            title: "Insufficient Credits",
-            description: `You need ${error.needed || error.cost || 'more'} credits to analyze this contract. You currently have ${error.current || 0} credits.`,
-            variant: "destructive",
-          });
-          setShowCreditPurchase(true);
-          setAnalysisState("initial");
-          setMessages(prev => prev.slice(0, -2)); // Remove the last two messages (user + assistant)
-          return;
-        }
-        throw error; // Re-throw other errors
-      }
+      setCurrentSessionId(sessionResponse.sessionId);
       setAnalysisState("streaming");
 
       // Start streaming analysis
@@ -349,6 +333,19 @@ export default function AuditorPage() {
 
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      
+      // Handle insufficient credits error
+      if (error.message?.includes('Insufficient credits') || error.error === 'insufficient_credits') {
+        toast({
+          title: "Insufficient Credits",
+          description: `You need ${error.needed || error.cost || 'more'} credits to analyze this contract. You currently have ${error.current || 0} credits.`,
+          variant: "destructive",
+        });
+        setShowCreditPurchase(true);
+        setAnalysisState("initial");
+        setMessages(prev => prev.slice(0, -2)); // Remove the last two messages (user + assistant)
+        return;
+      }
       
       console.error("Analysis failed:", error);
       setAnalysisState("error");

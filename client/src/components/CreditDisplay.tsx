@@ -80,36 +80,51 @@ export function CreditDisplay({
 
   if (compact) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 p-2 rounded-lg border bg-background">
-              <Coins className="h-4 w-4" />
-              <Badge variant={getBalanceVariant(credits.balance)} className="px-2 py-1">
-                {formatNumber(credits.balance)}
-              </Badge>
-              {showPurchaseButton && credits.balance < 100 && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={onPurchaseClick}
-                  className="h-6 px-2 text-xs"
-                  data-testid="button-buy-credits"
+      <div className="space-y-3">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-800/40 to-slate-700/40 rounded-xl border border-slate-600/30 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Coins className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-bold text-white">
+                      {formatNumber(credits.balance)}
+                    </span>
+                    <p className="text-xs text-slate-400">Credits Available</p>
+                  </div>
+                </div>
+                <Badge 
+                  variant={getBalanceVariant(credits.balance)}
+                  className="text-xs font-medium"
                 >
-                  Buy
-                </Button>
-              )}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div className="space-y-1">
-              <p>Current Balance: {formatNumber(credits.balance)} credits</p>
-              <p>Total Used: {formatNumber(credits.totalUsed)} credits</p>
-              <p>Total Earned: {formatNumber(credits.totalEarned)} credits</p>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+                  {getBalanceColor(credits.balance) === "text-green-600" ? "Healthy" : 
+                   getBalanceColor(credits.balance) === "text-yellow-600" ? "Low" : "Critical"}
+                </Badge>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="space-y-1">
+                <p>Current Balance: {formatNumber(credits.balance)} credits</p>
+                <p>Total Used: {formatNumber(credits.totalUsed)} credits</p>
+                <p>Total Earned: {formatNumber(credits.totalEarned)} credits</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        {showPurchaseButton && onPurchaseClick && (
+          <Button
+            onClick={onPurchaseClick}
+            className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white shadow-lg transition-all duration-200 h-10 font-medium"
+            data-testid="button-buy-credits"
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Buy More Credits
+          </Button>
+        )}
+      </div>
     );
   }
 
