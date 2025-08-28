@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { Shield, Code, Upload, ArrowRight, Github, Globe, Lock, User, Clock, AlertTriangle, CheckCircle, Users, TrendingUp, Star } from "lucide-react";
+import { WalletConnect } from "@/components/ui/wallet-connect";
+import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import * as THREE from "three";
 
 // Mock community data similar to the reference
@@ -99,9 +101,17 @@ export default function Landing() {
   const [isDeleting, setIsDeleting] = useState(false);
   const mountRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number>();
+  const { isAuthenticated, user } = useWeb3Auth();
   
   // Web3 terms to cycle through
   const web3Terms = ["DeFi", "Smart Contracts", "NFTs", "Tokens", "DAOs", "Web3", "Protocols", "dApps"];
+
+  // Redirect authenticated users to auditor
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setLocation("/app");
+    }
+  }, [isAuthenticated, user, setLocation]);
 
   // Typewriter effect for Web3 terms
   useEffect(() => {
@@ -254,12 +264,7 @@ export default function Landing() {
                 <span>12.5K+ audits</span>
               </div>
             </div>
-            <Button 
-              onClick={() => setLocation("/auth")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2"
-            >
-              Connect Wallet
-            </Button>
+            <WalletConnect />
           </div>
         </nav>
 
@@ -298,14 +303,15 @@ export default function Landing() {
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Code
                     </Button>
-                    <Button
-                      onClick={() => setLocation("/auth")}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6"
-                      disabled={!contractInput.trim()}
-                    >
-                      Start Audit
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
+                    <WalletConnect>
+                      <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6"
+                        disabled={!contractInput.trim()}
+                      >
+                        Start Audit
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </WalletConnect>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 text-sm text-gray-400">
