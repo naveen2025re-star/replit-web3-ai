@@ -72,10 +72,10 @@ export default function AuditHistoryPage() {
   });
 
   // Fetch audit sessions with filters
-  const { data: auditSessions = [], isLoading } = useQuery({
+  const { data: auditData, isLoading } = useQuery({
     queryKey: ['/api/audit/user-sessions', user?.id, filters, currentPage, pageSize],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return { sessions: [], total: 0 };
       const searchParams = new URLSearchParams({
         search: filters.search,
         status: filters.status,
@@ -103,9 +103,9 @@ export default function AuditHistoryPage() {
 
   // Since we're doing server-side filtering, just use the returned audits directly
   const filteredAudits = useMemo(() => {
-    if (!Array.isArray(auditSessions)) return [];
-    return auditSessions;
-  }, [auditSessions]);
+    if (!auditData?.sessions || !Array.isArray(auditData.sessions)) return [];
+    return auditData.sessions;
+  }, [auditData]);
 
   // Query for selected audit details
   const { data: auditDetails } = useQuery({
