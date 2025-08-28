@@ -21,6 +21,7 @@ declare global {
   var githubConnections: Map<string, GitHubConnection> | undefined;
   var cicdSetups: Map<string, any> | undefined;
   var gitHubWebhooks: Map<string, any> | undefined;
+  var oauthStates: Map<string, { userId: string; timestamp: number }> | undefined;
 }
 // Simple authentication middleware for Web3 users
 const isAuthenticated = (req: any, res: any, next: any) => {
@@ -829,9 +830,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const state = crypto.randomBytes(32).toString('hex');
       const userId = (req as any).user?.claims?.sub;
       
-      // Store state in session for verification
-      (req as any).session.githubOAuthState = state;
-      (req as any).session.userId = userId;
+      // Store state in memory for verification (expires in 10 minutes)
+      globalThis.oauthStates = globalThis.oauthStates || new Map();
+      globalThis.oauthStates.set(state, {
+        userId: userId,
+        timestamp: Date.now()
+      });
       
       // GitHub OAuth authorization URL
       const authUrl = new URL('https://github.com/login/oauth/authorize');
@@ -858,12 +862,28 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         return res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=${error}`);
       }
       
+      // Initialize and clean up expired states
+      globalThis.oauthStates = globalThis.oauthStates || new Map();
+      const now = Date.now();
+      const tenMinutes = 10 * 60 * 1000;
+      
+      // Clean up expired states (older than 10 minutes)
+      Array.from(globalThis.oauthStates.entries()).forEach(([stateKey, stateData]) => {
+        if (now - stateData.timestamp > tenMinutes) {
+          globalThis.oauthStates!.delete(stateKey);
+        }
+      });
+      
       // Verify state parameter
-      if (state !== (req as any).session?.githubOAuthState) {
+      const storedState = globalThis.oauthStates.get(state as string);
+      if (!storedState) {
         return res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=invalid_state`);
       }
       
-      const userId = (req as any).session?.userId;
+      const userId = storedState.userId;
+      
+      // Clean up used state
+      globalThis.oauthStates.delete(state as string);
       
       if (code && userId) {
         try {

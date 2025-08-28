@@ -1,0 +1,55 @@
+chunk-J4NESBNT.js?v=f598efb5:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+@radix-ui_react-dialog.js?v=f598efb5:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f598efb5:340
+@radix-ui_react-dialog.js?v=f598efb5:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f598efb5:340
+content-script.js:22 Document already loaded, running initialization immediately
+content-script.js:4 Attempting to initialize AdUnit
+content-script.js:6 AdUnit initialized successfully
+chunk-S6EXHY4W.js?v=f598efb5:23 Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+issueWarning @ chunk-S6EXHY4W.js?v=f598efb5:23
+api.web3modal.org/appkit/v1/config?projectId=demo-project-id&st=appkit&sv=html-core-1.7.8:1  Failed to load resource: the server responded with a status of 403 ()
+core-4G6KWNRZ.js?v=f598efb5:9736 [Reown Config] Failed to fetch remote project configuration. Using local/default values. Error: HTTP status code: 403
+    at fetchData (chunk-W7OHLSTV.js?v=f598efb5:2959:17)
+    at async FetchUtil.get (chunk-W7OHLSTV.js?v=f598efb5:2973:22)
+    at async Object.fetchProjectConfig (chunk-W7OHLSTV.js?v=f598efb5:6107:22)
+    at async Object.fetchRemoteFeatures (core-4G6KWNRZ.js?v=f598efb5:9733:26)
+    at async AppKit.initialize (core-4G6KWNRZ.js?v=f598efb5:9936:27)
+fetchRemoteFeatures @ core-4G6KWNRZ.js?v=f598efb5:9736
+pulse.walletconnect.org/e?projectId=demo-project-id&st=appkit&sv=html-core-1.7.8:1  Failed to load resource: the server responded with a status of 400 ()
+@radix-ui_react-dialog.js?v=f598efb5:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f598efb5:340
+@radix-ui_react-dialog.js?v=f598efb5:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f598efb5:340
+@radix-ui_react-dialog.js?v=f598efb5:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f598efb5:340
+api/integrations/github/repositories:1  Failed to load resource: the server responded with a status of 400 (Bad Request)
+api/integrations/github/install:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+requests.js:1  GET https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/api/integrations/github/install 500 (Internal Server Error)
+s.fetch @ requests.js:1
+(anonymous) @ traffic.js:1
+fetch @ traffic.js:1
+mutationFn @ integrations.tsx:95
+fn @ chunk-5T6ZDHJF.js?v=f598efb5:1189
+run @ chunk-5T6ZDHJF.js?v=f598efb5:494
+start @ chunk-5T6ZDHJF.js?v=f598efb5:536
+execute @ chunk-5T6ZDHJF.js?v=f598efb5:1225
+await in execute
+mutate @ chunk-5T6ZDHJF.js?v=f598efb5:2630
+(anonymous) @ chunk-5T6ZDHJF.js?v=f598efb5:3295
+handleGithubConnect @ integrations.tsx:185
+callCallback2 @ chunk-J4NESBNT.js?v=f598efb5:3674
+invokeGuardedCallbackDev @ chunk-J4NESBNT.js?v=f598efb5:3699
+invokeGuardedCallback @ chunk-J4NESBNT.js?v=f598efb5:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-J4NESBNT.js?v=f598efb5:3736
+executeDispatch @ chunk-J4NESBNT.js?v=f598efb5:7014
+processDispatchQueueItemsInOrder @ chunk-J4NESBNT.js?v=f598efb5:7034
+processDispatchQueue @ chunk-J4NESBNT.js?v=f598efb5:7043
+dispatchEventsForPlugins @ chunk-J4NESBNT.js?v=f598efb5:7051
+(anonymous) @ chunk-J4NESBNT.js?v=f598efb5:7174
+batchedUpdates$1 @ chunk-J4NESBNT.js?v=f598efb5:18913
+batchedUpdates @ chunk-J4NESBNT.js?v=f598efb5:3579
+dispatchEventForPluginEventSystem @ chunk-J4NESBNT.js?v=f598efb5:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-J4NESBNT.js?v=f598efb5:5478
+dispatchEvent @ chunk-J4NESBNT.js?v=f598efb5:5472
+dispatchDiscreteEvent @ chunk-J4NESBNT.js?v=f598efb5:5449
