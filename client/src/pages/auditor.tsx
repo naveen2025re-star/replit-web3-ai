@@ -338,7 +338,7 @@ export default function AuditorPage() {
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex items-center gap-1 text-xs text-slate-400">
                             <Clock className="h-3 w-3" />
-                            {session.timestamp.toLocaleDateString()}
+                            {session.timestamp ? new Date(session.timestamp).toLocaleDateString() : 'Unknown date'}
                           </div>
                           <div className="flex items-center gap-1">
                             {session.isPublic ? (
