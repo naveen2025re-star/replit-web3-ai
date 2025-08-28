@@ -23,7 +23,8 @@ import {
   Star,
   Calendar,
   Code,
-  TrendingUp
+  TrendingUp,
+  FileText
 } from "lucide-react";
 
 export default function Community() {
