@@ -508,7 +508,7 @@ export default function AuditorPage() {
   }, [user?.id, queryClient, toast, currentSessionId]);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-950 to-slate-900">
+    <div className="flex h-screen bg-gradient-to-br from-slate-950 to-slate-900 overflow-hidden">
       <SophisticatedSidebar
         auditHistory={auditHistory}
         communityAudits={communityAudits}
@@ -525,7 +525,7 @@ export default function AuditorPage() {
       />
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-950 to-slate-900">
+      <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-950 to-slate-900 min-w-0">
         {/* Header */}
         <div className="border-b border-slate-700/50 p-4 bg-slate-900/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
@@ -579,7 +579,7 @@ export default function AuditorPage() {
         </div>
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
@@ -638,7 +638,7 @@ export default function AuditorPage() {
                     )}
                   </div>
                   
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-white">
                         {message.type === "user" ? "You" : "SmartAudit AI"}
@@ -648,17 +648,17 @@ export default function AuditorPage() {
                       </span>
                     </div>
                     
-                    <div className="max-w-none">
+                    <div className="overflow-hidden">
                       {message.type === "user" ? (
                         <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-100 overflow-x-auto">
+                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-100 overflow-x-auto break-words">
                             {message.content}
                           </pre>
                         </div>
                       ) : (
                         <div className="text-slate-100">
-                          <div className="prose prose-invert prose-sm max-w-none">
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                          <div className="prose prose-invert prose-sm max-w-none overflow-hidden">
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]}
                                 components={{
@@ -666,11 +666,11 @@ export default function AuditorPage() {
                                 h1: ({children}) => <h1 className="text-xl font-bold text-white mb-3">{children}</h1>,
                                 h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-2">{children}</h2>,
                                 h3: ({children}) => <h3 className="text-base font-medium text-white mb-2">{children}</h3>,
-                                p: ({children}) => <p className="text-slate-100 mb-3 leading-relaxed">{children}</p>,
+                                p: ({children}) => <p className="text-slate-100 mb-3 leading-relaxed break-words">{children}</p>,
                                 ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1 text-slate-100">{children}</ul>,
                                 ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1 text-slate-100">{children}</ol>,
                                 li: ({children}) => <li className="text-slate-100">{children}</li>,
-                                code: ({children}) => <code className="bg-slate-800 px-2 py-1 rounded text-sm font-mono text-blue-300">{children}</code>,
+                                code: ({children}) => <code className="bg-slate-800 px-2 py-1 rounded text-sm font-mono text-blue-300 break-all">{children}</code>,
                                 pre: ({children}) => <pre className="bg-slate-800 border border-slate-700 rounded-lg p-3 overflow-x-auto mb-3">{children}</pre>,
                                 blockquote: ({children}) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-slate-300 mb-3">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
@@ -726,7 +726,7 @@ export default function AuditorPage() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-slate-700/50 p-4 bg-slate-900/80 backdrop-blur-sm">
+        <div className="border-t border-slate-700/50 p-4 bg-slate-900/80 backdrop-blur-sm flex-shrink-0">
           <div className="max-w-4xl mx-auto">
             {uploadedFiles && (
               <div className="mb-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">

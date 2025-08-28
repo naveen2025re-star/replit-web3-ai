@@ -90,7 +90,7 @@ export function SophisticatedSidebar({
         fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
         w-80 bg-gradient-to-b from-slate-900 via-slate-900/98 to-slate-900/95 
         border-r border-slate-700/30 flex flex-col backdrop-blur-lg shadow-2xl
-        transition-transform duration-300 ease-in-out
+        transition-transform duration-300 ease-in-out overflow-hidden
       `}>
         {/* Header */}
       <div className="p-5 border-b border-slate-700/30">
@@ -124,7 +124,7 @@ export function SophisticatedSidebar({
       </div>
 
       {/* Content Area - My Audits */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-sm text-slate-300">
@@ -154,7 +154,7 @@ export function SophisticatedSidebar({
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-white font-medium truncate group-hover:text-blue-300 transition-colors mb-2">
+                        <div className="text-sm text-white font-medium truncate group-hover:text-blue-300 transition-colors mb-2 break-words">
                           {session.publicTitle && session.publicTitle.trim() 
                             ? session.publicTitle 
                             : `${session.contractLanguage || 'Solidity'} Analysis #${index + 1}`}
