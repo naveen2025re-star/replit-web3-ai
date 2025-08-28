@@ -16,6 +16,30 @@ export function useWeb3Auth() {
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false)
 
+  // Check localStorage for existing authentication on mount
+  useEffect(() => {
+    if (!address || !isConnected) return
+    
+    const authKey = `auth_${address.toLowerCase()}`
+    const storedAuth = localStorage.getItem(authKey)
+    
+    if (storedAuth) {
+      try {
+        const authData = JSON.parse(storedAuth)
+        // Check if stored auth is not expired (24 hours)
+        if (authData.timestamp && Date.now() - authData.timestamp < 24 * 60 * 60 * 1000) {
+          setHasAttemptedAuth(true)
+          queryClient.setQueryData([`/api/auth/user/${address}`], authData.user)
+          return
+        }
+      } catch (error) {
+        console.warn('Invalid stored auth data:', error)
+      }
+      // Clear expired auth
+      localStorage.removeItem(authKey)
+    }
+  }, [address, isConnected, queryClient])
+
   // Get user data only after authentication attempt
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: [`/api/auth/user/${address}`],
@@ -37,6 +61,16 @@ export function useWeb3Auth() {
       setHasAttemptedAuth(true)
       queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${address}`] })
       queryClient.setQueryData([`/api/auth/user/${address}`], data.user)
+      
+      // Store authentication in localStorage
+      if (address) {
+        const authKey = `auth_${address.toLowerCase()}`
+        localStorage.setItem(authKey, JSON.stringify({
+          user: data.user,
+          timestamp: Date.now()
+        }))
+      }
+      
       toast({
         title: "Successfully authenticated",
         description: "Welcome to SmartAudit AI!"
@@ -86,6 +120,12 @@ export function useWeb3Auth() {
   }
 
   const handleDisconnect = () => {
+    // Clear stored authentication
+    if (address) {
+      const authKey = `auth_${address.toLowerCase()}`
+      localStorage.removeItem(authKey)
+    }
+    
     disconnect()
     setHasAttemptedAuth(false)
     queryClient.removeQueries({ queryKey: [`/api/auth/user/${address}`] })

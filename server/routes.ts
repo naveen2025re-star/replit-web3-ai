@@ -1194,8 +1194,6 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         contractLanguage: "solidity",
         userId,
         isPublic: false,
-        title: `GitHub Analysis: ${repositoryFullName}`,
-        description: `Analysis of ${selectedFiles.length} files from ${repositoryFullName}`,
         tags: ["github", "repository", repositoryFullName.split('/')[1]]
       });
 

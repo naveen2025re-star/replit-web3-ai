@@ -35,6 +35,44 @@ export default function IntegrationsPage() {
   const [cicdConfig, setCicdConfig] = useState('');
   const [scanResults, setScanResults] = useState<any>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+
+  // Preserve scan results and selections across authentication
+  useEffect(() => {
+    const savedScanResults = localStorage.getItem('github_scan_results');
+    const savedSelectedFiles = localStorage.getItem('github_selected_files');
+    
+    if (savedScanResults) {
+      try {
+        setScanResults(JSON.parse(savedScanResults));
+      } catch (error) {
+        console.warn('Invalid saved scan results:', error);
+        localStorage.removeItem('github_scan_results');
+      }
+    }
+    
+    if (savedSelectedFiles) {
+      try {
+        setSelectedFiles(JSON.parse(savedSelectedFiles));
+      } catch (error) {
+        console.warn('Invalid saved selected files:', error);
+        localStorage.removeItem('github_selected_files');
+      }
+    }
+  }, []);
+
+  // Save scan results to localStorage when they change
+  useEffect(() => {
+    if (scanResults) {
+      localStorage.setItem('github_scan_results', JSON.stringify(scanResults));
+    }
+  }, [scanResults]);
+
+  // Save selected files to localStorage when they change
+  useEffect(() => {
+    if (selectedFiles.length > 0) {
+      localStorage.setItem('github_selected_files', JSON.stringify(selectedFiles));
+    }
+  }, [selectedFiles]);
   const { toast } = useToast();
   const { user } = useWeb3Auth();
 
