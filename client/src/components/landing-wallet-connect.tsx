@@ -39,7 +39,7 @@ export function LandingWalletConnect({ children, contractInput }: LandingWalletC
       setAuthStep('completed');
       setTimeout(() => {
         setShowAuthModal(false);
-        setLocation("/app");
+        setLocation("/auditor");
       }, 1500);
     }
   }, [isAuthenticated, user, setLocation]);

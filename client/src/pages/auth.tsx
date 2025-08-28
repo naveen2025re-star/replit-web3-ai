@@ -17,7 +17,7 @@ export default function AuthPage() {
   // Redirect to auditor if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      setLocation("/app");
+      setLocation("/auditor");
     }
   }, [isAuthenticated, user, setLocation]);
 

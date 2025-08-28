@@ -132,7 +132,7 @@ export default function Community() {
                 {auditsData?.total || 0} Public Scans
               </Badge>
               <Button 
-                onClick={() => setLocation("/app")}
+                onClick={() => setLocation("/auditor")}
                 className="bg-blue-600 hover:bg-blue-700"
                 data-testid="button-start-audit"
               >
@@ -366,7 +366,7 @@ export default function Community() {
               }
             </p>
             <Button 
-              onClick={() => setLocation("/app")}
+              onClick={() => setLocation("/auditor")}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Shield className="h-4 w-4 mr-2" />

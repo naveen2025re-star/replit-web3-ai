@@ -18,7 +18,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <Route path="/app">
+      <Route path="/auditor">
         {isAuthenticated && user ? <Auditor /> : <AuthPage />}
       </Route>
       <Route path="/history">
