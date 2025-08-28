@@ -294,7 +294,7 @@ export default function AuditorPage() {
   return (
     <div className="flex h-screen bg-slate-950">
       {/* Sidebar */}
-      <div className="w-72 bg-slate-900 border-r border-slate-700 flex flex-col">
+      <div className="w-72 bg-gradient-to-b from-slate-900 to-slate-900/95 border-r border-slate-700/50 flex flex-col backdrop-blur-sm">
         {/* Header */}
         <div className="p-4 border-b border-slate-700">
           <div className="flex items-center gap-2 mb-4">
@@ -303,7 +303,7 @@ export default function AuditorPage() {
           </div>
           <Button 
             onClick={newAuditSession}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Audit
@@ -324,21 +324,21 @@ export default function AuditorPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {auditHistory.slice(0, 10).map((session: AuditSession) => (
+                {auditHistory.length > 0 ? auditHistory.slice(0, 10).map((session: AuditSession, index: number) => (
                   <Card 
-                    key={session.id}
-                    className="p-3 cursor-pointer hover:bg-slate-800 transition-colors bg-slate-800/30 border-slate-700"
+                    key={session.id || index}
+                    className="group p-3 cursor-pointer hover:bg-slate-800/70 transition-all duration-200 ease-in-out bg-slate-800/30 border-slate-700 hover:border-slate-600 hover:shadow-lg transform hover:scale-[1.02]"
                     onClick={() => loadAuditSession(session.id)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm text-white font-medium truncate">
-                          {session.title || "Untitled Audit"}
+                        <div className="text-sm text-white font-medium truncate group-hover:text-blue-300 transition-colors">
+                          {session.title && session.title.trim() ? session.title : `Contract Analysis #${index + 1}`}
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-2">
                           <div className="flex items-center gap-1 text-xs text-slate-400">
                             <Clock className="h-3 w-3" />
-                            {session.timestamp ? new Date(session.timestamp).toLocaleDateString() : 'Unknown date'}
+                            {session.timestamp ? new Date(session.timestamp).toLocaleDateString() : 'Recent'}
                           </div>
                           <div className="flex items-center gap-1">
                             {session.isPublic ? (
@@ -348,19 +348,28 @@ export default function AuditorPage() {
                             )}
                             <Badge 
                               variant={session.status === 'completed' ? 'default' : 'secondary'}
-                              className="text-xs"
+                              className="text-xs transition-colors group-hover:bg-blue-500"
                             >
-                              {session.status}
+                              {session.status || 'completed'}
                             </Badge>
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
+                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white">
                         <MoreVertical className="h-3 w-3" />
                       </Button>
                     </div>
                   </Card>
-                ))}
+                )) : (
+                  <div className="space-y-2">
+                    {[1,2,3].map((i) => (
+                      <div key={i} className="p-3 bg-slate-800/20 border border-slate-700 rounded-lg animate-pulse">
+                        <div className="h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-slate-700 rounded w-1/2"></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -403,9 +412,9 @@ export default function AuditorPage() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-slate-950">
+      <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-950 to-slate-900">
         {/* Header */}
-        <div className="border-b border-slate-700 p-4 bg-slate-900">
+        <div className="border-b border-slate-700/50 p-4 bg-slate-900/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-white">Smart Contract Analysis</h2>
@@ -525,10 +534,10 @@ export default function AuditorPage() {
                       ) : (
                         <div className="text-slate-100">
                           <div className="prose prose-invert prose-sm max-w-none">
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm]}
-                              className="whitespace-pre-wrap text-sm leading-relaxed"
-                              components={{
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                              <ReactMarkdown 
+                                remarkPlugins={[remarkGfm]}
+                                components={{
                                 // Custom styling for markdown elements
                                 h1: ({children}) => <h1 className="text-xl font-bold text-white mb-3">{children}</h1>,
                                 h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-2">{children}</h2>,
@@ -542,13 +551,14 @@ export default function AuditorPage() {
                                 blockquote: ({children}) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-slate-300 mb-3">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
                                 em: ({children}) => <em className="italic text-slate-200">{children}</em>,
-                              }}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                            {message.isStreaming && (
-                              <span className="inline-block w-2 h-4 bg-green-500 animate-pulse ml-1"></span>
-                            )}
+                                }}
+                              >
+                                {message.content}
+                              </ReactMarkdown>
+                              {message.isStreaming && (
+                                <span className="inline-block w-2 h-4 bg-green-500 animate-pulse ml-1"></span>
+                              )}
+                            </div>
                           </div>
                           
                           {!message.isStreaming && message.content && (
@@ -592,7 +602,7 @@ export default function AuditorPage() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-slate-700 p-4 bg-slate-900">
+        <div className="border-t border-slate-700/50 p-4 bg-slate-900/80 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto">
             {uploadedFiles && (
               <div className="mb-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
@@ -639,7 +649,7 @@ export default function AuditorPage() {
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || analysisState === "loading" || analysisState === "streaming"}
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                 >
                   {analysisState === "loading" || analysisState === "streaming" ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
