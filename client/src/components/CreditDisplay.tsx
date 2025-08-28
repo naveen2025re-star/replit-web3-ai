@@ -33,7 +33,14 @@ export function CreditDisplay({
   compact = false 
 }: CreditDisplayProps) {
   const { data: credits, isLoading } = useQuery<CreditStats>({
-    queryKey: ['/api/credits/balance'],
+    queryKey: ['/api/credits/balance', userId],
+    queryFn: async () => {
+      const response = await fetch(`/api/credits/balance?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch credits');
+      }
+      return response.json();
+    },
     enabled: !!userId,
     refetchInterval: 30000, // Refresh every 30 seconds
   });

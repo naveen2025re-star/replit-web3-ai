@@ -5,7 +5,6 @@ import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, up
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { z } from "zod";
 import * as crypto from "crypto";
-import { secp256k1 } from "@noble/secp256k1";
 
 const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
 const JWT_TOKEN = process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE";
@@ -240,8 +239,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         contractLanguage,
         userId,
         isPublic,
-        title,
-        description,
+        publicTitle: title,
+        publicDescription: description,
         tags,
       });
 
@@ -677,7 +676,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // Get user credit balance and transactions
   app.get("/api/credits/balance", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      // Get userId from query parameter for Web3 auth compatibility
+      const userId = req.query.userId as string;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -704,15 +704,11 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // Calculate credits needed for an audit (preview)
   app.post("/api/credits/calculate", async (req, res) => {
     try {
-      const userId = req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-
-      const { contractCode, language = "solidity", analysisType = "security" } = z.object({
+      const { contractCode, language = "solidity", analysisType = "security", userId } = z.object({
         contractCode: z.string(),
         language: z.string().optional(),
-        analysisType: z.enum(["security", "optimization", "full"]).optional()
+        analysisType: z.enum(["security", "optimization", "full"]).optional(),
+        userId: z.string()
       }).parse(req.body);
 
       const factors: CreditCalculationFactors = {
@@ -734,7 +730,10 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // Purchase credits (Stripe integration placeholder)
   app.post("/api/credits/purchase", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const { userId } = z.object({
+        userId: z.string()
+      }).parse(req.body);
+      
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
