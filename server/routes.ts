@@ -840,7 +840,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // GitHub OAuth authorization URL
       const authUrl = new URL('https://github.com/login/oauth/authorize');
       authUrl.searchParams.set('client_id', clientId);
-      authUrl.searchParams.set('redirect_uri', `${req.protocol}://${req.get('host')}/api/auth/github/callback`);
+      // Force HTTPS for Replit environment
+      const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+      authUrl.searchParams.set('redirect_uri', `${protocol}://${req.get('host')}/api/auth/github/callback`);
       authUrl.searchParams.set('scope', 'repo read:user user:email');
       authUrl.searchParams.set('state', state);
       
@@ -859,7 +861,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const { code, state, error } = req.query;
       
       if (error) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=${error}`);
+        const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+        return res.redirect(`${protocol}://${req.get('host')}/integrations?github=error&reason=${error}`);
       }
       
       // Initialize and clean up expired states
@@ -877,7 +880,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Verify state parameter
       const storedState = globalThis.oauthStates.get(state as string);
       if (!storedState) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=invalid_state`);
+        const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+        return res.redirect(`${protocol}://${req.get('host')}/integrations?github=error&reason=invalid_state`);
       }
       
       const userId = storedState.userId;
@@ -923,21 +927,26 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               connectedAt: new Date().toISOString()
             });
             
-            res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=connected`);
+            const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+            res.redirect(`${protocol}://${req.get('host')}/integrations?github=connected`);
           } else {
             console.error("Failed to get access token:", tokenData);
-            res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=token_exchange_failed`);
+            const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+            res.redirect(`${protocol}://${req.get('host')}/integrations?github=error&reason=token_exchange_failed`);
           }
         } catch (error) {
           console.error("Failed to process GitHub OAuth:", error);
-          res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=oauth_processing_failed`);
+          const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+          res.redirect(`${protocol}://${req.get('host')}/integrations?github=error&reason=oauth_processing_failed`);
         }
       } else {
-        res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=cancelled`);
+        const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+        res.redirect(`${protocol}://${req.get('host')}/integrations?github=cancelled`);
       }
     } catch (error: any) {
       console.error("GitHub callback failed:", error);
-      res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=callback_failed`);
+      const protocol = process.env.NODE_ENV === 'development' ? 'https' : req.protocol;
+      res.redirect(`${protocol}://${req.get('host')}/integrations?github=error&reason=callback_failed`);
     }
   });
 
