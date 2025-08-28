@@ -1,0 +1,28 @@
+.smartaudit-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  z-index: 999999;
+  position: relative;
+}
+
+.smartaudit-container * {
+  box-sizing: border-box;
+}
+
+.smartaudit-container button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.smartaudit-container button:active {
+  transform: translateY(0);
+}
+
+@keyframes smartaudit-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.smartaudit-scanning {
+  animation: smartaudit-pulse 1.5s infinite;
+}

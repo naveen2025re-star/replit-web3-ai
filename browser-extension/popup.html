@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 320px;
+      padding: 0;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #1e293b, #334155);
+      color: white;
+    }
+    
+    .header {
+      padding: 16px;
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    .content {
+      padding: 16px;
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .status-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-size: 12px;
+    }
+    
+    .status-connected {
+      background: #10b981;
+    }
+    
+    .status-disconnected {
+      background: #ef4444;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 14px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+    
+    .input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+    
+    .footer {
+      padding: 12px 16px;
+      background: rgba(0,0,0,0.2);
+      text-align: center;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    
+    .footer a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🛡️ SmartAudit AI</div>
+    <div class="subtitle">Contract Security Scanner</div>
+  </div>
+  
+  <div class="content">
+    <!-- Login Section -->
+    <div id="login-section">
+      <div class="status">
+        <div class="status-icon status-disconnected">❌</div>
+        <div>
+          <div style="font-weight: 500; font-size: 14px;">Not Connected</div>
+          <div style="font-size: 11px; opacity: 0.7;">Enter your API key to start scanning</div>
+        </div>
+      </div>
+      
+      <input 
+        type="password" 
+        id="api-key-input" 
+        class="input" 
+        placeholder="Enter your API key..."
+      >
+      
+      <button id="connect-btn" class="btn btn-primary">
+        🔗 Connect Account
+      </button>
+      
+      <button id="get-key-btn" class="btn btn-secondary">
+        🔑 Get API Key
+      </button>
+    </div>
+    
+    <!-- Connected Section -->
+    <div id="connected-section" class="hidden">
+      <div class="status">
+        <div class="status-icon status-connected">✅</div>
+        <div>
+          <div style="font-weight: 500; font-size: 14px;">Connected</div>
+          <div style="font-size: 11px; opacity: 0.7;">Ready to scan contracts</div>
+        </div>
+      </div>
+      
+      <button id="scan-current-btn" class="btn btn-primary">
+        🔍 Scan Current Contract
+      </button>
+      
+      <button id="open-dashboard-btn" class="btn btn-secondary">
+        📊 Open Dashboard
+      </button>
+      
+      <button id="disconnect-btn" class="btn btn-secondary">
+        🔓 Disconnect
+      </button>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <a href="https://your-domain.com" target="_blank">Visit SmartAudit AI</a>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

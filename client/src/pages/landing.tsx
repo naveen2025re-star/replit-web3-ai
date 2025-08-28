@@ -251,6 +251,7 @@ export default function Landing() {
             <div className="hidden md:flex items-center gap-6 text-sm">
               <button onClick={() => setLocation("/auditor")} className="text-gray-300 hover:text-white transition-colors">Scans</button>
               <button onClick={() => setLocation("/community")} className="text-gray-300 hover:text-white transition-colors">Community</button>
+              <button onClick={() => setLocation("/integrations")} className="text-gray-300 hover:text-white transition-colors">Integrations</button>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Blog</a>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Documentation</a>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Pricing</a>

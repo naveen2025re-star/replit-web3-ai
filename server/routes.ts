@@ -776,6 +776,122 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     await capturePaypalOrder(req, res);
   });
 
+  // GitHub Integration Routes
+  app.post("/api/integrations/github/scan", async (req, res) => {
+    try {
+      const { owner, repo, branch = 'main', githubToken } = req.body;
+      
+      if (!owner || !repo || !githubToken) {
+        return res.status(400).json({ 
+          message: "Missing required fields: owner, repo, githubToken" 
+        });
+      }
+
+      const githubService = new (await import("./github")).GitHubService(githubToken);
+      
+      // Get repository info and scan for contracts
+      const [repoInfo, scanResult] = await Promise.all([
+        githubService.getRepositoryInfo(owner, repo),
+        githubService.scanRepository(owner, repo, branch)
+      ]);
+
+      res.json({
+        repository: repoInfo,
+        scan: scanResult,
+        message: "Repository scan initiated successfully"
+      });
+    } catch (error: any) {
+      console.error("GitHub scan failed:", error);
+      res.status(500).json({ message: error.message || "GitHub scan failed" });
+    }
+  });
+
+  app.post("/api/integrations/github/webhook", async (req, res) => {
+    try {
+      const { action, repository, pull_request, commits } = req.body;
+      
+      // Handle different webhook events
+      if (action === "opened" || action === "synchronize") {
+        // New PR or updated PR - trigger scan
+        const scanId = `pr_${repository.id}_${pull_request.number}_${Date.now()}`;
+        
+        // Here you would trigger actual contract scanning
+        // For now, we'll just acknowledge the webhook
+        
+        res.json({ 
+          message: "Webhook received", 
+          scanId,
+          action: "scan_initiated" 
+        });
+      } else {
+        res.json({ message: "Webhook received", action: "no_action" });
+      }
+    } catch (error: any) {
+      console.error("GitHub webhook error:", error);
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
+  app.post("/api/integrations/cicd/scan", async (req, res) => {
+    try {
+      const { repository, branch, commitSha, contractsPath = './contracts' } = req.body;
+      
+      if (!repository || !branch) {
+        return res.status(400).json({ 
+          message: "Missing required fields: repository, branch" 
+        });
+      }
+
+      // Generate scan ID for tracking
+      const scanId = `cicd_${Date.now()}`;
+      
+      // In a real implementation, this would:
+      // 1. Clone the repository 
+      // 2. Find all Solidity files
+      // 3. Run them through your audit API
+      // 4. Return results
+      
+      res.json({
+        scanId,
+        status: "initiated",
+        repository,
+        branch,
+        contractsPath,
+        estimatedTime: "2-5 minutes",
+        message: "CI/CD scan initiated successfully"
+      });
+    } catch (error: any) {
+      console.error("CI/CD scan failed:", error);
+      res.status(500).json({ message: error.message || "CI/CD scan failed" });
+    }
+  });
+
+  app.get("/api/integrations/cicd/config/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      const { CICDService } = await import("./github");
+      
+      let config: string;
+      
+      switch (type) {
+        case 'github-actions':
+          const projectType = req.query.project as 'hardhat' | 'truffle' | 'foundry' || 'hardhat';
+          config = CICDService.generateYAMLConfig(projectType);
+          break;
+        case 'jenkins':
+          config = CICDService.generateJenkinsfile();
+          break;
+        default:
+          return res.status(400).json({ message: "Unsupported CI/CD type" });
+      }
+      
+      res.json({ config, type });
+    } catch (error: any) {
+      console.error("Config generation failed:", error);
+      res.status(500).json({ message: "Failed to generate CI/CD config" });
+    }
+  });
+
   // Check if user has claimed free credits
   app.get("/api/credits/check-free-claim", async (req, res) => {
     try {

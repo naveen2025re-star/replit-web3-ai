@@ -10,6 +10,7 @@ import AuthPage from "@/pages/auth";
 import Landing from "@/pages/landing";
 import Community from "@/pages/community";
 import AuditHistoryPage from "@/pages/audit-history";
+import IntegrationsPage from "@/pages/integrations";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 
 function Router() {
@@ -25,6 +26,9 @@ function Router() {
         {isAuthenticated && user ? <AuditHistoryPage /> : <AuthPage />}
       </Route>
       <Route path="/community" component={Community} />
+      <Route path="/integrations">
+        {isAuthenticated && user ? <IntegrationsPage /> : <AuthPage />}
+      </Route>
       <Route path="/" component={Landing} />
       <Route component={NotFound} />
     </Switch>
