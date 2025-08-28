@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { FileUploader } from "@/components/ui/file-uploader";
+import { SophisticatedSidebar } from "@/components/sophisticated-sidebar";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { createAuditSession } from "@/lib/shipable-api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -58,10 +59,12 @@ interface ChatMessage {
 
 interface AuditSession {
   id: string;
-  title: string;
-  timestamp: Date;
-  isPublic: boolean;
+  publicTitle?: string;
+  contractLanguage: string;
   status: string;
+  isPublic: boolean;
+  createdAt: string;
+  completedAt?: string;
 }
 
 export default function AuditorPage() {
@@ -74,6 +77,7 @@ export default function AuditorPage() {
   const [analysisState, setAnalysisState] = useState<AnalysisState>("initial");
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
   const [auditVisibility, setAuditVisibility] = useState<AuditVisibilityOptions>({
     isPublic: false
   });
@@ -84,10 +88,16 @@ export default function AuditorPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch audit history
+  // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
-    queryKey: ['/api/audit/sessions'],
-    enabled: !!user,
+    queryKey: ['/api/audit/user-sessions', user?.id],
+    enabled: !!user?.id,
+  });
+
+  // Fetch community audits
+  const { data: communityAudits = { audits: [], total: 0 } } = useQuery({
+    queryKey: ['/api/community/audits'],
+    queryFn: () => fetch('/api/community/audits?page=1&limit=10').then(res => res.json()),
   });
 
   const scrollToBottom = () => {
@@ -292,124 +302,15 @@ export default function AuditorPage() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-950">
-      {/* Sidebar */}
-      <div className="w-72 bg-gradient-to-b from-slate-900 to-slate-900/95 border-r border-slate-700/50 flex flex-col backdrop-blur-sm">
-        {/* Header */}
-        <div className="p-4 border-b border-slate-700">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="h-6 w-6 text-blue-500" />
-            <h1 className="font-semibold text-white">SmartAudit AI</h1>
-          </div>
-          <Button 
-            onClick={newAuditSession}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Audit
-          </Button>
-        </div>
-
-        {/* Audit History */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
-              <History className="h-4 w-4" />
-              <span>Recent Audits</span>
-            </div>
-            
-            {auditHistory.length === 0 ? (
-              <div className="text-sm text-slate-500 py-4 text-center">
-                No audit history yet
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {auditHistory.length > 0 ? auditHistory.slice(0, 10).map((session: AuditSession, index: number) => (
-                  <Card 
-                    key={session.id || index}
-                    className="group p-3 cursor-pointer hover:bg-slate-800/70 transition-all duration-200 ease-in-out bg-slate-800/30 border-slate-700 hover:border-slate-600 hover:shadow-lg transform hover:scale-[1.02]"
-                    onClick={() => loadAuditSession(session.id)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-white font-medium truncate group-hover:text-blue-300 transition-colors">
-                          {session.title && session.title.trim() ? session.title : `Contract Analysis #${index + 1}`}
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="flex items-center gap-1 text-xs text-slate-400">
-                            <Clock className="h-3 w-3" />
-                            {session.timestamp ? new Date(session.timestamp).toLocaleDateString() : 'Recent'}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {session.isPublic ? (
-                              <Globe className="h-3 w-3 text-blue-400" />
-                            ) : (
-                              <Lock className="h-3 w-3 text-slate-400" />
-                            )}
-                            <Badge 
-                              variant={session.status === 'completed' ? 'default' : 'secondary'}
-                              className="text-xs transition-colors group-hover:bg-blue-500"
-                            >
-                              {session.status || 'completed'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white">
-                        <MoreVertical className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </Card>
-                )) : (
-                  <div className="space-y-2">
-                    {[1,2,3].map((i) => (
-                      <div key={i} className="p-3 bg-slate-800/20 border border-slate-700 rounded-lg animate-pulse">
-                        <div className="h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-slate-700 rounded w-1/2"></div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* User Profile */}
-        {user && (
-          <div className="p-4 border-t border-slate-700">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
-                {user.walletAddress?.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-slate-300 text-sm truncate">
-                  {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
-                </div>
-                <div className="text-xs text-slate-500">Connected</div>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowSettings(!showSettings)}
-                className="text-slate-400 hover:text-white"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {showSettings && (
-              <div className="mt-3 p-3 bg-slate-800 rounded-lg">
-                <AuditVisibilitySelector
-                  value={auditVisibility}
-                  onChange={setAuditVisibility}
-                  disabled={analysisState === "loading" || analysisState === "streaming"}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+    <div className="flex h-screen bg-gradient-to-br from-slate-950 to-slate-900">
+      <SophisticatedSidebar
+        auditHistory={auditHistory}
+        communityAudits={communityAudits}
+        user={user}
+        onNewAudit={newAuditSession}
+        onLoadSession={loadAuditSession}
+        onShowSettings={() => setShowSettings(!showSettings)}
+      />
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-950 to-slate-900">
