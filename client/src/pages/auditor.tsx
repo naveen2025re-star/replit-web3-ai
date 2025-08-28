@@ -84,7 +84,7 @@ export default function AuditorPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
   const [auditVisibility, setAuditVisibility] = useState<AuditVisibilityOptions>({
-    isPublic: false
+    isPublic: true // Default to public for Free users
   });
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles | null>(null);
   const [showFileUploader, setShowFileUploader] = useState(false);
@@ -124,6 +124,20 @@ export default function AuditorPage() {
       return response.json();
     },
     refetchInterval: 60000, // Refetch every minute
+  });
+
+  // Fetch user credits and plan tier
+  const { data: credits } = useQuery({
+    queryKey: ['/api/credits/balance', user?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/credits/balance?userId=${user?.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch credits');
+      }
+      return response.json();
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000,
   });
 
   const scrollToBottom = () => {
@@ -571,17 +585,38 @@ export default function AuditorPage() {
               <div className="h-6 w-px bg-slate-600"></div>
               <Select 
                 value={auditVisibility.isPublic ? "public" : "private"}
-                onValueChange={(value) => setAuditVisibility({...auditVisibility, isPublic: value === "public"})}
+                onValueChange={(value) => {
+                  const isPublic = value === "public";
+                  // Prevent Free users from selecting private
+                  if (!isPublic && (!credits?.planTier || credits.planTier === 'Free')) {
+                    toast({
+                      title: "Upgrade Required",
+                      description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
+                      variant: "destructive",
+                    });
+                    setShowCreditPurchase(true);
+                    return;
+                  }
+                  setAuditVisibility({...auditVisibility, isPublic});
+                }}
                 disabled={analysisState === "loading" || analysisState === "streaming"}
               >
                 <SelectTrigger className="w-32 bg-slate-800 border-slate-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="private">
+                  <SelectItem 
+                    value="private" 
+                    disabled={!credits?.planTier || credits.planTier === 'Free'}
+                  >
                     <div className="flex items-center gap-2">
                       <Lock className="h-4 w-4" />
                       Private
+                      {(!credits?.planTier || credits.planTier === 'Free') && (
+                        <Badge variant="outline" className="text-xs ml-2 border-amber-500 text-amber-600">
+                          Pro+
+                        </Badge>
+                      )}
                     </div>
                   </SelectItem>
                   <SelectItem value="public">

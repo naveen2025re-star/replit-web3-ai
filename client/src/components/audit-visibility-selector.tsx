@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Globe, Lock, Users, Eye, Info, Shield } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Globe, Lock, Users, Eye, Info, Shield, Crown } from "lucide-react";
 
 interface AuditVisibilityOptions {
   isPublic: boolean;
@@ -16,12 +17,24 @@ interface AuditVisibilitySelectorProps {
   value: AuditVisibilityOptions;
   onChange: (options: AuditVisibilityOptions) => void;
   disabled?: boolean;
+  userPlanTier?: string | null;
+  onUpgradeClick?: () => void;
 }
 
-export function AuditVisibilitySelector({ value, onChange, disabled }: AuditVisibilitySelectorProps) {
+export function AuditVisibilitySelector({ value, onChange, disabled, userPlanTier, onUpgradeClick }: AuditVisibilitySelectorProps) {
   const [showDetails, setShowDetails] = React.useState(false);
 
+  const isFreePlan = userPlanTier === 'Free' || !userPlanTier;
+  const canCreatePrivate = !isFreePlan;
+  
   const handleVisibilityChange = (isPublic: boolean) => {
+    // Prevent free users from selecting private
+    if (!isPublic && isFreePlan) {
+      if (onUpgradeClick) {
+        onUpgradeClick();
+      }
+      return;
+    }
     onChange({ ...value, isPublic });
   };
 
@@ -80,7 +93,9 @@ export function AuditVisibilitySelector({ value, onChange, disabled }: AuditVisi
             !value.isPublic 
               ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-900/30' 
               : 'border-border hover:border-border/80 hover:bg-muted/50'
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          } ${disabled || isFreePlan ? 'opacity-50 cursor-not-allowed' : ''} ${
+            isFreePlan ? 'relative' : ''
+          }`}
           onClick={() => !disabled && handleVisibilityChange(false)}
           data-testid="card-private-audit"
         >
@@ -93,12 +108,18 @@ export function AuditVisibilitySelector({ value, onChange, disabled }: AuditVisi
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-foreground">Private</span>
-                {!value.isPublic && (
+                {isFreePlan && (
+                  <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Pro+
+                  </Badge>
+                )}
+                {!value.isPublic && canCreatePrivate && (
                   <Badge variant="default" className="text-xs bg-blue-500 text-white">Selected</Badge>
                 )}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                Only you can access this audit
+                {isFreePlan ? "Upgrade to Pro for private audits" : "Only you can access this audit"}
               </div>
             </div>
           </div>
@@ -134,6 +155,15 @@ export function AuditVisibilitySelector({ value, onChange, disabled }: AuditVisi
         </Card>
       </div>
 
+      {isFreePlan && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+          <Crown className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            <strong>Free Plan:</strong> You can only create public audits. Upgrade to Pro or Pro+ for private audit access.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
         <Eye className="h-3 w-3" />
         <span>

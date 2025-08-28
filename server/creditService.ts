@@ -357,13 +357,11 @@ export class CreditService {
   }
 
   /**
-   * Initialize default credit packages (replaces old ones)
+   * Initialize default credit packages (completely clean slate)
    */
   static async initializeDefaultPackages() {
-    // First, deactivate all existing packages
-    await db.update(creditPackages)
-      .set({ active: false })
-      .where(eq(creditPackages.active, true));
+    // Completely delete all existing packages to avoid duplicates
+    await db.delete(creditPackages);
 
     const defaultPackages = [
       {
@@ -412,10 +410,7 @@ export class CreditService {
       }
     ];
     
-    // Insert new packages
-    for (const pkg of defaultPackages) {
-      await db.insert(creditPackages)
-        .values(pkg);
-    }
+    // Insert the exact 4 packages
+    await db.insert(creditPackages).values(defaultPackages);
   }
 }
