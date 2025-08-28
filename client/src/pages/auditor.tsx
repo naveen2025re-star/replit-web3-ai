@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useLocation } from "wouter";
 import { 
   Send, 
   Paperclip, 
@@ -68,9 +69,10 @@ interface AuditSession {
 }
 
 export default function AuditorPage() {
-  const { user } = useWeb3Auth();
+  const { user, isConnected, isAuthenticated, authenticate, disconnect, isAuthenticating } = useWeb3Auth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -88,6 +90,13 @@ export default function AuditorPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Redirect to auth page if not authenticated
+  useEffect(() => {
+    if (!isConnected || !isAuthenticated) {
+      setLocation('/auth');
+    }
+  }, [isConnected, isAuthenticated, setLocation]);
+
   // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
     queryKey: ['/api/audit/user-sessions', user?.id],
@@ -95,7 +104,7 @@ export default function AuditorPage() {
       if (!user?.id) return [];
       return fetch(`/api/audit/user-sessions/${user.id}?page=1&pageSize=50`).then(res => res.json()).then(data => data.sessions || []);
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && isAuthenticated,
     refetchInterval: 30000, // Refetch every 30 seconds to get latest audits
   });
 
@@ -122,6 +131,25 @@ export default function AuditorPage() {
   }, [messages]);
 
   const handleFilesProcessed = useCallback((combinedContent: string, contractLanguage: string, fileInfo: {fileCount: number, totalSize: number}) => {
+    // Validate file content
+    if (!combinedContent || combinedContent.trim().length === 0) {
+      toast({
+        title: "Empty files",
+        description: "The uploaded files appear to be empty. Please check your files.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (combinedContent.length > 100000) { // 100KB limit
+      toast({
+        title: "Files too large",
+        description: "Combined file size is too large. Please reduce the content or upload fewer files.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const result = {
       content: combinedContent,
       fileCount: fileInfo.fileCount,
@@ -131,14 +159,45 @@ export default function AuditorPage() {
     setInputValue(combinedContent);
     setShowFileUploader(false);
     
+    // Focus on the input area after upload
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+    
     toast({
-      title: "Files uploaded",
-      description: `${fileInfo.fileCount} file(s) loaded successfully`,
+      title: "Files uploaded successfully",
+      description: `${fileInfo.fileCount} file(s) loaded (${(fileInfo.totalSize / 1024).toFixed(1)}KB). Ready for analysis.`,
     });
   }, [toast]);
 
   const handleSendMessage = useCallback(async () => {
-    if (!inputValue.trim() || analysisState === "loading" || analysisState === "streaming") {
+    // Better input validation
+    const trimmedInput = inputValue.trim();
+    
+    if (!trimmedInput) {
+      toast({
+        title: "Empty input",
+        description: "Please paste your smart contract code or describe what you'd like analyzed.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (trimmedInput.length < 10) {
+      toast({
+        title: "Input too short",
+        description: "Please provide more details for a comprehensive analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (analysisState === "loading" || analysisState === "streaming") {
+      toast({
+        title: "Analysis in progress",
+        description: "Please wait for the current analysis to complete.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -303,18 +362,86 @@ export default function AuditorPage() {
   };
 
   const loadAuditSession = async (sessionId: string) => {
-    // Load a previous audit session
-    setMessages([]);
-    setCurrentSessionId(sessionId);
-    // You would fetch the session messages here
+    try {
+      // Show loading state
+      toast({
+        title: "Loading audit",
+        description: "Retrieving previous audit session...",
+      });
+
+      setMessages([]);
+      setCurrentSessionId(sessionId);
+      
+      // Fetch the audit session details
+      const response = await fetch(`/api/audit/session/${sessionId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load audit session');
+      }
+      
+      const sessionData = await response.json();
+      
+      // Create user message with the original contract code
+      if (sessionData.contractCode) {
+        const userMessage: ChatMessage = {
+          id: Date.now().toString(),
+          type: "user",
+          content: sessionData.contractCode,
+          timestamp: new Date(sessionData.createdAt)
+        };
+        
+        // Create AI response if available
+        const messages: ChatMessage[] = [userMessage];
+        if (sessionData.result && (sessionData.result.rawResponse || sessionData.result.formattedReport)) {
+          const aiMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            type: "assistant",
+            content: sessionData.result.rawResponse || sessionData.result.formattedReport,
+            timestamp: new Date(sessionData.result.createdAt || sessionData.completedAt)
+          };
+          messages.push(aiMessage);
+        }
+        
+        setMessages(messages);
+        setInputValue(""); // Clear input
+        
+        toast({
+          title: "Audit loaded",
+          description: "Previous audit session restored successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Error loading audit session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load audit session. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const newAuditSession = () => {
+    // Confirm if there are unsaved changes
+    if (messages.length > 0 && analysisState !== "completed") {
+      if (!confirm("You have an analysis in progress. Are you sure you want to start a new audit?")) {
+        return;
+      }
+    }
+    
     setMessages([]);
     setAnalysisState("initial");
     setInputValue("");
     setUploadedFiles(null);
     setCurrentSessionId(null);
+    
+    // Focus on the input textarea for better UX
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+    
+    toast({
+      title: "New audit session",
+      description: "Ready for your next smart contract analysis.",
+    });
   };
 
   const handleEditAuditTitle = useCallback(async (sessionId: string, newTitle: string) => {
@@ -611,9 +738,12 @@ export default function AuditorPage() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Paste your smart contract code here or describe what you'd like me to analyze..."
-                className="w-full min-h-[100px] max-h-[200px] pr-20 resize-none rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Paste your smart contract code here (Solidity, Rust, Go, etc.) or describe specific security concerns you'd like me to analyze..."
+                className="w-full min-h-[120px] max-h-[300px] pr-20 resize-none rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                 disabled={analysisState === "loading" || analysisState === "streaming"}
+                aria-label="Smart contract code input"
+                aria-describedby="input-help-text"
+                data-testid="textarea-contract-input"
               />
               
               <div className="absolute bottom-3 right-3 flex items-center gap-2">
@@ -623,6 +753,8 @@ export default function AuditorPage() {
                   onClick={() => setShowFileUploader(true)}
                   disabled={analysisState === "loading" || analysisState === "streaming"}
                   className="text-slate-400 hover:text-white hover:bg-slate-700"
+                  aria-label="Upload contract files"
+                  data-testid="button-file-upload"
                 >
                   <Paperclip className="h-4 w-4" />
                 </Button>
@@ -632,6 +764,8 @@ export default function AuditorPage() {
                   disabled={!inputValue.trim() || analysisState === "loading" || analysisState === "streaming"}
                   size="sm"
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  aria-label={analysisState === "loading" || analysisState === "streaming" ? "Analysis in progress" : "Start security analysis"}
+                  data-testid="button-send-message"
                 >
                   {analysisState === "loading" || analysisState === "streaming" ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

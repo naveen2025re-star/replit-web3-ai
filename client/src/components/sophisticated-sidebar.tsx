@@ -56,10 +56,41 @@ export function SophisticatedSidebar({
   const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
   const [editingAudit, setEditingAudit] = useState<{id: string, title: string} | null>(null);
   const [newTitle, setNewTitle] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="w-80 bg-gradient-to-b from-slate-900 via-slate-900/98 to-slate-900/95 border-r border-slate-700/30 flex flex-col backdrop-blur-lg shadow-2xl">
-      {/* Header */}
+    <>
+      {/* Mobile Menu Button */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <Button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          variant="outline"
+          size="sm"
+          className="bg-slate-800/90 backdrop-blur border-slate-600 text-white"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </Button>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
+        w-80 bg-gradient-to-b from-slate-900 via-slate-900/98 to-slate-900/95 
+        border-r border-slate-700/30 flex flex-col backdrop-blur-lg shadow-2xl
+        transition-transform duration-300 ease-in-out
+      `}>
+        {/* Header */}
       <div className="p-5 border-b border-slate-700/30">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
@@ -336,6 +367,7 @@ export function SophisticatedSidebar({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
