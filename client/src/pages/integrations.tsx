@@ -95,17 +95,32 @@ export default function IntegrationsPage() {
       const response = await fetch('/api/integrations/github/install', {
         headers: { 'x-user-id': user?.id || '' }
       });
-      return response.json();
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Request failed');
+      }
+      
+      return data;
     },
     onSuccess: (data) => {
       window.open(data.installUrl, '_blank');
     },
     onError: (error: any) => {
-      toast({
-        title: "GitHub Installation Failed",
-        description: error.message || "Failed to generate installation URL",
-        variant: "destructive",
-      });
+      // Check if this is a configuration error
+      if (error.message?.includes('not configured')) {
+        toast({
+          title: "GitHub App Setup Required",
+          description: "GitHub integration needs to be configured by the administrator. Please check the setup instructions.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "GitHub Installation Failed",
+          description: error.message || "Failed to generate installation URL",
+          variant: "destructive",
+        });
+      }
     },
   });
 

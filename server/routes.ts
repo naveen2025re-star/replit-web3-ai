@@ -801,6 +801,26 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // GitHub App OAuth Routes
   app.get("/api/integrations/github/install", isAuthenticated, async (req, res) => {
     try {
+      // Check if GitHub App is properly configured
+      const appName = process.env.GITHUB_APP_NAME;
+      const appId = process.env.GITHUB_APP_ID;
+      
+      if (!appName || !appId) {
+        return res.status(503).json({ 
+          message: "GitHub App integration is not configured yet",
+          error: "GITHUB_APP_NOT_CONFIGURED",
+          setupInstructions: {
+            title: "GitHub App Setup Required",
+            steps: [
+              "1. Create a GitHub App at https://github.com/settings/apps/new",
+              "2. Set the app name and configure callback URL",
+              "3. Add the GITHUB_APP_NAME and GITHUB_APP_ID environment variables",
+              "4. Configure webhooks and permissions as needed"
+            ]
+          }
+        });
+      }
+      
       const state = crypto.randomBytes(32).toString('hex');
       const userId = (req as any).user?.claims?.sub;
       
@@ -808,8 +828,6 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       (req as any).session.githubOAuthState = state;
       (req as any).session.userId = userId;
       
-      // GitHub App installation URL - use environment variable or default name
-      const appName = process.env.GITHUB_APP_NAME || "smart-audit-ai";
       const installUrl = `https://github.com/apps/${appName}/installations/new?state=${state}`;
       
       res.json({ 
