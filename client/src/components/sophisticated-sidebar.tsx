@@ -12,8 +12,10 @@ import {
   MoreVertical,
   Settings,
   Users,
-  TrendingUp
+  TrendingUp,
+  Archive
 } from "lucide-react";
+import { Link } from "wouter";
 
 interface AuditSession {
   id: string;
@@ -57,13 +59,24 @@ export function SophisticatedSidebar({
             <p className="text-xs text-slate-400">Professional Contract Analysis</p>
           </div>
         </div>
-        <Button 
-          onClick={onNewAudit}
-          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] h-11 font-medium"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Security Audit
-        </Button>
+        <div className="space-y-3">
+          <Button 
+            onClick={onNewAudit}
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] h-11 font-medium"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Security Audit
+          </Button>
+          <Link href="/history">
+            <Button 
+              variant="outline"
+              className="w-full bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 h-10"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Audit History
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Navigation Tabs */}

@@ -409,11 +409,35 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // Get user audit sessions
+  // Get user audit sessions with search and filtering
   app.get("/api/audit/user-sessions/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
-      const sessions = await storage.getUserAuditSessions(userId, 50);
+      const { 
+        search, 
+        status, 
+        visibility, 
+        language, 
+        dateFrom, 
+        dateTo, 
+        sortBy = 'createdAt', 
+        sortOrder = 'desc',
+        page = '1',
+        pageSize = '50'
+      } = req.query;
+
+      const sessions = await storage.getUserAuditSessions(userId, parseInt(pageSize as string), {
+        search: search as string,
+        status: status as string,
+        visibility: visibility as string,
+        language: language as string,
+        dateFrom: dateFrom as string,
+        dateTo: dateTo as string,
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as 'asc' | 'desc',
+        page: parseInt(page as string)
+      });
+      
       res.json(sessions);
     } catch (error) {
       console.error("Failed to get user audit sessions:", error);

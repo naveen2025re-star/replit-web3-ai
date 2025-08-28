@@ -9,6 +9,7 @@ import Auditor from "@/pages/auditor";
 import AuthPage from "@/pages/auth";
 import Landing from "@/pages/landing";
 import Community from "@/pages/community";
+import AuditHistoryPage from "@/pages/audit-history";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 
 function Router() {
@@ -19,6 +20,9 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/app">
         {isAuthenticated && user ? <Auditor /> : <AuthPage />}
+      </Route>
+      <Route path="/history">
+        {isAuthenticated && user ? <AuditHistoryPage /> : <AuthPage />}
       </Route>
       <Route path="/community" component={Community} />
       <Route path="/" component={Landing} />

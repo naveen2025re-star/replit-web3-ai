@@ -17,7 +17,7 @@ import {
   type UpdateAuditVisibility
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, lt, gt, and, sql, like, arrayContains } from "drizzle-orm";
+import { eq, desc, asc, lt, gt, gte, lte, and, or, sql, like, arrayContains } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -38,7 +38,17 @@ export interface IStorage {
   getAuditSession(id: string): Promise<AuditSession | undefined>;
   updateAuditSessionStatus(id: string, status: string, completedAt?: Date): Promise<void>;
   getRecentAuditSessions(limit?: number): Promise<AuditSession[]>;
-  getUserAuditSessions(userId: string, limit?: number): Promise<AuditSession[]>;
+  getUserAuditSessions(userId: string, limit?: number, filters?: {
+    search?: string;
+    status?: string;
+    visibility?: string;
+    language?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+  }): Promise<AuditSession[]>;
   
   // Audit result operations
   createAuditResult(result: InsertAuditResult): Promise<AuditResult>;
@@ -167,13 +177,73 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getUserAuditSessions(userId: string, limit = 50): Promise<AuditSession[]> {
-    return await db
+  async getUserAuditSessions(userId: string, limit = 50, filters?: {
+    search?: string;
+    status?: string;
+    visibility?: string;
+    language?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+  }): Promise<AuditSession[]> {
+    let query = db
       .select()
       .from(auditSessions)
-      .where(eq(auditSessions.userId, userId))
-      .orderBy(desc(auditSessions.createdAt))
-      .limit(limit);
+      .where(eq(auditSessions.userId, userId));
+
+    // Apply filters
+    if (filters) {
+      // Search filter
+      if (filters.search && filters.search !== '') {
+        const searchTerm = `%${filters.search.toLowerCase()}%`;
+        query = query.where(or(
+          sql`LOWER(${auditSessions.publicTitle}) LIKE ${searchTerm}`,
+          sql`LOWER(${auditSessions.contractLanguage}) LIKE ${searchTerm}`
+        ));
+      }
+
+      // Status filter
+      if (filters.status && filters.status !== 'all') {
+        query = query.where(eq(auditSessions.status, filters.status));
+      }
+
+      // Visibility filter
+      if (filters.visibility === 'public') {
+        query = query.where(eq(auditSessions.isPublic, true));
+      } else if (filters.visibility === 'private') {
+        query = query.where(eq(auditSessions.isPublic, false));
+      }
+
+      // Language filter
+      if (filters.language && filters.language !== 'all') {
+        query = query.where(eq(auditSessions.contractLanguage, filters.language));
+      }
+
+      // Date range filters
+      if (filters.dateFrom) {
+        query = query.where(gte(auditSessions.createdAt, new Date(filters.dateFrom)));
+      }
+      if (filters.dateTo) {
+        query = query.where(lte(auditSessions.createdAt, new Date(filters.dateTo)));
+      }
+
+      // Sorting
+      const sortColumn = filters.sortBy === 'title' ? auditSessions.publicTitle
+        : filters.sortBy === 'status' ? auditSessions.status
+        : auditSessions.createdAt;
+      
+      if (filters.sortOrder === 'asc') {
+        query = query.orderBy(asc(sortColumn));
+      } else {
+        query = query.orderBy(desc(sortColumn));
+      }
+    } else {
+      query = query.orderBy(desc(auditSessions.createdAt));
+    }
+
+    return await query.limit(limit);
   }
 
   async createAuditResult(insertResult: InsertAuditResult): Promise<AuditResult> {
