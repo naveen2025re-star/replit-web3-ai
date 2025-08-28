@@ -798,26 +798,17 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     await capturePaypalOrder(req, res);
   });
 
-  // GitHub App OAuth Routes
+  // GitHub OAuth Routes
   app.get("/api/integrations/github/install", isAuthenticated, async (req, res) => {
     try {
-      // Check if GitHub App is properly configured
-      const appName = process.env.GITHUB_APP_NAME;
-      const appId = process.env.GITHUB_APP_ID;
+      // Check if GitHub OAuth is properly configured
+      const clientId = process.env.GITHUB_CLIENT_ID;
+      const clientSecret = process.env.GITHUB_CLIENT_SECRET;
       
-      if (!appName || !appId) {
+      if (!clientId || !clientSecret) {
         return res.status(503).json({ 
-          message: "GitHub App integration is not configured yet",
-          error: "GITHUB_APP_NOT_CONFIGURED",
-          setupInstructions: {
-            title: "GitHub App Setup Required",
-            steps: [
-              "1. Create a GitHub App at https://github.com/settings/apps/new",
-              "2. Set the app name and configure callback URL",
-              "3. Add the GITHUB_APP_NAME and GITHUB_APP_ID environment variables",
-              "4. Configure webhooks and permissions as needed"
-            ]
-          }
+          message: "GitHub OAuth integration is not configured yet",
+          error: "GITHUB_OAUTH_NOT_CONFIGURED"
         });
       }
       
@@ -828,65 +819,107 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       (req as any).session.githubOAuthState = state;
       (req as any).session.userId = userId;
       
-      const installUrl = `https://github.com/apps/${appName}/installations/new?state=${state}`;
+      // GitHub OAuth authorization URL
+      const authUrl = new URL('https://github.com/login/oauth/authorize');
+      authUrl.searchParams.set('client_id', clientId);
+      authUrl.searchParams.set('redirect_uri', `${req.protocol}://${req.get('host')}/api/auth/github/callback`);
+      authUrl.searchParams.set('scope', 'repo read:user user:email');
+      authUrl.searchParams.set('state', state);
       
       res.json({ 
-        installUrl,
-        message: "Click to install SmartAudit AI GitHub App"
+        installUrl: authUrl.toString(),
+        message: "Click to connect your GitHub account"
       });
     } catch (error: any) {
-      console.error("GitHub install URL generation failed:", error);
-      res.status(500).json({ message: "Failed to generate install URL" });
+      console.error("GitHub OAuth URL generation failed:", error);
+      res.status(500).json({ message: "Failed to generate OAuth URL" });
     }
   });
 
-  app.get("/api/integrations/github/callback", async (req, res) => {
+  app.get("/api/auth/github/callback", async (req, res) => {
     try {
-      const { installation_id, setup_action, state } = req.query;
+      const { code, state, error } = req.query;
+      
+      if (error) {
+        return res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=${error}`);
+      }
       
       // Verify state parameter
       if (state !== (req as any).session?.githubOAuthState) {
-        return res.redirect(`${req.protocol}://${req.get('host')}/integrations?error=invalid_state`);
+        return res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=invalid_state`);
       }
       
       const userId = (req as any).session?.userId;
       
-      if (setup_action === 'install' && installation_id && userId) {
-        // Store installation in database
+      if (code && userId) {
         try {
-          // For now, we'll store in memory - in production use database
-          global.githubInstallations = global.githubInstallations || new Map();
-          global.githubInstallations.set(userId, {
-            installationId: installation_id as string,
-            installedAt: new Date().toISOString()
+          // Exchange code for access token
+          const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              client_id: process.env.GITHUB_CLIENT_ID,
+              client_secret: process.env.GITHUB_CLIENT_SECRET,
+              code: code,
+            }),
           });
           
-          res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=connected`);
+          const tokenData = await tokenResponse.json();
+          
+          if (tokenData.access_token) {
+            // Get user info from GitHub
+            const userResponse = await fetch('https://api.github.com/user', {
+              headers: {
+                'Authorization': `Bearer ${tokenData.access_token}`,
+                'User-Agent': 'SmartAudit-AI',
+              },
+            });
+            
+            const githubUser = await userResponse.json();
+            
+            // Store GitHub connection in memory (in production, use database)
+            global.githubConnections = global.githubConnections || new Map();
+            global.githubConnections.set(userId, {
+              accessToken: tokenData.access_token,
+              githubUserId: githubUser.id,
+              username: githubUser.login,
+              connectedAt: new Date().toISOString()
+            });
+            
+            res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=connected`);
+          } else {
+            console.error("Failed to get access token:", tokenData);
+            res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=token_exchange_failed`);
+          }
         } catch (error) {
-          console.error("Failed to store GitHub installation:", error);
-          res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error`);
+          console.error("Failed to process GitHub OAuth:", error);
+          res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=oauth_processing_failed`);
         }
       } else {
         res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=cancelled`);
       }
     } catch (error: any) {
       console.error("GitHub callback failed:", error);
-      res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error`);
+      res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error&reason=callback_failed`);
     }
   });
 
   app.get("/api/integrations/github/status", isAuthenticated, async (req, res) => {
     try {
       const userId = (req as any).user?.claims?.sub;
-      global.githubInstallations = global.githubInstallations || new Map();
+      global.githubConnections = global.githubConnections || new Map();
       
-      const installation = global.githubInstallations.get(userId);
+      const connection = global.githubConnections.get(userId);
       
-      if (installation) {
+      if (connection) {
         res.json({
           connected: true,
-          installationId: installation.installationId,
-          installedAt: installation.installedAt
+          username: connection.username,
+          githubUserId: connection.githubUserId,
+          connectedAt: connection.connectedAt
         });
       } else {
         res.json({ connected: false });
@@ -900,35 +933,47 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.get("/api/integrations/github/repositories", isAuthenticated, async (req, res) => {
     try {
       const userId = (req as any).user?.claims?.sub;
-      global.githubInstallations = global.githubInstallations || new Map();
+      global.githubConnections = global.githubConnections || new Map();
       
-      const installation = global.githubInstallations.get(userId);
+      const connection = global.githubConnections.get(userId);
       
-      if (!installation) {
+      if (!connection) {
         return res.status(400).json({ 
-          message: "GitHub App not installed. Please install the app first." 
+          message: "GitHub not connected. Please connect your GitHub account first." 
         });
       }
 
-      // Mock repositories for now - in production, use GitHub API with installation token
-      const mockRepositories = [
-        { 
-          name: "defi-contracts", 
-          full_name: "user/defi-contracts", 
-          private: false,
-          description: "DeFi protocol smart contracts",
-          default_branch: "main"
-        },
-        { 
-          name: "nft-marketplace", 
-          full_name: "user/nft-marketplace", 
-          private: true,
-          description: "NFT marketplace contracts",
-          default_branch: "main"
+      // Fetch repositories using GitHub API
+      try {
+        const reposResponse = await fetch('https://api.github.com/user/repos?sort=updated&per_page=50', {
+          headers: {
+            'Authorization': `Bearer ${connection.accessToken}`,
+            'User-Agent': 'SmartAudit-AI',
+          },
+        });
+        
+        if (!reposResponse.ok) {
+          throw new Error(`GitHub API error: ${reposResponse.status}`);
         }
-      ];
-      
-      res.json({ repositories: mockRepositories });
+        
+        const repositories = await reposResponse.json();
+        
+        // Filter and format repositories
+        const formattedRepos = repositories.map((repo: any) => ({
+          name: repo.name,
+          full_name: repo.full_name,
+          private: repo.private,
+          description: repo.description,
+          default_branch: repo.default_branch,
+          language: repo.language,
+          updated_at: repo.updated_at
+        }));
+        
+        res.json({ repositories: formattedRepos });
+      } catch (apiError: any) {
+        console.error("GitHub API error:", apiError);
+        res.status(500).json({ message: "Failed to fetch repositories from GitHub" });
+      }
     } catch (error: any) {
       console.error("Failed to fetch repositories:", error);
       res.status(500).json({ message: "Failed to fetch repositories" });
@@ -946,36 +991,59 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       }
 
       const userId = (req as any).user?.claims?.sub;
-      global.githubInstallations = global.githubInstallations || new Map();
+      global.githubConnections = global.githubConnections || new Map();
       
-      const installation = global.githubInstallations.get(userId);
+      const connection = global.githubConnections.get(userId);
       
-      if (!installation) {
+      if (!connection) {
         return res.status(400).json({ 
-          message: "GitHub App not installed. Please install the app first." 
+          message: "GitHub not connected. Please connect your GitHub account first." 
         });
       }
 
       const [owner, repo] = repositoryFullName.split('/');
       
-      // Mock scan result - in production would use GitHub API and real contract analysis
-      const scanResult = {
-        scanId: `github_${owner}_${repo}_${Date.now()}`,
-        repository: { owner, repo, fullName: repositoryFullName, branch },
-        contracts: [
-          { path: "contracts/Token.sol", size: 1024, language: "Solidity" },
-          { path: "contracts/Vault.sol", size: 2048, language: "Solidity" },
-          { path: "contracts/interfaces/IERC20.sol", size: 512, language: "Solidity" }
-        ],
-        totalFiles: 3,
-        estimatedCredits: 15,
-        status: "ready"
-      };
+      try {
+        // Fetch repository contents to find Solidity files
+        const contentsResponse = await fetch(`https://api.github.com/repos/${repositoryFullName}/contents?ref=${branch}`, {
+          headers: {
+            'Authorization': `Bearer ${connection.accessToken}`,
+            'User-Agent': 'SmartAudit-AI',
+          },
+        });
+        
+        if (!contentsResponse.ok) {
+          throw new Error(`Failed to fetch repository contents: ${contentsResponse.status}`);
+        }
+        
+        const contents = await contentsResponse.json();
+        
+        // Recursively find Solidity files (simplified version)
+        const solidityFiles = contents.filter((file: any) => 
+          file.type === 'file' && file.name.endsWith('.sol')
+        );
+        
+        const scanResult = {
+          scanId: `github_${owner}_${repo}_${Date.now()}`,
+          repository: { owner, repo, fullName: repositoryFullName, branch },
+          contracts: solidityFiles.map((file: any) => ({
+            path: file.path,
+            size: file.size,
+            language: "Solidity"
+          })),
+          totalFiles: solidityFiles.length,
+          estimatedCredits: Math.max(5, solidityFiles.length * 5),
+          status: "ready"
+        };
 
-      res.json({
-        scan: scanResult,
-        message: "Repository scan prepared successfully. Ready for analysis."
-      });
+        res.json({
+          scan: scanResult,
+          message: "Repository scan prepared successfully. Ready for analysis."
+        });
+      } catch (apiError: any) {
+        console.error("GitHub API error during scan:", apiError);
+        res.status(500).json({ message: "Failed to scan repository contents" });
+      }
     } catch (error: any) {
       console.error("GitHub scan failed:", error);
       res.status(500).json({ message: error.message || "GitHub scan failed" });
