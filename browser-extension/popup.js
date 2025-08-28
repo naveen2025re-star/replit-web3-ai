@@ -25,8 +25,10 @@ class PopupManager {
     });
 
     // Get API key button
-    document.getElementById('get-key-btn').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'https://your-domain.com/api-keys' });
+    document.getElementById('get-key-btn').addEventListener('click', async () => {
+      const apiBase = await this.getApiBase();
+      const baseUrl = apiBase.replace('/api', '');
+      chrome.tabs.create({ url: `${baseUrl}/auth` });
     });
 
     // Scan current contract button
@@ -35,8 +37,10 @@ class PopupManager {
     });
 
     // Open dashboard button
-    document.getElementById('open-dashboard-btn').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'https://your-domain.com/auditor' });
+    document.getElementById('open-dashboard-btn').addEventListener('click', async () => {
+      const apiBase = await this.getApiBase();
+      const baseUrl = apiBase.replace('/api', '');
+      chrome.tabs.create({ url: `${baseUrl}/auditor` });
     });
 
     // Disconnect button
@@ -65,8 +69,11 @@ class PopupManager {
     connectBtn.disabled = true;
 
     try {
+      // Get API base URL
+      const apiBase = await this.getApiBase();
+      
       // Validate API key
-      const response = await fetch('https://your-domain.com/api/auth/validate', {
+      const response = await fetch(`${apiBase}/auth/validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -195,6 +202,24 @@ class PopupManager {
     setTimeout(() => {
       successDiv.remove();
     }, 2000);
+  }
+
+  async getApiBase() {
+    // Try to get current tab's URL to determine API base
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const currentTab = tabs[0];
+      const url = new URL(currentTab.url);
+      
+      if (url.hostname.includes('localhost') || url.hostname.includes('127.0.0.1')) {
+        return 'http://localhost:5000/api';
+      }
+      
+      return `${url.protocol}//${url.hostname}/api`;
+    } catch (error) {
+      // Fallback to default
+      return 'https://your-domain.com/api';
+    }
   }
 }
 

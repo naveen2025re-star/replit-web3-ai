@@ -22,7 +22,15 @@ export class GitHubService {
   private octokit: Octokit;
 
   constructor(token: string) {
-    this.octokit = new Octokit({ auth: token });
+    if (!token || !token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+      throw new Error('Invalid GitHub token format');
+    }
+    this.octokit = new Octokit({ 
+      auth: token,
+      request: {
+        timeout: 30000 // 30 second timeout
+      }
+    });
   }
 
   async getRepositoryInfo(owner: string, repo: string) {
@@ -134,7 +142,13 @@ export class GitHubService {
     }
   }
 
-  private async findSolidityFiles(owner: string, repo: string, branch: string, path = ''): Promise<any[]> {
+  private async findSolidityFiles(owner: string, repo: string, branch: string, path = '', depth = 0): Promise<any[]> {
+    // Prevent infinite recursion and limit depth
+    if (depth > 10) {
+      console.warn(`Maximum directory depth reached for ${owner}/${repo}`);
+      return [];
+    }
+
     try {
       const { data } = await this.octokit.rest.repos.getContent({
         owner,
@@ -149,17 +163,26 @@ export class GitHubService {
       for (const item of items) {
         if (item.type === 'file' && item.name.endsWith('.sol')) {
           files.push(item);
-        } else if (item.type === 'dir') {
-          // Recursively scan directories
-          const subFiles = await this.findSolidityFiles(owner, repo, branch, item.path);
+        } else if (item.type === 'dir' && !this.isExcludedDirectory(item.name)) {
+          // Recursively scan directories with depth tracking
+          const subFiles = await this.findSolidityFiles(owner, repo, branch, item.path, depth + 1);
           files.push(...subFiles);
         }
       }
 
       return files;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.status === 403 && error.message.includes('rate limit')) {
+        throw new Error('GitHub API rate limit exceeded. Please try again later.');
+      }
+      console.error(`Error scanning ${path}:`, error.message);
       return [];
     }
+  }
+
+  private isExcludedDirectory(dirName: string): boolean {
+    const excludedDirs = ['node_modules', '.git', 'build', 'dist', 'artifacts', 'cache', 'coverage'];
+    return excludedDirs.includes(dirName);
   }
 
   private generatePRComment(scanResult: ScanResult): string {

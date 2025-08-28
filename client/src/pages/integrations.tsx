@@ -86,6 +86,28 @@ export default function IntegrationsPage() {
       });
       return;
     }
+
+    // Validate GitHub token format
+    if (!githubForm.githubToken.startsWith('ghp_') && !githubForm.githubToken.startsWith('github_pat_')) {
+      toast({
+        title: "Invalid Token",
+        description: "Please enter a valid GitHub personal access token",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate repository name format
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(githubForm.owner) || !repoPattern.test(githubForm.repo)) {
+      toast({
+        title: "Invalid Repository",
+        description: "Repository owner and name can only contain letters, numbers, dots, dashes and underscores",
+        variant: "destructive",
+      });
+      return;
+    }
+
     githubScanMutation.mutate(githubForm);
   };
 

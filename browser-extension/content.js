@@ -1,8 +1,17 @@
 // SmartAudit AI Browser Extension - Content Script
 class SmartAuditExtension {
   constructor() {
-    this.apiBase = 'https://your-domain.com/api';
+    this.apiBase = this.getApiBase();
     this.init();
+  }
+
+  getApiBase() {
+    // Try to get API base from current domain, fallback to default
+    const currentDomain = window.location.hostname;
+    if (currentDomain.includes('localhost') || currentDomain.includes('127.0.0.1')) {
+      return 'http://localhost:5000/api';
+    }
+    return `${window.location.protocol}//${window.location.hostname}/api`;
   }
 
   init() {

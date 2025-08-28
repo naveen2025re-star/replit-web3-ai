@@ -29,6 +29,19 @@ function recoverAddressFromSignature(message: string, signature: string): string
   }
 }
 
+// Helper function to verify GitHub webhook signatures
+function verifyWebhookSignature(payload: any, signature: string, secret: string): boolean {
+  try {
+    const expectedSignature = 'sha256=' + crypto.createHmac('sha256', secret)
+      .update(JSON.stringify(payload))
+      .digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+  } catch (error) {
+    console.error('Webhook signature verification failed:', error);
+    return false;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Generate nonce for wallet authentication
@@ -808,10 +821,23 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
   app.post("/api/integrations/github/webhook", async (req, res) => {
     try {
+      // Verify webhook signature if secret is set
+      if (process.env.GITHUB_WEBHOOK_SECRET) {
+        const signature = req.headers['x-hub-signature-256'] as string;
+        if (!signature || !verifyWebhookSignature(req.body, signature, process.env.GITHUB_WEBHOOK_SECRET)) {
+          return res.status(401).json({ message: "Invalid webhook signature" });
+        }
+      }
+
       const { action, repository, pull_request, commits } = req.body;
       
+      // Validate required webhook data
+      if (!repository || !repository.id) {
+        return res.status(400).json({ message: "Invalid webhook payload" });
+      }
+      
       // Handle different webhook events
-      if (action === "opened" || action === "synchronize") {
+      if ((action === "opened" || action === "synchronize") && pull_request) {
         // New PR or updated PR - trigger scan
         const scanId = `pr_${repository.id}_${pull_request.number}_${Date.now()}`;
         
@@ -821,7 +847,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         res.json({ 
           message: "Webhook received", 
           scanId,
-          action: "scan_initiated" 
+          action: "scan_initiated",
+          repository: repository.full_name,
+          pullRequest: pull_request.number
         });
       } else {
         res.json({ message: "Webhook received", action: "no_action" });
@@ -834,11 +862,25 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
   app.post("/api/integrations/cicd/scan", async (req, res) => {
     try {
+      // Validate API key from Authorization header  
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: "Missing or invalid API key" });
+      }
+
       const { repository, branch, commitSha, contractsPath = './contracts' } = req.body;
       
       if (!repository || !branch) {
         return res.status(400).json({ 
           message: "Missing required fields: repository, branch" 
+        });
+      }
+
+      // Validate repository URL format
+      const repoUrlPattern = /^https:\/\/github\.com\/[\w\-\.]+\/[\w\-\.]+(?:\.git)?$/;
+      if (!repoUrlPattern.test(repository)) {
+        return res.status(400).json({ 
+          message: "Invalid repository URL format" 
         });
       }
 
@@ -856,6 +898,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         status: "initiated",
         repository,
         branch,
+        commitSha: commitSha || 'HEAD',
         contractsPath,
         estimatedTime: "2-5 minutes",
         message: "CI/CD scan initiated successfully"
@@ -889,6 +932,78 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     } catch (error: any) {
       console.error("Config generation failed:", error);
       res.status(500).json({ message: "Failed to generate CI/CD config" });
+    }
+  });
+
+  // API validation endpoint for browser extension
+  app.post("/api/auth/validate", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: "Missing API key" });
+      }
+
+      const apiKey = authHeader.split(' ')[1];
+      
+      // Here you would validate the API key against your user database
+      // For now, we'll do a simple format validation
+      if (!apiKey || apiKey.length < 20) {
+        return res.status(401).json({ message: "Invalid API key format" });
+      }
+
+      // Return success with user info
+      res.json({ 
+        valid: true, 
+        user: { 
+          id: "extension_user", 
+          credits: 100 
+        } 
+      });
+    } catch (error: any) {
+      console.error("API validation failed:", error);
+      res.status(500).json({ message: "Validation failed" });
+    }
+  });
+
+  // Browser extension audit endpoint
+  app.post("/api/audit/extension", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: "Missing API key" });
+      }
+
+      const { contractAddress, sourceCode, blockExplorer, url } = req.body;
+      
+      if (!contractAddress || !sourceCode) {
+        return res.status(400).json({ 
+          message: "Missing required fields: contractAddress, sourceCode" 
+        });
+      }
+
+      // Validate contract address format
+      const addressPattern = /^0x[a-fA-F0-9]{40}$/;
+      if (!addressPattern.test(contractAddress)) {
+        return res.status(400).json({ 
+          message: "Invalid contract address format" 
+        });
+      }
+
+      // Here you would call your audit API with the source code
+      // For now, we'll return a mock response
+      const mockResult = {
+        id: `ext_${Date.now()}`,
+        status: 'completed',
+        findings: Math.floor(Math.random() * 10) + 1,
+        severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+        summary: 'Mock audit completed successfully. This would contain real vulnerability analysis.',
+        reportUrl: `${req.protocol}://${req.get('host')}/auditor?session=ext_${Date.now()}`
+      };
+
+      res.json(mockResult);
+    } catch (error: any) {
+      console.error("Extension audit failed:", error);
+      res.status(500).json({ message: error.message || "Audit failed" });
     }
   });
 
