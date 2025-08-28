@@ -78,7 +78,7 @@ export function AuditVisibilitySelector({ value, onChange, disabled }: AuditVisi
         <Card 
           className={`p-4 cursor-pointer transition-all duration-200 border-2 ${
             !value.isPublic 
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+              ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-900/30' 
               : 'border-border hover:border-border/80 hover:bg-muted/50'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={() => !disabled && handleVisibilityChange(false)}
@@ -107,7 +107,7 @@ export function AuditVisibilitySelector({ value, onChange, disabled }: AuditVisi
         <Card 
           className={`p-4 cursor-pointer transition-all duration-200 border-2 ${
             value.isPublic 
-              ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+              ? 'border-green-500 bg-green-500/10 dark:bg-green-900/30' 
               : 'border-border hover:border-border/80 hover:bg-muted/50'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={() => !disabled && handleVisibilityChange(true)}
