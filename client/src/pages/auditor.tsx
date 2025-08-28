@@ -591,6 +591,16 @@ export default function AuditorPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setLocation('/integrations')}
+                className="bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 flex items-center gap-2"
+                data-testid="button-view-integrations"
+              >
+                <Settings className="h-4 w-4" />
+                Integrations
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setLocation('/community')}
                 className="bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 flex items-center gap-2"
                 data-testid="button-view-community"
