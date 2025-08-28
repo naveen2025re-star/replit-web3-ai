@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useWeb3Auth } from '@/hooks/useWeb3Auth';
@@ -18,7 +19,10 @@ import {
   Shield,
   CheckCircle,
   LinkIcon,
-  Code
+  Code,
+  FileText,
+  FolderOpen,
+  Brain
 } from 'lucide-react';
 
 export default function IntegrationsPage() {
@@ -29,6 +33,8 @@ export default function IntegrationsPage() {
     triggerEvents: ['push', 'pull_request']
   });
   const [cicdConfig, setCicdConfig] = useState('');
+  const [scanResults, setScanResults] = useState<any>(null);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useWeb3Auth();
 
@@ -138,15 +144,48 @@ export default function IntegrationsPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      setScanResults(data.scan);
       toast({
-        title: "Repository Scan Ready",
-        description: `Found ${data.scan.totalFiles} Solidity files. Estimated ${data.scan.estimatedCredits} credits.`,
+        title: "Repository Scan Complete",
+        description: `Found ${data.scan.totalFiles} smart contract files. Select files to analyze.`,
       });
     },
     onError: (error: any) => {
       toast({
         title: "Repository Scan Failed",
         description: error.message || "Failed to scan repository",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // AI analysis mutation
+  const aiAnalysisMutation = useMutation({
+    mutationFn: async (analysisData: { repositoryFullName: string; selectedFiles: string[] }) => {
+      const response = await fetch('/api/integrations/github/analyze', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || ''
+        },
+        body: JSON.stringify(analysisData)
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Analysis Started",
+        description: `Starting AI analysis of ${selectedFiles.length} files. Redirecting to audit page...`,
+      });
+      // Redirect to the audit page with the session ID
+      setTimeout(() => {
+        window.location.href = `/audit?session=${data.sessionId}`;
+      }, 2000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to start AI analysis",
         variant: "destructive",
       });
     },
@@ -195,6 +234,37 @@ export default function IntegrationsPage() {
       return;
     }
     githubScanMutation.mutate(selectedRepository);
+  };
+
+  const handleFileSelection = (filePath: string, checked: boolean) => {
+    if (checked) {
+      setSelectedFiles(prev => [...prev, filePath]);
+    } else {
+      setSelectedFiles(prev => prev.filter(path => path !== filePath));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && scanResults?.contracts) {
+      setSelectedFiles(scanResults.contracts.map((contract: any) => contract.path));
+    } else {
+      setSelectedFiles([]);
+    }
+  };
+
+  const handleAIAnalysis = () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No Files Selected",
+        description: "Please select at least one file to analyze",
+        variant: "destructive",
+      });
+      return;
+    }
+    aiAnalysisMutation.mutate({
+      repositoryFullName: selectedRepository,
+      selectedFiles
+    });
   };
 
   const handleCicdSetup = () => {
@@ -343,6 +413,74 @@ export default function IntegrationsPage() {
                           </>
                         )}
                       </Button>
+                      
+                      {/* File Browser - Show after scan is complete */}
+                      {scanResults && (
+                        <div className="space-y-4 mt-6 p-4 bg-slate-700/30 border border-slate-600 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <FolderOpen className="h-5 w-5 text-blue-400 mr-2" />
+                              <span className="text-white font-medium">Smart Contract Files ({scanResults.totalFiles})</span>
+                            </div>
+                            <Badge variant="outline" className="text-blue-400 border-blue-500/30">
+                              {selectedFiles.length} selected
+                            </Badge>
+                          </div>
+                          
+                          {/* Select All Checkbox */}
+                          <div className="flex items-center space-x-2 pb-2 border-b border-slate-600">
+                            <Checkbox
+                              id="select-all"
+                              checked={scanResults.contracts && selectedFiles.length === scanResults.contracts.length}
+                              onCheckedChange={handleSelectAll}
+                              data-testid="checkbox-select-all"
+                            />
+                            <Label htmlFor="select-all" className="text-gray-300 cursor-pointer">
+                              Select All Files
+                            </Label>
+                          </div>
+                          
+                          {/* File List */}
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {scanResults.contracts?.map((contract: any) => (
+                              <div key={contract.path} className="flex items-center space-x-3 p-2 hover:bg-slate-600/30 rounded">
+                                <Checkbox
+                                  id={contract.path}
+                                  checked={selectedFiles.includes(contract.path)}
+                                  onCheckedChange={(checked) => handleFileSelection(contract.path, !!checked)}
+                                  data-testid={`checkbox-file-${contract.path.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                                />
+                                <FileText className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white text-sm font-mono truncate">
+                                    {contract.path}
+                                  </div>
+                                  <div className="text-gray-400 text-xs">
+                                    {(contract.size / 1024).toFixed(1)} KB
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* AI Analyze Button */}
+                          <Button
+                            onClick={handleAIAnalysis}
+                            disabled={aiAnalysisMutation.isPending || selectedFiles.length === 0}
+                            className="w-full bg-purple-600 hover:bg-purple-700"
+                            data-testid="button-ai-analyze"
+                          >
+                            {aiAnalysisMutation.isPending ? (
+                              <>Analyzing...</>
+                            ) : (
+                              <>
+                                <Brain className="h-4 w-4 mr-2" />
+                                AI Analyze Selected Files ({selectedFiles.length})
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

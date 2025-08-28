@@ -1086,6 +1086,135 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  app.post("/api/integrations/github/analyze", isAuthenticated, async (req, res) => {
+    try {
+      const { repositoryFullName, selectedFiles, branch = 'main' } = req.body;
+      
+      if (!repositoryFullName) {
+        return res.status(400).json({ 
+          message: "Missing required field: repositoryFullName" 
+        });
+      }
+
+      if (!selectedFiles || selectedFiles.length === 0) {
+        return res.status(400).json({ 
+          message: "No files selected for analysis" 
+        });
+      }
+
+      const userId = (req as any).user?.claims?.sub;
+      globalThis.githubConnections = globalThis.githubConnections || new Map();
+      
+      const connection = globalThis.githubConnections.get(userId);
+      
+      if (!connection) {
+        return res.status(400).json({ 
+          message: "GitHub not connected. Please connect your GitHub account first." 
+        });
+      }
+
+      // Fetch file contents from GitHub
+      let combinedContractCode = '';
+      const fileContents: { path: string; content: string }[] = [];
+      
+      for (const filePath of selectedFiles) {
+        try {
+          const fileResponse = await fetch(`https://api.github.com/repos/${repositoryFullName}/contents/${filePath}?ref=${branch}`, {
+            headers: {
+              'Authorization': `Bearer ${connection.accessToken}`,
+              'User-Agent': 'SmartAudit-AI',
+            },
+          });
+          
+          if (!fileResponse.ok) {
+            throw new Error(`Failed to fetch ${filePath}: ${fileResponse.status}`);
+          }
+          
+          const fileData = await fileResponse.json();
+          if (fileData.content) {
+            const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+            fileContents.push({ path: filePath, content });
+            combinedContractCode += `\n// File: ${filePath}\n${content}\n\n`;
+          }
+        } catch (fileError: any) {
+          console.error(`Error fetching file ${filePath}:`, fileError);
+          return res.status(500).json({ 
+            message: `Failed to fetch file: ${filePath}`,
+            error: fileError.message 
+          });
+        }
+      }
+
+      if (!combinedContractCode.trim()) {
+        return res.status(400).json({ 
+          message: "No valid contract content found in selected files" 
+        });
+      }
+
+      // Check credit requirements for authenticated users
+      const factors: CreditCalculationFactors = {
+        codeLength: combinedContractCode.length,
+        complexity: Math.min(10, Math.max(1, Math.ceil(combinedContractCode.length / 1000))),
+        hasMultipleFiles: selectedFiles.length > 1,
+        analysisType: "security",
+        language: "solidity"
+      };
+
+      const creditCheck = await CreditService.checkCreditsAndCalculateCost(userId, factors);
+      if (!creditCheck.hasEnough) {
+        return res.status(400).json({ 
+          message: "Insufficient credits for analysis",
+          needed: creditCheck.needed,
+          current: creditCheck.current,
+          cost: creditCheck.cost,
+          error: "insufficient_credits"
+        });
+      }
+
+      // Create session with Shipable AI
+      const sessionResponse = await fetch(`${SHIPABLE_API_BASE}/chat/sessions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ source: "website" })
+      });
+
+      if (!sessionResponse.ok) {
+        throw new Error(`Failed to create analysis session: ${sessionResponse.statusText}`);
+      }
+
+      const sessionData = await sessionResponse.json();
+      const sessionKey = sessionData.data.key;
+
+      // Create audit session in database
+      const auditSession = await storage.createAuditSession({
+        sessionKey,
+        contractCode: combinedContractCode,
+        contractLanguage: "solidity",
+        userId,
+        isPublic: false,
+        title: `GitHub Analysis: ${repositoryFullName}`,
+        description: `Analysis of ${selectedFiles.length} files from ${repositoryFullName}`,
+        tags: ["github", "repository", repositoryFullName.split('/')[1]]
+      });
+
+      res.json({
+        sessionId: auditSession.id,
+        message: `Analysis session created for ${selectedFiles.length} files from ${repositoryFullName}`,
+        estimatedCredits: creditCheck.cost,
+        filesAnalyzed: selectedFiles.length,
+        repository: repositoryFullName
+      });
+    } catch (error: any) {
+      console.error("GitHub analysis failed:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to start GitHub analysis",
+        error: "github_analysis_failed"
+      });
+    }
+  });
+
   app.post("/api/integrations/github/webhook", async (req, res) => {
     try {
       // Verify webhook signature if secret is set
