@@ -150,23 +150,24 @@ export default function AuditorPage() {
       const eventSource = new EventSource(`/api/audit/analyze/${sessionResponse.sessionId}`);
       
       eventSource.onmessage = (event) => {
-        if (event.data === '[DONE]') {
-          eventSource.close();
-          setAnalysisState("completed");
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessage.id 
-              ? { ...msg, isStreaming: false }
-              : msg
-          ));
-          return;
-        }
-        
         try {
           const data = JSON.parse(event.data);
-          if (data.content) {
+          
+          if (data.status === "completed") {
+            eventSource.close();
+            setAnalysisState("completed");
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessage.id 
-                ? { ...msg, content: msg.content + data.content }
+                ? { ...msg, isStreaming: false }
+                : msg
+            ));
+            return;
+          }
+          
+          if (data.body) {
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessage.id 
+                ? { ...msg, content: msg.content + data.body }
                 : msg
             ));
           }
@@ -174,6 +175,31 @@ export default function AuditorPage() {
           console.error('Error parsing SSE data:', error);
         }
       };
+
+      eventSource.addEventListener('content', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.body) {
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessage.id 
+                ? { ...msg, content: msg.content + data.body }
+                : msg
+            ));
+          }
+        } catch (error) {
+          console.error('Error parsing content event:', error);
+        }
+      });
+
+      eventSource.addEventListener('complete', (event) => {
+        eventSource.close();
+        setAnalysisState("completed");
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessage.id 
+            ? { ...msg, isStreaming: false }
+            : msg
+        ));
+      });
       
       eventSource.onerror = (error) => {
         console.error('SSE Error:', error);
@@ -226,14 +252,10 @@ export default function AuditorPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-slate-950">
       {/* Sidebar */}
-      <div className="w-64 bg-card border-r border-border flex flex-col">
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="h-6 w-6 text-blue-500" />
-            <h1 className="font-semibold text-foreground">SmartAudit AI</h1>
-          </div>
+      <div className="w-64 bg-slate-900 border-r border-slate-700 flex flex-col">
+        <div className="p-4 border-b border-slate-700">
           <Button 
             onClick={() => {
               setMessages([]);
@@ -241,60 +263,59 @@ export default function AuditorPage() {
               setInputValue("");
               setUploadedFiles(null);
             }}
-            className="w-full"
+            className="w-full bg-blue-600 hover:bg-blue-700"
           >
-            New Audit Session
+            + New chat
           </Button>
         </div>
 
         <div className="flex-1 p-4">
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => setShowSettings(!showSettings)}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Audit Settings
-              <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${showSettings ? 'rotate-180' : ''}`} />
-            </Button>
-            
-            {showSettings && (
-              <div className="pl-6 space-y-3">
-                <AuditVisibilitySelector
-                  value={auditVisibility}
-                  onChange={setAuditVisibility}
-                  disabled={analysisState === "loading" || analysisState === "streaming"}
-                />
-              </div>
-            )}
-
-            <Button variant="ghost" className="w-full justify-start">
-              <History className="h-4 w-4 mr-2" />
-              Recent Audits
-            </Button>
+          <div className="space-y-1">
+            <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Recent</div>
+            {/* Recent audit sessions would go here */}
+            <div className="text-sm text-slate-500 py-4 text-center">
+              No recent audits
+            </div>
           </div>
         </div>
 
-        {user && (
-          <div className="p-4 border-t border-border">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+        <div className="p-4 border-t border-slate-700">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
+            onClick={() => setShowSettings(!showSettings)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
+          
+          {showSettings && (
+            <div className="mt-3 p-3 bg-slate-800 rounded-lg">
+              <AuditVisibilitySelector
+                value={auditVisibility}
+                onChange={setAuditVisibility}
+                disabled={analysisState === "loading" || analysisState === "streaming"}
+              />
+            </div>
+          )}
+
+          {user && (
+            <div className="flex items-center gap-2 text-sm mt-3 p-2 bg-slate-800 rounded-lg">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
                 {user.walletAddress?.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-foreground truncate">
+                <div className="text-slate-300 text-xs truncate">
                   {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
                 </div>
-                <div className="text-xs text-muted-foreground">Connected</div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-slate-950">
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-6">
           {messages.length === 0 ? (
@@ -302,21 +323,21 @@ export default function AuditorPage() {
               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
                 <Bot className="h-8 w-8 text-blue-500" />
               </div>
-              <h2 className="text-2xl font-semibold mb-2 text-foreground">How can I help you today?</h2>
-              <p className="text-muted-foreground mb-8 max-w-md">
+              <h2 className="text-2xl font-semibold mb-2 text-white">How can I help you today?</h2>
+              <p className="text-slate-400 mb-8 max-w-md">
                 I'm here to analyze your smart contracts for security vulnerabilities, gas optimization, and best practices.
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
                 <Card 
-                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="p-4 cursor-pointer hover:bg-slate-800/50 transition-colors bg-slate-800/20 border-slate-700"
                   onClick={() => setInputValue("pragma solidity ^0.8.19;\n\ncontract MyContract {\n    // Paste your contract code here\n}")}
                 >
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
                     <div>
-                      <div className="font-medium text-foreground mb-1">Security Analysis</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="font-medium text-white mb-1">Security Analysis</div>
+                      <div className="text-sm text-slate-400">
                         Analyze smart contract for vulnerabilities and security issues
                       </div>
                     </div>
@@ -324,14 +345,14 @@ export default function AuditorPage() {
                 </Card>
 
                 <Card 
-                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="p-4 cursor-pointer hover:bg-slate-800/50 transition-colors bg-slate-800/20 border-slate-700"
                   onClick={() => setInputValue("// Upload your contract files or paste code here for gas optimization analysis")}
                 >
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
                     <div>
-                      <div className="font-medium text-foreground mb-1">Gas Optimization</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="font-medium text-white mb-1">Gas Optimization</div>
+                      <div className="text-sm text-slate-400">
                         Find opportunities to reduce gas costs and improve efficiency
                       </div>
                     </div>
@@ -365,37 +386,46 @@ export default function AuditorPage() {
                       </span>
                     </div>
                     
-                    <div className="prose prose-sm max-w-none">
+                    <div className="max-w-none">
                       {message.type === "user" ? (
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <pre className="whitespace-pre-wrap text-sm font-mono text-foreground">
+                        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-100 overflow-x-auto">
                             {message.content}
                           </pre>
                         </div>
                       ) : (
-                        <div className="text-foreground">
-                          <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                        <div className="text-slate-100">
+                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
                             {message.content}
                             {message.isStreaming && (
                               <span className="inline-block w-2 h-4 bg-green-500 animate-pulse ml-1"></span>
                             )}
-                          </pre>
+                          </div>
                           
                           {!message.isStreaming && message.content && (
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-700">
                               <Button 
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => copyMessage(message.content)}
+                                className="text-slate-400 hover:text-white hover:bg-slate-800"
                               >
                                 <Copy className="h-3 w-3 mr-1" />
                                 Copy
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                              >
                                 <Download className="h-3 w-3 mr-1" />
                                 Export
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                              >
                                 <Share className="h-3 w-3 mr-1" />
                                 Share
                               </Button>
@@ -413,20 +443,20 @@ export default function AuditorPage() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-border p-4">
+        <div className="border-t border-slate-700 p-4 bg-slate-900">
           <div className="max-w-4xl mx-auto">
             {uploadedFiles && (
               <div className="mb-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
                 <div className="flex items-center gap-2 text-sm">
                   <Paperclip className="h-4 w-4 text-blue-500" />
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  <span className="text-blue-400 font-medium">
                     {uploadedFiles.fileCount} file(s) loaded ({(uploadedFiles.totalSize / 1024).toFixed(1)}KB)
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setUploadedFiles(null)}
-                    className="ml-auto h-6"
+                    className="ml-auto h-6 text-blue-400 hover:text-white"
                   >
                     ×
                   </Button>
@@ -441,7 +471,7 @@ export default function AuditorPage() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Paste your smart contract code here or describe what you'd like me to analyze..."
-                className="w-full min-h-[80px] max-h-[200px] pr-20 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full min-h-[80px] max-h-[200px] pr-20 resize-none rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={analysisState === "loading" || analysisState === "streaming"}
               />
               
@@ -451,6 +481,7 @@ export default function AuditorPage() {
                   size="sm"
                   onClick={() => setShowFileUploader(true)}
                   disabled={analysisState === "loading" || analysisState === "streaming"}
+                  className="text-slate-400 hover:text-white hover:bg-slate-700"
                 >
                   <Paperclip className="h-4 w-4" />
                 </Button>
@@ -459,7 +490,7 @@ export default function AuditorPage() {
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || analysisState === "loading" || analysisState === "streaming"}
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {analysisState === "loading" || analysisState === "streaming" ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -470,7 +501,7 @@ export default function AuditorPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between mt-2 text-xs text-slate-400">
               <span>
                 {auditVisibility.isPublic ? (
                   <span className="flex items-center gap-1">
