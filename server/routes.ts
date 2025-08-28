@@ -794,7 +794,40 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         return res.status(404).json({ message: "Package not found" });
       }
 
-      // Return payment details for PayPal integration
+      // Handle Free package (no payment required)
+      if (selectedPackage.price === 0 && selectedPackage.name === 'Free') {
+        // Directly add free credits
+        const result = await CreditService.addCredits(
+          userId,
+          selectedPackage.totalCredits,
+          "purchase",
+          `Claimed ${selectedPackage.name} package credits`,
+          { packageId }
+        );
+
+        if (result.success) {
+          return res.json({ 
+            success: true, 
+            creditsAdded: selectedPackage.totalCredits,
+            newBalance: result.newBalance,
+            requiresPayment: false
+          });
+        } else {
+          return res.status(400).json({ message: result.error });
+        }
+      }
+
+      // Handle Enterprise package (contact sales)
+      if (selectedPackage.name === 'Enterprise') {
+        return res.json({
+          packageId,
+          requiresContact: true,
+          contactEmail: 'enterprise@yourapp.com',
+          message: 'Please contact our sales team for enterprise pricing'
+        });
+      }
+
+      // Return payment details for PayPal integration (Pro/Pro+ plans)
       res.json({ 
         packageId,
         amount: (selectedPackage.price / 100).toFixed(2), // Convert cents to dollars

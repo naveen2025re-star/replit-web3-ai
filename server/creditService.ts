@@ -357,9 +357,14 @@ export class CreditService {
   }
 
   /**
-   * Initialize default credit packages
+   * Initialize default credit packages (replaces old ones)
    */
   static async initializeDefaultPackages() {
+    // First, deactivate all existing packages
+    await db.update(creditPackages)
+      .set({ active: false })
+      .where(eq(creditPackages.active, true));
+
     const defaultPackages = [
       {
         name: 'Free',
@@ -369,7 +374,8 @@ export class CreditService {
         price: 0, // Free
         popular: false,
         savings: 0,
-        sortOrder: 1
+        sortOrder: 1,
+        active: true
       },
       {
         name: 'Pro',
@@ -379,7 +385,8 @@ export class CreditService {
         price: 2999, // $29.99
         popular: true,
         savings: 0,
-        sortOrder: 2
+        sortOrder: 2,
+        active: true
       },
       {
         name: 'Pro+',
@@ -389,7 +396,8 @@ export class CreditService {
         price: 7999, // $79.99
         popular: false,
         savings: 20,
-        sortOrder: 3
+        sortOrder: 3,
+        active: true
       },
       {
         name: 'Enterprise',
@@ -399,14 +407,15 @@ export class CreditService {
         price: 0, // Contact us
         popular: false,
         savings: 0,
-        sortOrder: 4
+        sortOrder: 4,
+        active: true
       }
     ];
     
+    // Insert new packages
     for (const pkg of defaultPackages) {
       await db.insert(creditPackages)
-        .values(pkg)
-        .onConflictDoNothing();
+        .values(pkg);
     }
   }
 }

@@ -50,7 +50,15 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.requiresPayment) {
+      if (data.requiresContact) {
+        // Handle Enterprise package - open contact email
+        window.open(`mailto:${data.contactEmail}?subject=Enterprise Plan Inquiry`, '_blank');
+        toast({
+          title: "Contact Sales",
+          description: data.message,
+        });
+        onOpenChange(false);
+      } else if (data.requiresPayment) {
         setPaymentData(data);
       } else {
         toast({
@@ -282,14 +290,10 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                   <Button
                     className="w-full"
                     variant={pkg.popular ? "default" : "outline"}
-                    disabled={purchaseMutation.isPending || pkg.name === 'Enterprise'}
+                    disabled={purchaseMutation.isPending}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (pkg.name === 'Enterprise') {
-                        window.open('mailto:enterprise@yourapp.com?subject=Enterprise Plan Inquiry', '_blank');
-                      } else {
-                        handlePurchase(pkg.id);
-                      }
+                      handlePurchase(pkg.id);
                     }}
                     data-testid={`button-purchase-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
                   >
