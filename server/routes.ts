@@ -8,6 +8,20 @@ import * as crypto from "crypto";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { db } from "./db";
 import { eq, desc, and, isNull, sql } from "drizzle-orm";
+
+// Type definitions for global objects
+interface GitHubConnection {
+  accessToken: string;
+  githubUserId: number;
+  username: string;
+  connectedAt: string;
+}
+
+declare global {
+  var githubConnections: Map<string, GitHubConnection> | undefined;
+  var cicdSetups: Map<string, any> | undefined;
+  var gitHubWebhooks: Map<string, any> | undefined;
+}
 // Simple authentication middleware for Web3 users
 const isAuthenticated = (req: any, res: any, next: any) => {
   const userId = req.headers['x-user-id'];
@@ -881,8 +895,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
             const githubUser = await userResponse.json();
             
             // Store GitHub connection in memory (in production, use database)
-            global.githubConnections = global.githubConnections || new Map();
-            global.githubConnections.set(userId, {
+            globalThis.githubConnections = globalThis.githubConnections || new Map();
+            globalThis.githubConnections.set(userId, {
               accessToken: tokenData.access_token,
               githubUserId: githubUser.id,
               username: githubUser.login,
@@ -910,9 +924,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.get("/api/integrations/github/status", isAuthenticated, async (req, res) => {
     try {
       const userId = (req as any).user?.claims?.sub;
-      global.githubConnections = global.githubConnections || new Map();
+      globalThis.githubConnections = globalThis.githubConnections || new Map();
       
-      const connection = global.githubConnections.get(userId);
+      const connection = globalThis.githubConnections.get(userId);
       
       if (connection) {
         res.json({
@@ -933,9 +947,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.get("/api/integrations/github/repositories", isAuthenticated, async (req, res) => {
     try {
       const userId = (req as any).user?.claims?.sub;
-      global.githubConnections = global.githubConnections || new Map();
+      globalThis.githubConnections = globalThis.githubConnections || new Map();
       
-      const connection = global.githubConnections.get(userId);
+      const connection = globalThis.githubConnections.get(userId);
       
       if (!connection) {
         return res.status(400).json({ 
@@ -991,9 +1005,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       }
 
       const userId = (req as any).user?.claims?.sub;
-      global.githubConnections = global.githubConnections || new Map();
+      globalThis.githubConnections = globalThis.githubConnections || new Map();
       
-      const connection = global.githubConnections.get(userId);
+      const connection = globalThis.githubConnections.get(userId);
       
       if (!connection) {
         return res.status(400).json({ 
@@ -1109,8 +1123,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const apiKey = crypto.randomBytes(32).toString('hex');
       
       // Store CI/CD setup (in production, use database)
-      global.cicdSetups = global.cicdSetups || new Map();
-      global.cicdSetups.set(userId, {
+      globalThis.cicdSetups = globalThis.cicdSetups || new Map();
+      globalThis.cicdSetups.set(userId, {
         repositoryUrl,
         platform,
         apiKey,
@@ -1148,9 +1162,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.get("/api/integrations/cicd/status", isAuthenticated, async (req, res) => {
     try {
       const userId = (req as any).user?.claims?.sub;
-      global.cicdSetups = global.cicdSetups || new Map();
+      globalThis.cicdSetups = globalThis.cicdSetups || new Map();
       
-      const setup = global.cicdSetups.get(userId);
+      const setup = globalThis.cicdSetups.get(userId);
       
       if (setup) {
         res.json({

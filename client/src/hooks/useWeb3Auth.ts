@@ -17,7 +17,7 @@ export function useWeb3Auth() {
   const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false)
 
   // Get user data only after authentication attempt
-  const { data: user, isLoading: userLoading } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: [`/api/auth/user/${address}`],
     enabled: isConnected && !!address && hasAttemptedAuth,
     retry: false,
