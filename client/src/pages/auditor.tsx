@@ -392,6 +392,22 @@ export default function AuditorPage() {
     });
   };
 
+  const shareMessage = (content: string) => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Smart Contract Audit Report',
+        text: content,
+      }).catch(console.error);
+    } else {
+      // Fallback to copy
+      copyMessage(content);
+      toast({
+        title: "Shared via clipboard",
+        description: "Report copied to clipboard for sharing",
+      });
+    }
+  };
+
   const loadAuditSession = async (sessionId: string) => {
     try {
       // Show loading state

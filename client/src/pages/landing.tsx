@@ -316,7 +316,7 @@ export default function Landing() {
                 </div>
                 <div className="flex items-center gap-2 mt-4 text-sm text-gray-400">
                   <Shield className="h-4 w-4" />
-                  <span>All scans are secure, private and results.Only you can see your results.</span>
+                  <span>All scans are secure and private. Only you can see your results.</span>
                 </div>
               </div>
             </div>
