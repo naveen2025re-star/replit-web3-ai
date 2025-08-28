@@ -183,15 +183,39 @@ export default function IntegrationsPage() {
     },
     onSuccess: (data) => {
       setScanResults(data.scan);
-      toast({
-        title: "Repository Scan Complete",
-        description: `Found ${data.scan.totalFiles} smart contract files. Select files to analyze.`,
-      });
+      if (data.scan.totalFiles === 0) {
+        toast({
+          title: "No Smart Contract Files Found",
+          description: data.message || "This repository doesn't contain any .sol files. Make sure your smart contracts are present and properly named.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Repository Scan Complete",
+          description: data.message || `Found ${data.scan.totalFiles} smart contract file${data.scan.totalFiles === 1 ? '' : 's'} ready for analysis.`,
+        });
+      }
     },
     onError: (error: any) => {
+      // Handle different HTTP status codes for better user feedback
+      const response = error.response;
+      let title = "Repository Scan Failed";
+      let description = error.message || "Failed to scan repository";
+      
+      if (response?.status === 429) {
+        title = "Rate Limit Exceeded";
+        description = "Too many requests to GitHub. Please wait a few minutes before trying again.";
+      } else if (response?.status === 404) {
+        title = "Repository Not Found";
+        description = "The repository doesn't exist or you don't have access to it.";
+      } else if (response?.status === 403) {
+        title = "Access Denied";
+        description = "GitHub App doesn't have permission to access this repository.";
+      }
+      
       toast({
-        title: "Repository Scan Failed",
-        description: error.message || "Failed to scan repository",
+        title,
+        description,
         variant: "destructive",
       });
     },
@@ -465,40 +489,53 @@ export default function IntegrationsPage() {
                             </Badge>
                           </div>
                           
-                          {/* Select All Checkbox */}
-                          <div className="flex items-center space-x-2 pb-2 border-b border-slate-600">
-                            <Checkbox
-                              id="select-all"
-                              checked={scanResults.contracts && selectedFiles.length === scanResults.contracts.length}
-                              onCheckedChange={handleSelectAll}
-                              data-testid="checkbox-select-all"
-                            />
-                            <Label htmlFor="select-all" className="text-gray-300 cursor-pointer">
-                              Select All Files
-                            </Label>
-                          </div>
+                          {/* Select All Checkbox - Only show if there are files */}
+                          {scanResults.totalFiles > 0 && (
+                            <div className="flex items-center space-x-2 pb-2 border-b border-slate-600">
+                              <Checkbox
+                                id="select-all"
+                                checked={scanResults.contracts && selectedFiles.length === scanResults.contracts.length}
+                                onCheckedChange={handleSelectAll}
+                                data-testid="checkbox-select-all"
+                              />
+                              <Label htmlFor="select-all" className="text-gray-300 cursor-pointer">
+                                Select All Files
+                              </Label>
+                            </div>
+                          )}
                           
                           {/* File List */}
                           <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {scanResults.contracts?.map((contract: any) => (
-                              <div key={contract.path} className="flex items-center space-x-3 p-2 hover:bg-slate-600/30 rounded">
-                                <Checkbox
-                                  id={contract.path}
-                                  checked={selectedFiles.includes(contract.path)}
-                                  onCheckedChange={(checked) => handleFileSelection(contract.path, !!checked)}
-                                  data-testid={`checkbox-file-${contract.path.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                                />
-                                <FileText className="h-4 w-4 text-yellow-400 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-white text-sm font-mono truncate">
-                                    {contract.path}
-                                  </div>
-                                  <div className="text-gray-400 text-xs">
-                                    {(contract.size / 1024).toFixed(1)} KB
+                            {scanResults.totalFiles === 0 ? (
+                              <div className="text-center py-8">
+                                <FolderOpen className="h-12 w-12 mx-auto text-gray-500 mb-3" />
+                                <p className="text-gray-300 font-medium mb-1">No Solidity files found</p>
+                                <p className="text-gray-500 text-sm">
+                                  This repository doesn't contain any .sol files.<br />
+                                  Smart contracts should be in folders like contracts/, src/, or at the root level.
+                                </p>
+                              </div>
+                            ) : (
+                              scanResults.contracts?.map((contract: any) => (
+                                <div key={contract.path} className="flex items-center space-x-3 p-2 hover:bg-slate-600/30 rounded">
+                                  <Checkbox
+                                    id={contract.path}
+                                    checked={selectedFiles.includes(contract.path)}
+                                    onCheckedChange={(checked) => handleFileSelection(contract.path, !!checked)}
+                                    data-testid={`checkbox-file-${contract.path.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                                  />
+                                  <FileText className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-white text-sm font-mono truncate">
+                                      {contract.path}
+                                    </div>
+                                    <div className="text-gray-400 text-xs">
+                                      {(contract.size / 1024).toFixed(1)} KB
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))
+                            )}
                           </div>
                           
                           {/* AI Analyze Button */}

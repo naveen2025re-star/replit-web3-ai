@@ -1016,6 +1016,84 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Helper function to recursively find Solidity files in GitHub repositories
+  async function findSolidityFilesRecursive(
+    repositoryFullName: string,
+    branch: string,
+    accessToken: string,
+    path: string = '',
+    depth: number = 0
+  ): Promise<any[]> {
+    // Prevent infinite recursion and limit depth to 10 levels
+    if (depth > 10) {
+      console.warn(`Maximum directory depth reached for ${repositoryFullName} at ${path}`);
+      return [];
+    }
+
+    const excludedDirs = ['node_modules', '.git', 'build', 'dist', 'artifacts', 'cache', 'coverage', '.next', 'out'];
+
+    try {
+      const url = path 
+        ? `https://api.github.com/repos/${repositoryFullName}/contents/${path}?ref=${branch}`
+        : `https://api.github.com/repos/${repositoryFullName}/contents?ref=${branch}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'User-Agent': 'SmartAudit-AI',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          console.warn(`GitHub API rate limit or access denied for ${repositoryFullName}/${path}`);
+          return [];
+        }
+        throw new Error(`Failed to fetch ${path}: ${response.status}`);
+      }
+
+      const contents = await response.json();
+      const items = Array.isArray(contents) ? contents : [contents];
+      const files: any[] = [];
+
+      for (const item of items) {
+        if (item.type === 'file' && item.name.endsWith('.sol')) {
+          // Found a Solidity file
+          files.push({
+            path: item.path,
+            size: item.size,
+            sha: item.sha,
+            language: "Solidity"
+          });
+        } else if (item.type === 'dir' && !excludedDirs.includes(item.name)) {
+          // Recursively scan directories (exclude common build/dependency directories)
+          try {
+            const subFiles = await findSolidityFilesRecursive(
+              repositoryFullName,
+              branch,
+              accessToken,
+              item.path,
+              depth + 1
+            );
+            files.push(...subFiles);
+          } catch (dirError: any) {
+            console.warn(`Error scanning directory ${item.path}:`, dirError.message);
+            // Continue scanning other directories even if one fails
+          }
+        }
+      }
+
+      return files;
+    } catch (error: any) {
+      if (error.message.includes('rate limit')) {
+        console.error(`GitHub API rate limit exceeded for ${repositoryFullName}`);
+        throw new Error('GitHub API rate limit exceeded. Please try again later.');
+      }
+      console.error(`Error scanning ${path}:`, error.message);
+      return [];
+    }
+  }
+
   app.post("/api/integrations/github/scan", isAuthenticated, async (req, res) => {
     try {
       const { repositoryFullName, branch = 'main' } = req.body;
@@ -1040,25 +1118,29 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const [owner, repo] = repositoryFullName.split('/');
       
       try {
-        // Fetch repository contents to find Solidity files
-        const contentsResponse = await fetch(`https://api.github.com/repos/${repositoryFullName}/contents?ref=${branch}`, {
-          headers: {
-            'Authorization': `Bearer ${connection.accessToken}`,
-            'User-Agent': 'SmartAudit-AI',
-          },
-        });
-        
-        if (!contentsResponse.ok) {
-          throw new Error(`Failed to fetch repository contents: ${contentsResponse.status}`);
-        }
-        
-        const contents = await contentsResponse.json();
-        
-        // Recursively find Solidity files (simplified version)
-        const solidityFiles = contents.filter((file: any) => 
-          file.type === 'file' && file.name.endsWith('.sol')
+        // Recursively find Solidity files in all directories
+        const solidityFiles = await findSolidityFilesRecursive(
+          repositoryFullName,
+          branch,
+          connection.accessToken,
+          '',
+          0
         );
         
+        if (solidityFiles.length === 0) {
+          return res.json({
+            scan: {
+              scanId: `github_${owner}_${repo}_${Date.now()}`,
+              repository: { owner, repo, fullName: repositoryFullName, branch },
+              contracts: [],
+              totalFiles: 0,
+              estimatedCredits: 0,
+              status: "empty"
+            },
+            message: "No Solidity (.sol) files found in this repository. Make sure your smart contracts have a .sol extension and are not in excluded directories (node_modules, build, dist, etc.)."
+          });
+        }
+
         const scanResult = {
           scanId: `github_${owner}_${repo}_${Date.now()}`,
           repository: { owner, repo, fullName: repositoryFullName, branch },
@@ -1074,11 +1156,34 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
         res.json({
           scan: scanResult,
-          message: "Repository scan prepared successfully. Ready for analysis."
+          message: `Repository scan completed successfully. Found ${solidityFiles.length} smart contract file${solidityFiles.length === 1 ? '' : 's'} ready for analysis.`
         });
       } catch (apiError: any) {
         console.error("GitHub API error during scan:", apiError);
-        res.status(500).json({ message: "Failed to scan repository contents" });
+        
+        // Handle different error types with specific messages
+        if (apiError.message?.includes('rate limit')) {
+          return res.status(429).json({ 
+            message: "GitHub API rate limit exceeded. Please wait a few minutes before scanning again." 
+          });
+        }
+        
+        if (apiError.message?.includes('404') || apiError.message?.includes('Not Found')) {
+          return res.status(404).json({ 
+            message: "Repository not found or you don't have access to it. Please check the repository name and your permissions." 
+          });
+        }
+        
+        if (apiError.message?.includes('403') || apiError.message?.includes('Forbidden')) {
+          return res.status(403).json({ 
+            message: "Access denied. Please ensure the GitHub App has proper permissions to access this repository." 
+          });
+        }
+        
+        res.status(500).json({ 
+          message: "Failed to scan repository. Please try again or contact support if the issue persists.",
+          error: apiError.message || "Unknown error occurred"
+        });
       }
     } catch (error: any) {
       console.error("GitHub scan failed:", error);
