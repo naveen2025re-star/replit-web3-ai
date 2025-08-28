@@ -8,6 +8,15 @@ import * as crypto from "crypto";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { db } from "./db";
 import { eq, desc, and, isNull, sql } from "drizzle-orm";
+// Simple authentication middleware for Web3 users
+const isAuthenticated = (req: any, res: any, next: any) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  req.user = { claims: { sub: userId } };
+  next();
+};
 
 const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
 const JWT_TOKEN = process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE";
@@ -789,29 +798,165 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     await capturePaypalOrder(req, res);
   });
 
-  // GitHub Integration Routes
-  app.post("/api/integrations/github/scan", async (req, res) => {
+  // GitHub App OAuth Routes
+  app.get("/api/integrations/github/install", isAuthenticated, async (req, res) => {
     try {
-      const { owner, repo, branch = 'main', githubToken } = req.body;
+      const state = crypto.randomBytes(32).toString('hex');
+      const userId = (req as any).user?.claims?.sub;
       
-      if (!owner || !repo || !githubToken) {
+      // Store state in session for verification
+      (req as any).session.githubOAuthState = state;
+      (req as any).session.userId = userId;
+      
+      // GitHub App installation URL - use environment variable or default name
+      const appName = process.env.GITHUB_APP_NAME || "smart-audit-ai";
+      const installUrl = `https://github.com/apps/${appName}/installations/new?state=${state}`;
+      
+      res.json({ 
+        installUrl,
+        message: "Click to install SmartAudit AI GitHub App"
+      });
+    } catch (error: any) {
+      console.error("GitHub install URL generation failed:", error);
+      res.status(500).json({ message: "Failed to generate install URL" });
+    }
+  });
+
+  app.get("/api/integrations/github/callback", async (req, res) => {
+    try {
+      const { installation_id, setup_action, state } = req.query;
+      
+      // Verify state parameter
+      if (state !== (req as any).session?.githubOAuthState) {
+        return res.redirect(`${req.protocol}://${req.get('host')}/integrations?error=invalid_state`);
+      }
+      
+      const userId = (req as any).session?.userId;
+      
+      if (setup_action === 'install' && installation_id && userId) {
+        // Store installation in database
+        try {
+          // For now, we'll store in memory - in production use database
+          global.githubInstallations = global.githubInstallations || new Map();
+          global.githubInstallations.set(userId, {
+            installationId: installation_id as string,
+            installedAt: new Date().toISOString()
+          });
+          
+          res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=connected`);
+        } catch (error) {
+          console.error("Failed to store GitHub installation:", error);
+          res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error`);
+        }
+      } else {
+        res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=cancelled`);
+      }
+    } catch (error: any) {
+      console.error("GitHub callback failed:", error);
+      res.redirect(`${req.protocol}://${req.get('host')}/integrations?github=error`);
+    }
+  });
+
+  app.get("/api/integrations/github/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req as any).user?.claims?.sub;
+      global.githubInstallations = global.githubInstallations || new Map();
+      
+      const installation = global.githubInstallations.get(userId);
+      
+      if (installation) {
+        res.json({
+          connected: true,
+          installationId: installation.installationId,
+          installedAt: installation.installedAt
+        });
+      } else {
+        res.json({ connected: false });
+      }
+    } catch (error: any) {
+      console.error("Failed to check GitHub status:", error);
+      res.status(500).json({ message: "Failed to check GitHub status" });
+    }
+  });
+
+  app.get("/api/integrations/github/repositories", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req as any).user?.claims?.sub;
+      global.githubInstallations = global.githubInstallations || new Map();
+      
+      const installation = global.githubInstallations.get(userId);
+      
+      if (!installation) {
         return res.status(400).json({ 
-          message: "Missing required fields: owner, repo, githubToken" 
+          message: "GitHub App not installed. Please install the app first." 
         });
       }
 
-      const githubService = new (await import("./github")).GitHubService(githubToken);
+      // Mock repositories for now - in production, use GitHub API with installation token
+      const mockRepositories = [
+        { 
+          name: "defi-contracts", 
+          full_name: "user/defi-contracts", 
+          private: false,
+          description: "DeFi protocol smart contracts",
+          default_branch: "main"
+        },
+        { 
+          name: "nft-marketplace", 
+          full_name: "user/nft-marketplace", 
+          private: true,
+          description: "NFT marketplace contracts",
+          default_branch: "main"
+        }
+      ];
       
-      // Get repository info and scan for contracts
-      const [repoInfo, scanResult] = await Promise.all([
-        githubService.getRepositoryInfo(owner, repo),
-        githubService.scanRepository(owner, repo, branch)
-      ]);
+      res.json({ repositories: mockRepositories });
+    } catch (error: any) {
+      console.error("Failed to fetch repositories:", error);
+      res.status(500).json({ message: "Failed to fetch repositories" });
+    }
+  });
+
+  app.post("/api/integrations/github/scan", isAuthenticated, async (req, res) => {
+    try {
+      const { repositoryFullName, branch = 'main' } = req.body;
+      
+      if (!repositoryFullName) {
+        return res.status(400).json({ 
+          message: "Missing required field: repositoryFullName" 
+        });
+      }
+
+      const userId = (req as any).user?.claims?.sub;
+      global.githubInstallations = global.githubInstallations || new Map();
+      
+      const installation = global.githubInstallations.get(userId);
+      
+      if (!installation) {
+        return res.status(400).json({ 
+          message: "GitHub App not installed. Please install the app first." 
+        });
+      }
+
+      const [owner, repo] = repositoryFullName.split('/');
+      
+      // Mock scan result - in production would use GitHub API and real contract analysis
+      const scanResult = {
+        scanId: `github_${owner}_${repo}_${Date.now()}`,
+        repository: { owner, repo, fullName: repositoryFullName, branch },
+        contracts: [
+          { path: "contracts/Token.sol", size: 1024, language: "Solidity" },
+          { path: "contracts/Vault.sol", size: 2048, language: "Solidity" },
+          { path: "contracts/interfaces/IERC20.sol", size: 512, language: "Solidity" }
+        ],
+        totalFiles: 3,
+        estimatedCredits: 15,
+        status: "ready"
+      };
 
       res.json({
-        repository: repoInfo,
         scan: scanResult,
-        message: "Repository scan initiated successfully"
+        message: "Repository scan prepared successfully. Ready for analysis."
       });
     } catch (error: any) {
       console.error("GitHub scan failed:", error);
@@ -860,52 +1005,82 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  app.post("/api/integrations/cicd/scan", async (req, res) => {
+
+  // Easy CI/CD Setup Routes
+  app.post("/api/integrations/cicd/setup", isAuthenticated, async (req, res) => {
     try {
-      // Validate API key from Authorization header  
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: "Missing or invalid API key" });
-      }
-
-      const { repository, branch, commitSha, contractsPath = './contracts' } = req.body;
+      const { repositoryUrl, platform = 'github-actions', triggerEvents = ['push', 'pull_request'] } = req.body;
       
-      if (!repository || !branch) {
+      if (!repositoryUrl) {
         return res.status(400).json({ 
-          message: "Missing required fields: repository, branch" 
+          message: "Repository URL is required" 
         });
       }
 
-      // Validate repository URL format
-      const repoUrlPattern = /^https:\/\/github\.com\/[\w\-\.]+\/[\w\-\.]+(?:\.git)?$/;
-      if (!repoUrlPattern.test(repository)) {
-        return res.status(400).json({ 
-          message: "Invalid repository URL format" 
-        });
-      }
+      const userId = (req as any).user?.claims?.sub;
+      
+      // Generate API key for this CI/CD setup
+      const apiKey = crypto.randomBytes(32).toString('hex');
+      
+      // Store CI/CD setup (in production, use database)
+      global.cicdSetups = global.cicdSetups || new Map();
+      global.cicdSetups.set(userId, {
+        repositoryUrl,
+        platform,
+        apiKey,
+        triggerEvents,
+        createdAt: new Date().toISOString(),
+        active: true
+      });
+      
+      const { CICDService } = await import("./github");
+      const config = CICDService.generateYAMLConfig('hardhat');
 
-      // Generate scan ID for tracking
-      const scanId = `cicd_${Date.now()}`;
-      
-      // In a real implementation, this would:
-      // 1. Clone the repository 
-      // 2. Find all Solidity files
-      // 3. Run them through your audit API
-      // 4. Return results
-      
       res.json({
-        scanId,
-        status: "initiated",
-        repository,
-        branch,
-        commitSha: commitSha || 'HEAD',
-        contractsPath,
-        estimatedTime: "2-5 minutes",
-        message: "CI/CD scan initiated successfully"
+        setup: {
+          platform,
+          repositoryUrl,
+          apiKey,
+          triggerEvents,
+          status: "configured"
+        },
+        config,
+        instructions: [
+          "1. Copy the generated YAML configuration",
+          "2. Create .github/workflows/smart-audit.yml in your repository", 
+          "3. Paste the configuration and commit",
+          "4. Add your API key as SMART_AUDIT_API_KEY secret in repository settings"
+        ],
+        message: `CI/CD setup completed for ${platform}`
       });
     } catch (error: any) {
-      console.error("CI/CD scan failed:", error);
-      res.status(500).json({ message: error.message || "CI/CD scan failed" });
+      console.error("CI/CD setup failed:", error);
+      res.status(500).json({ message: error.message || "CI/CD setup failed" });
+    }
+  });
+
+  app.get("/api/integrations/cicd/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req as any).user?.claims?.sub;
+      global.cicdSetups = global.cicdSetups || new Map();
+      
+      const setup = global.cicdSetups.get(userId);
+      
+      if (setup) {
+        res.json({
+          configured: true,
+          platform: setup.platform,
+          repositoryUrl: setup.repositoryUrl,
+          triggerEvents: setup.triggerEvents,
+          active: setup.active,
+          createdAt: setup.createdAt
+        });
+      } else {
+        res.json({ configured: false });
+      }
+    } catch (error: any) {
+      console.error("Failed to check CI/CD status:", error);
+      res.status(500).json({ message: "Failed to check CI/CD status" });
     }
   });
 

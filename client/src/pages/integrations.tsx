@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,114 +7,191 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useWeb3Auth } from '@/hooks/useWeb3Auth';
 import { 
   Github, 
-  GitBranch, 
   Settings, 
-  Code, 
   Download, 
   ExternalLink, 
   Copy,
-  Zap,
   Shield,
-  AlertCircle,
-  CheckCircle
+  CheckCircle,
+  LinkIcon,
+  Code
 } from 'lucide-react';
 
 export default function IntegrationsPage() {
-  const [githubForm, setGithubForm] = useState({
-    owner: '',
-    repo: '',
-    branch: 'main',
-    githubToken: ''
+  const [selectedRepository, setSelectedRepository] = useState('');
+  const [cicdForm, setCicdForm] = useState({
+    repositoryUrl: '',
+    platform: 'github-actions',
+    triggerEvents: ['push', 'pull_request']
   });
   const [cicdConfig, setCicdConfig] = useState('');
-  const [selectedCicdType, setSelectedCicdType] = useState<'github-actions' | 'jenkins'>('github-actions');
-  const [selectedProjectType, setSelectedProjectType] = useState<'hardhat' | 'truffle' | 'foundry'>('hardhat');
   const { toast } = useToast();
+  const { user } = useWeb3Auth();
 
+  // Check for GitHub connection status from URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const githubStatus = urlParams.get('github');
+    
+    if (githubStatus === 'connected') {
+      toast({
+        title: "GitHub Connected",
+        description: "GitHub App installed successfully! You can now scan repositories.",
+      });
+      window.history.replaceState({}, '', '/integrations');
+    } else if (githubStatus === 'error') {
+      toast({
+        title: "GitHub Connection Failed",
+        description: "Failed to install GitHub App. Please try again.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/integrations');
+    }
+  }, [toast]);
+
+  // Fetch GitHub connection status
+  const { data: githubStatus } = useQuery({
+    queryKey: ['/api/integrations/github/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/integrations/github/status', {
+        headers: { 'x-user-id': user?.id || '' }
+      });
+      return response.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch repositories if GitHub is connected
+  const { data: repositories } = useQuery({
+    queryKey: ['/api/integrations/github/repositories'],
+    queryFn: async () => {
+      const response = await fetch('/api/integrations/github/repositories', {
+        headers: { 'x-user-id': user?.id || '' }
+      });
+      return response.json();
+    },
+    enabled: !!user?.id && githubStatus?.connected,
+  });
+
+  // Fetch CI/CD status
+  const { data: cicdStatus } = useQuery({
+    queryKey: ['/api/integrations/cicd/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/integrations/cicd/status', {
+        headers: { 'x-user-id': user?.id || '' }
+      });
+      return response.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  // GitHub App installation mutation
+  const githubInstallMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/integrations/github/install', {
+        headers: { 'x-user-id': user?.id || '' }
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      window.open(data.installUrl, '_blank');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "GitHub Installation Failed",
+        description: error.message || "Failed to generate installation URL",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Repository scan mutation
   const githubScanMutation = useMutation({
-    mutationFn: async (data: typeof githubForm) => {
-      const response = await apiRequest('POST', '/api/integrations/github/scan', data);
+    mutationFn: async (repositoryFullName: string) => {
+      const response = await fetch('/api/integrations/github/scan', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || ''
+        },
+        body: JSON.stringify({ repositoryFullName })
+      });
       return response.json();
     },
     onSuccess: (data) => {
       toast({
-        title: "GitHub Scan Initiated",
-        description: `Found ${data.scan.totalFiles} Solidity files in ${data.repository.fullName}`,
+        title: "Repository Scan Ready",
+        description: `Found ${data.scan.totalFiles} Solidity files. Estimated ${data.scan.estimatedCredits} credits.`,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "GitHub Scan Failed",
+        title: "Repository Scan Failed",
         description: error.message || "Failed to scan repository",
         variant: "destructive",
       });
     },
   });
 
-  const cicdConfigMutation = useMutation({
-    mutationFn: async ({ type, project }: { type: string; project?: string }) => {
-      const params = project ? `?project=${project}` : '';
-      const response = await apiRequest('GET', `/api/integrations/cicd/config/${type}${params}`);
+  // CI/CD setup mutation
+  const cicdSetupMutation = useMutation({
+    mutationFn: async (setupData: typeof cicdForm) => {
+      const response = await fetch('/api/integrations/cicd/setup', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || ''
+        },
+        body: JSON.stringify(setupData)
+      });
       return response.json();
     },
     onSuccess: (data) => {
       setCicdConfig(data.config);
       toast({
-        title: "Configuration Generated",
-        description: `${data.type} configuration ready for download`,
+        title: "CI/CD Setup Complete",
+        description: `${data.setup.platform} pipeline configured successfully`,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Configuration Failed",
-        description: error.message || "Failed to generate configuration",
+        title: "CI/CD Setup Failed",
+        description: error.message || "Failed to setup CI/CD pipeline",
         variant: "destructive",
       });
     },
   });
 
-  const handleGithubScan = () => {
-    if (!githubForm.owner || !githubForm.repo || !githubForm.githubToken) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate GitHub token format
-    if (!githubForm.githubToken.startsWith('ghp_') && !githubForm.githubToken.startsWith('github_pat_')) {
-      toast({
-        title: "Invalid Token",
-        description: "Please enter a valid GitHub personal access token",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate repository name format
-    const repoPattern = /^[a-zA-Z0-9._-]+$/;
-    if (!repoPattern.test(githubForm.owner) || !repoPattern.test(githubForm.repo)) {
-      toast({
-        title: "Invalid Repository",
-        description: "Repository owner and name can only contain letters, numbers, dots, dashes and underscores",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    githubScanMutation.mutate(githubForm);
+  const handleGithubConnect = () => {
+    githubInstallMutation.mutate();
   };
 
-  const handleGenerateConfig = () => {
-    const type = selectedCicdType;
-    const project = selectedCicdType === 'github-actions' ? selectedProjectType : undefined;
-    cicdConfigMutation.mutate({ type, project });
+  const handleRepositoryScan = () => {
+    if (!selectedRepository) {
+      toast({
+        title: "No Repository Selected",
+        description: "Please select a repository to scan",
+        variant: "destructive",
+      });
+      return;
+    }
+    githubScanMutation.mutate(selectedRepository);
+  };
+
+  const handleCicdSetup = () => {
+    if (!cicdForm.repositoryUrl) {
+      toast({
+        title: "Missing Repository URL",
+        description: "Please enter your repository URL",
+        variant: "destructive",
+      });
+      return;
+    }
+    cicdSetupMutation.mutate(cicdForm);
   };
 
   const copyToClipboard = (text: string) => {
@@ -126,7 +203,7 @@ export default function IntegrationsPage() {
   };
 
   const downloadConfig = () => {
-    const filename = selectedCicdType === 'github-actions' ? '.github/workflows/smartaudit.yml' : 'Jenkinsfile';
+    const filename = 'smart-audit.yml';
     const blob = new Blob([cicdConfig], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -168,131 +245,118 @@ export default function IntegrationsPage() {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <Github className="h-5 w-5 mr-2 text-blue-400" />
-                    Repository Scanner
+                    GitHub Integration
+                    {githubStatus?.connected && (
+                      <Badge className="ml-2 bg-green-500/20 text-green-400 border-green-500/30">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Connected
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription className="text-gray-300">
-                    Scan GitHub repositories for smart contract vulnerabilities
+                    Connect your GitHub account to scan repositories automatically
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="owner" className="text-white">Repository Owner</Label>
-                      <Input
-                        id="owner"
-                        placeholder="ethereum"
-                        value={githubForm.owner}
-                        onChange={(e) => setGithubForm(prev => ({ ...prev, owner: e.target.value }))}
-                        className="bg-slate-700 border-slate-600 text-white"
-                        data-testid="input-github-owner"
-                      />
+                  {!githubStatus?.connected ? (
+                    <div className="text-center py-6">
+                      <Github className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-white mb-2">Connect GitHub</h3>
+                      <p className="text-gray-400 mb-4">
+                        Install the SmartAudit AI GitHub App to scan your repositories
+                      </p>
+                      <Button 
+                        onClick={handleGithubConnect}
+                        disabled={githubInstallMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        data-testid="button-connect-github"
+                      >
+                        {githubInstallMutation.isPending ? (
+                          <>Connecting...</>
+                        ) : (
+                          <>
+                            <LinkIcon className="h-4 w-4 mr-2" />
+                            Install GitHub App
+                          </>
+                        )}
+                      </Button>
                     </div>
-                    <div>
-                      <Label htmlFor="repo" className="text-white">Repository Name</Label>
-                      <Input
-                        id="repo"
-                        placeholder="solidity"
-                        value={githubForm.repo}
-                        onChange={(e) => setGithubForm(prev => ({ ...prev, repo: e.target.value }))}
-                        className="bg-slate-700 border-slate-600 text-white"
-                        data-testid="input-github-repo"
-                      />
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckCircle className="h-5 w-5 text-green-400 mr-2" />
+                          <span className="text-green-400 font-medium">GitHub App Connected</span>
+                        </div>
+                        <Badge variant="outline" className="text-green-400 border-green-500/30">
+                          {repositories?.repositories?.length || 0} repositories
+                        </Badge>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="repository-select" className="text-white">Select Repository</Label>
+                        <Select value={selectedRepository} onValueChange={setSelectedRepository}>
+                          <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                            <SelectValue placeholder="Choose a repository to scan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {repositories?.repositories?.map((repo: any) => (
+                              <SelectItem key={repo.full_name} value={repo.full_name}>
+                                <div className="flex items-center">
+                                  <Github className="h-4 w-4 mr-2" />
+                                  {repo.full_name}
+                                  {repo.private && <Badge className="ml-2 text-xs">Private</Badge>}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button 
+                        onClick={handleRepositoryScan}
+                        disabled={githubScanMutation.isPending || !selectedRepository}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        data-testid="button-scan-repository"
+                      >
+                        {githubScanMutation.isPending ? (
+                          <>Scanning...</>
+                        ) : (
+                          <>
+                            <Shield className="h-4 w-4 mr-2" />
+                            Scan Repository
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="branch" className="text-white">Branch</Label>
-                    <Input
-                      id="branch"
-                      placeholder="main"
-                      value={githubForm.branch}
-                      onChange={(e) => setGithubForm(prev => ({ ...prev, branch: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      data-testid="input-github-branch"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="token" className="text-white">GitHub Personal Access Token</Label>
-                    <Input
-                      id="token"
-                      type="password"
-                      placeholder="ghp_xxxxxxxxxxxxxxxx"
-                      value={githubForm.githubToken}
-                      onChange={(e) => setGithubForm(prev => ({ ...prev, githubToken: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      data-testid="input-github-token"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Need repo access permissions. <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token" target="_blank" className="text-blue-400 hover:underline">Learn how to create one</a>
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleGithubScan}
-                    disabled={githubScanMutation.isPending}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    data-testid="button-scan-github"
-                  >
-                    {githubScanMutation.isPending ? (
-                      <>
-                        <Zap className="h-4 w-4 mr-2 animate-spin" />
-                        Scanning Repository...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-4 w-4 mr-2" />
-                        Scan Repository
-                      </>
-                    )}
-                  </Button>
+                  )}
                 </CardContent>
               </Card>
 
+              {/* GitHub Features */}
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <GitBranch className="h-5 w-5 mr-2 text-green-400" />
-                    Webhook Setup
-                  </CardTitle>
+                  <CardTitle className="text-white">Features</CardTitle>
                   <CardDescription className="text-gray-300">
-                    Automatically scan pull requests
+                    What you get with GitHub integration
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-                      <div>
-                        <p className="text-white font-medium">Webhook URL</p>
-                        <p className="text-gray-400 text-sm">Use this URL in your repository settings</p>
-                      </div>
-                      <Badge variant="outline" className="border-green-400 text-green-300">
-                        Ready
-                      </Badge>
-                    </div>
-                    
-                    <div className="p-3 bg-slate-700 rounded border font-mono text-sm text-gray-300">
-                      https://your-domain.com/api/integrations/github/webhook
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard('https://your-domain.com/api/integrations/github/webhook')}
-                        className="ml-2"
-                        data-testid="button-copy-webhook"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm">
-                      <p className="text-white font-medium">Setup Instructions:</p>
-                      <ol className="text-gray-300 space-y-1 list-decimal list-inside">
-                        <li>Go to Repository Settings → Webhooks</li>
-                        <li>Add webhook with the URL above</li>
-                        <li>Select "Pull requests" and "Pushes" events</li>
-                        <li>Set Content type to "application/json"</li>
-                      </ol>
-                    </div>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">Automatic repository scanning</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">Pull request analysis</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">Private repository access</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">Real-time vulnerability alerts</span>
                   </div>
                 </CardContent>
               </Card>
@@ -305,157 +369,168 @@ export default function IntegrationsPage() {
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
-                    <Settings className="h-5 w-5 mr-2 text-purple-400" />
-                    CI/CD Configuration
+                    <Settings className="h-5 w-5 mr-2 text-blue-400" />
+                    CI/CD Pipeline Setup
+                    {cicdStatus?.configured && (
+                      <Badge className="ml-2 bg-green-500/20 text-green-400 border-green-500/30">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Configured
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription className="text-gray-300">
-                    Generate configuration files for your CI/CD pipeline
+                    Setup automated contract audits in your CI/CD pipeline
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="cicd-type" className="text-white">CI/CD Platform</Label>
-                    <Select value={selectedCicdType} onValueChange={(value: any) => setSelectedCicdType(value)}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white" data-testid="select-cicd-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="github-actions">GitHub Actions</SelectItem>
-                        <SelectItem value="jenkins">Jenkins</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="repo-url" className="text-white">Repository URL</Label>
+                    <Input
+                      id="repo-url"
+                      placeholder="https://github.com/username/repository"
+                      value={cicdForm.repositoryUrl}
+                      onChange={(e) => setCicdForm({...cicdForm, repositoryUrl: e.target.value})}
+                      className="bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
+                      data-testid="input-repository-url"
+                    />
                   </div>
                   
-                  {selectedCicdType === 'github-actions' && (
-                    <div>
-                      <Label htmlFor="project-type" className="text-white">Project Type</Label>
-                      <Select value={selectedProjectType} onValueChange={(value: any) => setSelectedProjectType(value)}>
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white" data-testid="select-project-type">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="hardhat">Hardhat</SelectItem>
-                          <SelectItem value="truffle">Truffle</SelectItem>
-                          <SelectItem value="foundry">Foundry</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  
                   <Button 
-                    onClick={handleGenerateConfig}
-                    disabled={cicdConfigMutation.isPending}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    data-testid="button-generate-config"
+                    onClick={handleCicdSetup}
+                    disabled={cicdSetupMutation.isPending || !cicdForm.repositoryUrl}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    data-testid="button-setup-cicd"
                   >
-                    {cicdConfigMutation.isPending ? (
-                      <>
-                        <Code className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
+                    {cicdSetupMutation.isPending ? (
+                      <>Setting up...</>
                     ) : (
                       <>
-                        <Code className="h-4 w-4 mr-2" />
-                        Generate Configuration
+                        <Settings className="h-4 w-4 mr-2" />
+                        Setup CI/CD Pipeline
                       </>
                     )}
                   </Button>
+
+                  {cicdConfig && (
+                    <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-600">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-white font-medium">GitHub Actions Configuration</h4>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(cicdConfig)}
+                            className="text-blue-400 border-blue-500/30"
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={downloadConfig}
+                            className="text-blue-400 border-blue-500/30"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                      <pre className="text-xs text-gray-300 overflow-x-auto bg-black/30 p-2 rounded">
+                        {cicdConfig}
+                      </pre>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {cicdConfig && (
-                <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center justify-between">
-                      Configuration File
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(cicdConfig)}
-                          data-testid="button-copy-config"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={downloadConfig}
-                          data-testid="button-download-config"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="bg-slate-900 p-4 rounded text-xs text-gray-300 overflow-x-auto max-h-96">
-                      {cicdConfig}
-                    </pre>
-                  </CardContent>
-                </Card>
-              )}
+              {/* CI/CD Instructions */}
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Setup Instructions</CardTitle>
+                  <CardDescription className="text-gray-300">
+                    How to configure automated security scanning
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">1</div>
+                      <span className="text-gray-300">Click "Setup CI/CD Pipeline" to generate configuration</span>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">2</div>
+                      <span className="text-gray-300">Create .github/workflows/smart-audit.yml in your repository</span>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">3</div>
+                      <span className="text-gray-300">Paste the generated configuration and commit</span>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">4</div>
+                      <span className="text-gray-300">Add SMART_AUDIT_API_KEY secret in repository settings</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
           {/* Browser Extension */}
           <TabsContent value="browser">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <ExternalLink className="h-5 w-5 mr-2 text-orange-400" />
-                  Browser Extension
-                </CardTitle>
-                <CardDescription className="text-gray-300">
-                  Scan smart contracts directly from Etherscan and other block explorers
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white">Features</h3>
-                    <ul className="space-y-2">
-                      {[
-                        'One-click scanning from Etherscan',
-                        'Support for verified contracts',
-                        'Inline security warnings',
-                        'Quick vulnerability assessment',
-                        'Multi-chain support'
-                      ].map((feature, index) => (
-                        <li key={index} className="flex items-center text-gray-300">
-                          <CheckCircle className="h-4 w-4 mr-2 text-green-400" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white">Coming Soon</h3>
-                    <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-orange-400 mr-2 mt-0.5" />
-                        <div>
-                          <p className="text-orange-200 font-medium">In Development</p>
-                          <p className="text-orange-300/80 text-sm mt-1">
-                            The browser extension is currently in development. Sign up to be notified when it's available.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button 
-                      className="w-full bg-orange-600 hover:bg-orange-700"
-                      disabled
-                      data-testid="button-extension-notify"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Get Notified
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <ExternalLink className="h-5 w-5 mr-2 text-blue-400" />
+                    Browser Extension
+                  </CardTitle>
+                  <CardDescription className="text-gray-300">
+                    Analyze contracts directly from Etherscan and block explorers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center py-6">
+                    <Code className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-white mb-2">SmartAudit Browser Extension</h3>
+                    <p className="text-gray-400 mb-4">
+                      Scan contracts directly from Etherscan with one click
+                    </p>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Extension
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Extension Features</CardTitle>
+                  <CardDescription className="text-gray-300">
+                    What you can do with the browser extension
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">One-click Etherscan analysis</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">Multi-chain support</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">Real-time vulnerability detection</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-300">Instant security reports</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
