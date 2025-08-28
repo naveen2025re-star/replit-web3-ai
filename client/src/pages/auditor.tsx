@@ -586,14 +586,148 @@ export default function AuditorPage() {
                 <Bot className="h-8 w-8 text-blue-500" />
               </div>
               <h2 className="text-2xl font-semibold mb-2 text-white">Smart Contract Security Analysis</h2>
-              <p className="text-slate-400 mb-8 max-w-md">
+              <p className="text-slate-400 mb-6 max-w-md">
                 Upload your smart contract or paste the code to get comprehensive security analysis with vulnerability detection and optimization recommendations.
               </p>
+              
+              {/* Template Gallery */}
+              <div className="bg-gradient-to-r from-slate-800/40 to-slate-700/30 rounded-xl p-6 mb-6 max-w-2xl border border-slate-600/30">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-sm">⚡</span>
+                  </div>
+                  <h3 className="text-base font-medium text-white">Smart Contract Templates</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setInputValue(`Analyze this ERC-20 token contract:
+
+\`\`\`solidity
+pragma solidity ^0.8.19;
+
+interface IERC20 {
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address to, uint256 amount) external returns (bool);
+}
+
+contract MyToken is IERC20 {
+    mapping(address => uint256) private _balances;
+    uint256 private _totalSupply;
+    string public name = "MyToken";
+    string public symbol = "MTK";
+    
+    function transfer(address to, uint256 amount) external returns (bool) {
+        _balances[msg.sender] -= amount;
+        _balances[to] += amount;
+        return true;
+    }
+    
+    function balanceOf(address account) external view returns (uint256) {
+        return _balances[account];
+    }
+    
+    function totalSupply() external view returns (uint256) {
+        return _totalSupply;
+    }
+}
+\`\`\`
+
+Please check for security vulnerabilities and suggest improvements.`)}
+                    className="bg-slate-800/50 hover:bg-slate-700/60 transition-colors rounded-lg p-3 text-left border border-slate-600/50 hover:border-slate-500/50"
+                  >
+                    <div className="text-sm font-medium text-white mb-1">ERC-20 Token</div>
+                    <div className="text-xs text-slate-400">Basic token contract template</div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setInputValue(`Review this DeFi staking contract:
+
+\`\`\`solidity
+pragma solidity ^0.8.19;
+
+contract StakingPool {
+    mapping(address => uint256) public stakes;
+    mapping(address => uint256) public rewards;
+    uint256 public totalStaked;
+    
+    function stake(uint256 amount) external payable {
+        stakes[msg.sender] += amount;
+        totalStaked += amount;
+    }
+    
+    function withdraw(uint256 amount) external {
+        require(stakes[msg.sender] >= amount, "Insufficient stake");
+        stakes[msg.sender] -= amount;
+        totalStaked -= amount;
+        payable(msg.sender).transfer(amount);
+    }
+    
+    function claimRewards() external {
+        uint256 reward = calculateReward(msg.sender);
+        rewards[msg.sender] = 0;
+        payable(msg.sender).transfer(reward);
+    }
+    
+    function calculateReward(address user) public view returns (uint256) {
+        return stakes[user] * 10 / 100; // 10% APY
+    }
+}
+\`\`\`
+
+Please audit for reentrancy and other DeFi vulnerabilities.`)}
+                    className="bg-slate-800/50 hover:bg-slate-700/60 transition-colors rounded-lg p-3 text-left border border-slate-600/50 hover:border-slate-500/50"
+                  >
+                    <div className="text-sm font-medium text-white mb-1">DeFi Staking</div>
+                    <div className="text-xs text-slate-400">Staking pool contract</div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setInputValue(`Audit this NFT marketplace:
+
+\`\`\`solidity
+pragma solidity ^0.8.19;
+
+contract NFTMarketplace {
+    struct Listing {
+        address seller;
+        uint256 price;
+        bool active;
+    }
+    
+    mapping(uint256 => Listing) public listings;
+    
+    function listNFT(uint256 tokenId, uint256 price) external {
+        listings[tokenId] = Listing(msg.sender, price, true);
+    }
+    
+    function buyNFT(uint256 tokenId) external payable {
+        Listing storage listing = listings[tokenId];
+        require(listing.active, "Not listed");
+        require(msg.value >= listing.price, "Insufficient payment");
+        
+        listing.active = false;
+        payable(listing.seller).transfer(listing.price);
+        
+        // Transfer NFT (simplified)
+    }
+}
+\`\`\`
+
+Focus on payment security and marketplace vulnerabilities.`)}
+                    className="bg-slate-800/50 hover:bg-slate-700/60 transition-colors rounded-lg p-3 text-left border border-slate-600/50 hover:border-slate-500/50"
+                  >
+                    <div className="text-sm font-medium text-white mb-1">NFT Marketplace</div>
+                    <div className="text-xs text-slate-400">NFT trading platform</div>
+                  </button>
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
                 <Card 
                   className="p-4 cursor-pointer hover:bg-slate-800/50 transition-colors bg-slate-800/20 border-slate-700"
-                  onClick={() => setInputValue("pragma solidity ^0.8.19;\n\ncontract MyContract {\n    // Paste your contract code here\n}")}
+                  onClick={() => setInputValue("Analyze this smart contract for security vulnerabilities:\n\n```solidity\npragma solidity ^0.8.19;\n\ncontract MyContract {\n    // Paste your contract code here\n    \n}\n```\n\nPlease check for:\n- Reentrancy attacks\n- Integer overflow/underflow\n- Access control issues\n- Gas limit problems\n- Front-running vulnerabilities")}
                 >
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
@@ -608,7 +742,7 @@ export default function AuditorPage() {
 
                 <Card 
                   className="p-4 cursor-pointer hover:bg-slate-800/50 transition-colors bg-slate-800/20 border-slate-700"
-                  onClick={() => setInputValue("// Upload your contract files or paste code here for gas optimization analysis")}
+                  onClick={() => setInputValue("Optimize this smart contract for gas efficiency:\n\n```solidity\npragma solidity ^0.8.19;\n\ncontract MyContract {\n    // Paste your contract code here\n    \n}\n```\n\nPlease analyze:\n- Gas usage patterns\n- Storage optimization\n- Function efficiency\n- Loop optimizations\n- Data packing strategies")}
                 >
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
@@ -663,16 +797,16 @@ export default function AuditorPage() {
                                 remarkPlugins={[remarkGfm]}
                                 components={{
                                 // Custom styling for markdown elements
-                                h1: ({children}) => <h1 className="text-xl font-bold text-white mb-3">{children}</h1>,
-                                h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-2">{children}</h2>,
-                                h3: ({children}) => <h3 className="text-base font-medium text-white mb-2">{children}</h3>,
+                                h1: ({children}) => <h1 className="text-xl font-bold text-white mb-4 pb-2 border-b border-slate-700">{children}</h1>,
+                                h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2"><Shield className="h-4 w-4 text-blue-400" />{children}</h2>,
+                                h3: ({children}) => <h3 className="text-base font-medium text-white mb-2 flex items-center gap-2"><AlertTriangle className="h-3 w-3 text-orange-400" />{children}</h3>,
                                 p: ({children}) => <p className="text-slate-100 mb-3 leading-relaxed break-words">{children}</p>,
                                 ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1 text-slate-100">{children}</ul>,
                                 ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1 text-slate-100">{children}</ol>,
-                                li: ({children}) => <li className="text-slate-100">{children}</li>,
+                                li: ({children}) => <li className="text-slate-100 mb-1">{children}</li>,
                                 code: ({children}) => <code className="bg-slate-800 px-2 py-1 rounded text-sm font-mono text-blue-300 break-all">{children}</code>,
                                 pre: ({children}) => <pre className="bg-slate-800 border border-slate-700 rounded-lg p-3 overflow-x-auto mb-3">{children}</pre>,
-                                blockquote: ({children}) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-slate-300 mb-3">{children}</blockquote>,
+                                blockquote: ({children}) => <blockquote className="border-l-4 border-blue-500 pl-4 bg-blue-500/5 py-2 rounded-r-lg italic text-slate-300 mb-3">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
                                 em: ({children}) => <em className="italic text-slate-200">{children}</em>,
                                 }}
@@ -686,20 +820,30 @@ export default function AuditorPage() {
                           </div>
                           
                           {!message.isStreaming && message.content && (
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-700">
+                            <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-700/50">
                               <Button 
                                 variant="ghost" 
                                 size="sm"
                                 onClick={() => copyMessage(message.content)}
-                                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                                className="text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                               >
                                 <Copy className="h-3 w-3 mr-1" />
-                                Copy
+                                Copy Report
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                                className="text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                                onClick={() => {
+                                  // Export functionality
+                                  const blob = new Blob([message.content], { type: 'text/markdown' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `audit-report-${new Date().toISOString().split('T')[0]}.md`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }}
                               >
                                 <Download className="h-3 w-3 mr-1" />
                                 Export
@@ -707,11 +851,27 @@ export default function AuditorPage() {
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                                onClick={() => shareMessage(message.content)}
+                                className="text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                               >
                                 <Share className="h-3 w-3 mr-1" />
-                                Share
+                                Share Audit
                               </Button>
+                              
+                              {/* Quick insights badges */}
+                              {message.content.toLowerCase().includes('vulnerability') && (
+                                <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-400 rounded text-xs">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  <span>Security Issues</span>
+                                </div>
+                              )}
+                              
+                              {message.content.toLowerCase().includes('optimization') && (
+                                <div className="flex items-center gap-1 px-2 py-1 bg-green-500/10 text-green-400 rounded text-xs">
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span>Optimizations</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -753,7 +913,7 @@ export default function AuditorPage() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Paste your smart contract code here (Solidity, Rust, Go, etc.) or describe specific security concerns you'd like me to analyze..."
+                placeholder="💡 Try pasting: ERC-20 token contract, DeFi protocol, NFT collection, or any smart contract code. You can also ask questions like 'Check for reentrancy vulnerabilities' or 'Optimize gas usage'"
                 className="w-full min-h-[120px] max-h-[300px] pr-20 resize-none rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                 disabled={analysisState === "loading" || analysisState === "streaming"}
                 aria-label="Smart contract code input"
