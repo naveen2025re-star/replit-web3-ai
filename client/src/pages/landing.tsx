@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { Shield, Code, Upload, ArrowRight, Github, Globe, Lock, User, Clock, AlertTriangle, CheckCircle, Users, TrendingUp, Star } from "lucide-react";
-import { WalletConnect } from "@/components/ui/wallet-connect";
+import { LandingWalletConnect } from "@/components/landing-wallet-connect";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import * as THREE from "three";
 
@@ -264,7 +264,7 @@ export default function Landing() {
                 <span>12.5K+ audits</span>
               </div>
             </div>
-            <WalletConnect />
+            <LandingWalletConnect />
           </div>
         </nav>
 
@@ -303,7 +303,7 @@ export default function Landing() {
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Code
                     </Button>
-                    <WalletConnect>
+                    <LandingWalletConnect contractInput={contractInput}>
                       <Button
                         className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6"
                         disabled={!contractInput.trim()}
@@ -311,7 +311,7 @@ export default function Landing() {
                         Start Audit
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
-                    </WalletConnect>
+                    </LandingWalletConnect>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 text-sm text-gray-400">
