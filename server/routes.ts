@@ -5,6 +5,7 @@ import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, up
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { z } from "zod";
 import * as crypto from "crypto";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 
 const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
 const JWT_TOKEN = process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE";
@@ -727,43 +728,96 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // Purchase credits (Stripe integration placeholder)
+  // PayPal Routes
+  app.get("/api/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/api/paypal/order", async (req, res) => {
+    // Request body should contain: { intent, amount, currency }
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+
+  // Purchase credits (PayPal integration)
   app.post("/api/credits/purchase", async (req, res) => {
     try {
-      const { userId } = z.object({
-        userId: z.string()
+      const { userId, packageId } = z.object({
+        userId: z.string(),
+        packageId: z.string()
       }).parse(req.body);
       
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const { packageId } = z.object({
-        packageId: z.string()
-      }).parse(req.body);
+      // Get package details
+      const packages = await CreditService.getCreditPackages();
+      const selectedPackage = packages.find(p => p.id === packageId);
+      
+      if (!selectedPackage) {
+        return res.status(404).json({ message: "Package not found" });
+      }
 
-      // TODO: Implement Stripe checkout session creation
-      // For now, return mock success for testing
+      // Return payment details for PayPal integration
+      res.json({ 
+        packageId,
+        amount: (selectedPackage.price / 100).toFixed(2), // Convert cents to dollars
+        currency: "USD",
+        credits: selectedPackage.totalCredits,
+        requiresPayment: true
+      });
+    } catch (error) {
+      console.error("Credit purchase failed:", error);
+      res.status(500).json({ message: "Failed to process purchase" });
+    }
+  });
+
+  // Complete credit purchase after PayPal payment
+  app.post("/api/credits/purchase/complete", async (req, res) => {
+    try {
+      const { userId, packageId, paypalOrderId } = z.object({
+        userId: z.string(),
+        packageId: z.string(),
+        paypalOrderId: z.string()
+      }).parse(req.body);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Get package details
+      const packages = await CreditService.getCreditPackages();
+      const selectedPackage = packages.find(p => p.id === packageId);
+      
+      if (!selectedPackage) {
+        return res.status(404).json({ message: "Package not found" });
+      }
+
+      // Add credits to user account
       const result = await CreditService.addCredits(
         userId,
-        1000, // Mock credits
+        selectedPackage.totalCredits,
         "purchase",
-        "Mock credit purchase for testing",
-        { packageId }
+        `Purchased ${selectedPackage.name} package via PayPal`,
+        { packageId, paypalOrderId }
       );
 
       if (result.success) {
         res.json({ 
           success: true, 
-          creditsAdded: 1000,
+          creditsAdded: selectedPackage.totalCredits,
           newBalance: result.newBalance 
         });
       } else {
         res.status(400).json({ message: result.error });
       }
     } catch (error) {
-      console.error("Credit purchase failed:", error);
-      res.status(500).json({ message: "Failed to process purchase" });
+      console.error("Credit purchase completion failed:", error);
+      res.status(500).json({ message: "Failed to complete purchase" });
     }
   });
 

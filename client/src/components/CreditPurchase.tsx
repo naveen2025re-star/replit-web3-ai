@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import PayPalButton from "./PayPalButton";
 
 interface CreditPackage {
   id: string;
@@ -41,15 +42,16 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
     enabled: open,
   });
 
+  const [paymentData, setPaymentData] = useState<any>(null);
+
   const purchaseMutation = useMutation({
     mutationFn: async (packageId: string) => {
-      const response = await apiRequest("POST", "/api/credits/purchase", { packageId });
+      const response = await apiRequest("POST", "/api/credits/purchase", { packageId, userId });
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.checkoutUrl) {
-        // Redirect to Stripe checkout
-        window.location.href = data.checkoutUrl;
+      if (data.requiresPayment) {
+        setPaymentData(data);
       } else {
         toast({
           title: "Credits Added!",
@@ -63,6 +65,34 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
       toast({
         title: "Purchase Failed",
         description: error.message || "Failed to process purchase. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const completePurchaseMutation = useMutation({
+    mutationFn: async ({ packageId, paypalOrderId }: { packageId: string; paypalOrderId: string }) => {
+      const response = await apiRequest("POST", "/api/credits/purchase/complete", { 
+        packageId, 
+        paypalOrderId, 
+        userId 
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Credits Added!",
+        description: `Successfully added ${data.creditsAdded} credits to your account.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/credits/balance'] });
+      setPaymentData(null);
+      setSelectedPackage(null);
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Purchase Failed",
+        description: error.message || "Failed to complete purchase. Please try again.",
         variant: "destructive",
       });
     },
@@ -194,28 +224,71 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                   </div>
                 </div>
 
-                <Button
-                  className="w-full"
-                  variant={pkg.popular ? "default" : "outline"}
-                  disabled={purchaseMutation.isPending}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePurchase(pkg.id);
-                  }}
-                  data-testid={`button-purchase-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  {purchaseMutation.isPending && selectedPackage === pkg.id ? (
-                    <>
-                      <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Coins className="h-4 w-4 mr-2" />
-                      Purchase
-                    </>
-                  )}
-                </Button>
+                {paymentData && selectedPackage === pkg.id ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-center text-muted-foreground mb-4">
+                      Complete your purchase with PayPal
+                    </p>
+                    <PayPalButton
+                      amount={paymentData.amount}
+                      currency={paymentData.currency}
+                      intent="CAPTURE"
+                      onSuccess={(orderData) => {
+                        completePurchaseMutation.mutate({
+                          packageId: paymentData.packageId,
+                          paypalOrderId: orderData.orderId
+                        });
+                      }}
+                      onError={(error) => {
+                        console.error('PayPal payment failed:', error);
+                        toast({
+                          title: "Payment Failed",
+                          description: "PayPal payment failed. Please try again.",
+                          variant: "destructive",
+                        });
+                        setPaymentData(null);
+                        setSelectedPackage(null);
+                      }}
+                      onCancel={() => {
+                        setPaymentData(null);
+                        setSelectedPackage(null);
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setPaymentData(null);
+                        setSelectedPackage(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full"
+                    variant={pkg.popular ? "default" : "outline"}
+                    disabled={purchaseMutation.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePurchase(pkg.id);
+                    }}
+                    data-testid={`button-purchase-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {purchaseMutation.isPending && selectedPackage === pkg.id ? (
+                      <>
+                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Coins className="h-4 w-4 mr-2" />
+                        Purchase with PayPal
+                      </>
+                    )}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

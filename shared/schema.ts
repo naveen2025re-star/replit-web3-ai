@@ -97,7 +97,7 @@ export const creditTransactions = pgTable("credit_transactions", {
     codeLength?: number;
     complexity?: number;
     packageId?: string;
-    stripePaymentId?: string;
+    paypalOrderId?: string;
     originalAmount?: number;
   }>(), // Additional data
   balanceAfter: integer("balance_after").notNull(), // User's credit balance after this transaction
