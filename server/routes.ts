@@ -438,7 +438,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         page: parseInt(page as string)
       });
       
-      res.json(sessions);
+      res.json({ sessions, total: sessions.length });
     } catch (error) {
       console.error("Failed to get user audit sessions:", error);
       res.status(500).json({ 

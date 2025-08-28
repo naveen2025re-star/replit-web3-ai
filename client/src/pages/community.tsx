@@ -502,7 +502,7 @@ export default function Community() {
               )}
 
               {/* AI Response */}
-              {auditDetails.result?.auditResult && (
+              {(auditDetails.result?.rawResponse || auditDetails.result?.formattedReport) && (
                 <div>
                   <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
                     <Shield className="h-4 w-4" />
@@ -529,7 +529,7 @@ export default function Community() {
                           pre: ({children}) => <pre className="bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-x-auto mb-4">{children}</pre>
                         }}
                       >
-                        {auditDetails.result.auditResult}
+                        {auditDetails.result.rawResponse || auditDetails.result.formattedReport}
                       </ReactMarkdown>
                     </div>
                   </div>
