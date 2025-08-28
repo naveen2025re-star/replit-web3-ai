@@ -246,7 +246,10 @@ export default function AuditorPage() {
             ? { ...msg, isStreaming: false }
             : msg
         ));
+        // Invalidate both query keys to refresh sidebar and audit history
+        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
         queryClient.invalidateQueries({ queryKey: ['/api/audit/sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
       });
       
       eventSource.onerror = (error) => {
