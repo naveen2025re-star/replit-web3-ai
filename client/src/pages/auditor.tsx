@@ -91,13 +91,26 @@ export default function AuditorPage() {
   // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
     queryKey: ['/api/audit/user-sessions', user?.id],
+    queryFn: () => {
+      if (!user?.id) return [];
+      return fetch(`/api/audit/user-sessions/${user.id}?page=1&pageSize=50`).then(res => res.json()).then(data => data.sessions || []);
+    },
     enabled: !!user?.id,
+    refetchInterval: 30000, // Refetch every 30 seconds to get latest audits
   });
 
   // Fetch community audits
   const { data: communityAudits = { audits: [], total: 0 } } = useQuery({
     queryKey: ['/api/community/audits'],
-    queryFn: () => fetch('/api/community/audits?page=1&limit=10').then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch('/api/community/audits?page=1&limit=10');
+      if (!response.ok) {
+        console.error('Failed to fetch community audits:', response.status);
+        return { audits: [], total: 0 };
+      }
+      return response.json();
+    },
+    refetchInterval: 60000, // Refetch every minute
   });
 
   const scrollToBottom = () => {
@@ -301,6 +314,69 @@ export default function AuditorPage() {
     setCurrentSessionId(null);
   };
 
+  const handleEditAuditTitle = useCallback(async (sessionId: string, newTitle: string) => {
+    try {
+      const response = await fetch(`/api/audit/session/${sessionId}/title`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (response.ok) {
+        // Refetch audit history to show updated title
+        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        toast({
+          title: "Title updated",
+          description: "Audit title has been successfully updated.",
+        });
+      } else {
+        throw new Error('Failed to update title');
+      }
+    } catch (error) {
+      console.error('Error updating audit title:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update audit title.",
+        variant: "destructive",
+      });
+    }
+  }, [user?.id, queryClient, toast]);
+
+  const handleDeleteAudit = useCallback(async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/audit/session/${sessionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Refetch audit history to remove deleted item
+        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        // Also refresh community audits in case it was public
+        queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+        toast({
+          title: "Audit deleted",
+          description: "Audit has been permanently deleted.",
+        });
+        
+        // If we're currently viewing the deleted session, reset to initial state
+        if (currentSessionId === sessionId) {
+          newAuditSession();
+        }
+      } else {
+        throw new Error('Failed to delete audit');
+      }
+    } catch (error) {
+      console.error('Error deleting audit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete audit.",
+        variant: "destructive",
+      });
+    }
+  }, [user?.id, queryClient, toast, currentSessionId]);
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-950 to-slate-900">
       <SophisticatedSidebar
@@ -310,6 +386,8 @@ export default function AuditorPage() {
         onNewAudit={newAuditSession}
         onLoadSession={loadAuditSession}
         onShowSettings={() => setShowSettings(!showSettings)}
+        onEditAuditTitle={handleEditAuditTitle}
+        onDeleteAudit={handleDeleteAudit}
       />
 
       {/* Main Chat Area */}

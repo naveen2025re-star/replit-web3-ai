@@ -568,6 +568,61 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Update audit title
+  app.patch("/api/audit/session/:sessionId/title", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { title } = z.object({ title: z.string().min(1).max(100) }).parse(req.body);
+      
+      const auditSession = await storage.updateAuditTitle(sessionId, title);
+      
+      if (!auditSession) {
+        return res.status(404).json({ message: "Audit session not found" });
+      }
+      
+      res.json(auditSession);
+    } catch (error) {
+      console.error("Error updating audit title:", error);
+      res.status(500).json({ message: "Failed to update audit title" });
+    }
+  });
+
+  // Delete audit session
+  app.delete("/api/audit/session/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const deleted = await storage.deleteAuditSession(sessionId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Audit session not found" });
+      }
+      
+      res.json({ message: "Audit session deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting audit session:", error);
+      res.status(500).json({ message: "Failed to delete audit session" });
+    }
+  });
+
+  // Get audit session details (for viewing in audit history)
+  app.get("/api/audit/session/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const session = await storage.getAuditSessionDetails(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Audit session not found" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error getting audit session details:", error);
+      res.status(500).json({ message: "Failed to get audit session details" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

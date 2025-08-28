@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Plus, 
   Shield, 
@@ -13,7 +16,9 @@ import {
   Settings,
   Users,
   TrendingUp,
-  Archive
+  Archive,
+  Edit3,
+  Trash2
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -34,6 +39,8 @@ interface SidebarProps {
   onNewAudit: () => void;
   onLoadSession: (sessionId: string) => void;
   onShowSettings: () => void;
+  onEditAuditTitle?: (sessionId: string, newTitle: string) => void;
+  onDeleteAudit?: (sessionId: string) => void;
 }
 
 export function SophisticatedSidebar({ 
@@ -42,9 +49,13 @@ export function SophisticatedSidebar({
   user, 
   onNewAudit, 
   onLoadSession, 
-  onShowSettings 
+  onShowSettings,
+  onEditAuditTitle,
+  onDeleteAudit
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
+  const [editingAudit, setEditingAudit] = useState<{id: string, title: string} | null>(null);
+  const [newTitle, setNewTitle] = useState('');
 
   return (
     <div className="w-80 bg-gradient-to-b from-slate-900 via-slate-900/98 to-slate-900/95 border-r border-slate-700/30 flex flex-col backdrop-blur-lg shadow-2xl">
@@ -170,9 +181,77 @@ export function SophisticatedSidebar({
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-white">
-                        <MoreVertical className="h-3 w-3" />
-                      </Button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-slate-400 hover:text-blue-400 h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingAudit({id: session.id, title: session.publicTitle || `${session.contractLanguage || 'Solidity'} Analysis #${index + 1}`});
+                                setNewTitle(session.publicTitle || `${session.contractLanguage || 'Solidity'} Analysis #${index + 1}`);
+                              }}
+                            >
+                              <Edit3 className="h-3 w-3" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="bg-slate-900 border-slate-700 text-white">
+                            <DialogHeader>
+                              <DialogTitle>Edit Audit Title</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div>
+                                <Label htmlFor="title" className="text-sm font-medium text-slate-300">
+                                  Audit Title
+                                </Label>
+                                <Input
+                                  id="title"
+                                  value={newTitle}
+                                  onChange={(e) => setNewTitle(e.target.value)}
+                                  className="bg-slate-800 border-slate-600 text-white mt-2"
+                                  placeholder="Enter new audit title..."
+                                />
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => setEditingAudit(null)}
+                                  className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                                >
+                                  Cancel
+                                </Button>
+                                <Button 
+                                  onClick={() => {
+                                    if (editingAudit && onEditAuditTitle) {
+                                      onEditAuditTitle(editingAudit.id, newTitle.trim());
+                                      setEditingAudit(null);
+                                    }
+                                  }}
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                  disabled={!newTitle.trim()}
+                                >
+                                  Save Changes
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-slate-400 hover:text-red-400 h-7 w-7 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onDeleteAudit && window.confirm('Are you sure you want to delete this audit?')) {
+                              onDeleteAudit(session.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}

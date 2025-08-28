@@ -38,6 +38,11 @@ export interface IStorage {
   getAuditSession(id: string): Promise<AuditSession | undefined>;
   updateAuditSessionStatus(id: string, status: string, completedAt?: Date): Promise<void>;
   getRecentAuditSessions(limit?: number): Promise<AuditSession[]>;
+  // Audit CRUD operations
+  updateAuditTitle(sessionId: string, title: string): Promise<AuditSession | undefined>;
+  deleteAuditSession(sessionId: string): Promise<boolean>;
+  getAuditSessionDetails(sessionId: string): Promise<any>;
+  
   getUserAuditSessions(userId: string, limit?: number, filters?: {
     search?: string;
     status?: string;
@@ -175,6 +180,53 @@ export class DatabaseStorage implements IStorage {
       .from(auditSessions)
       .orderBy(desc(auditSessions.createdAt))
       .limit(limit);
+  }
+
+  // Audit CRUD operations implementation
+  async updateAuditTitle(sessionId: string, title: string): Promise<AuditSession | undefined> {
+    const [updated] = await db
+      .update(auditSessions)
+      .set({ publicTitle: title })
+      .where(eq(auditSessions.id, sessionId))
+      .returning();
+    return updated;
+  }
+
+  async deleteAuditSession(sessionId: string): Promise<boolean> {
+    // First delete related audit results
+    await db.delete(auditResults).where(eq(auditResults.sessionId, sessionId));
+    
+    // Then delete the audit session
+    const [deleted] = await db
+      .delete(auditSessions)
+      .where(eq(auditSessions.id, sessionId))
+      .returning();
+    
+    return !!deleted;
+  }
+
+  async getAuditSessionDetails(sessionId: string): Promise<any> {
+    // Get session with results
+    const session = await db
+      .select()
+      .from(auditSessions)
+      .leftJoin(auditResults, eq(auditSessions.id, auditResults.sessionId))
+      .leftJoin(users, eq(auditSessions.userId, users.id))
+      .where(eq(auditSessions.id, sessionId));
+    
+    if (!session.length) {
+      return null;
+    }
+
+    const audit = session[0];
+    return {
+      ...audit.audit_sessions,
+      result: audit.audit_results,
+      user: audit.users ? { 
+        username: audit.users.username, 
+        walletAddress: audit.users.walletAddress 
+      } : null
+    };
   }
 
   async getUserAuditSessions(userId: string, limit = 50, filters?: {
