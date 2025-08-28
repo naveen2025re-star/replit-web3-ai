@@ -538,8 +538,19 @@ export default function AuditorPage() {
               )}
             </div>
             
-            {/* Visibility Toggle - Prominent placement */}
-            <div className="flex items-center gap-2">
+            {/* Community and Visibility Controls */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation('/community')}
+                className="bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200 flex items-center gap-2"
+                data-testid="button-view-community"
+              >
+                <Globe className="h-4 w-4" />
+                Community
+              </Button>
+              <div className="h-6 w-px bg-slate-600"></div>
               <Select 
                 value={auditVisibility.isPublic ? "public" : "private"}
                 onValueChange={(value) => setAuditVisibility({...auditVisibility, isPublic: value === "public"})}
