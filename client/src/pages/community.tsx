@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +32,7 @@ export default function Community() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("newest");
+  const [selectedAudit, setSelectedAudit] = useState<string | null>(null);
   const pageSize = 12;
 
   // Fetch public audits
@@ -45,6 +49,16 @@ export default function Community() {
   // Fetch trending tags
   const { data: trendingTags } = useQuery({
     queryKey: ["/api/community/trending-tags"]
+  });
+
+  // Query for selected audit details
+  const { data: auditDetails } = useQuery({
+    queryKey: ['/api/audit/session', selectedAudit],
+    queryFn: () => {
+      if (!selectedAudit) return null;
+      return fetch(`/api/audit/session/${selectedAudit}`).then(res => res.json());
+    },
+    enabled: !!selectedAudit,
   });
 
   const getSeverityColor = (severity: string) => {
@@ -242,7 +256,7 @@ export default function Community() {
                 <Card 
                   key={audit.id} 
                   className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors cursor-pointer group"
-                  onClick={() => setLocation(`/community/audit/${audit.id}`)}
+                  onClick={() => setSelectedAudit(audit.id)}
                   data-testid={`audit-card-${audit.id}`}
                 >
                   <CardHeader className="pb-3">
@@ -407,6 +421,124 @@ export default function Community() {
           </div>
         )}
       </div>
+
+      {/* Audit Details Dialog */}
+      <Dialog open={!!selectedAudit} onOpenChange={() => setSelectedAudit(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-400" />
+              {auditDetails?.publicTitle || 'Community Audit Details'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {auditDetails && (
+            <div className="space-y-6 py-4">
+              {/* Audit Info */}
+              <div className="grid grid-cols-2 gap-6 text-sm">
+                <div>
+                  <h4 className="font-medium text-slate-300 mb-2">Audit Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Status:</span>
+                      <Badge className={auditDetails.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}>
+                        {auditDetails.status}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Language:</span>
+                      <span className="text-white">{auditDetails.contractLanguage}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Visibility:</span>
+                      <Badge className="bg-blue-500/20 text-blue-400">
+                        <Eye className="h-3 w-3 mr-1" />
+                        Public
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Created:</span>
+                      <span className="text-white">{new Date(auditDetails.createdAt).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {auditDetails.result && (
+                  <div>
+                    <h4 className="font-medium text-slate-300 mb-2">Security Analysis</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Security Score:</span>
+                        <span className="text-white">{auditDetails.result.securityScore || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Vulnerabilities:</span>
+                        <span className="text-white">{auditDetails.result.vulnerabilityCount || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Contract Code */}
+              {auditDetails.contractCode && (
+                <div>
+                  <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Smart Contract Code
+                  </h4>
+                  <div className="bg-slate-950 rounded-lg p-4 overflow-x-auto border border-slate-800">
+                    <div className="mb-3">
+                      <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                        User Input
+                      </div>
+                      <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
+                        <code>{auditDetails.contractCode}</code>
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Response */}
+              {auditDetails.result?.auditResult && (
+                <div>
+                  <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Security Analysis Report
+                  </h4>
+                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+                    <div className="text-xs text-slate-500 mb-3 flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                      AI Assistant Response
+                    </div>
+                    <div className="prose prose-slate prose-invert max-w-none prose-headings:text-slate-200 prose-headings:font-semibold prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-4 prose-li:text-slate-300 prose-strong:text-white prose-code:text-blue-300 prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({children}) => <h1 className="text-xl font-bold text-slate-100 mb-4 mt-6 first:mt-0">{children}</h1>,
+                          h2: ({children}) => <h2 className="text-lg font-semibold text-slate-200 mb-3 mt-5 first:mt-0">{children}</h2>,
+                          h3: ({children}) => <h3 className="text-base font-medium text-slate-200 mb-2 mt-4 first:mt-0">{children}</h3>,
+                          p: ({children}) => <p className="text-slate-300 mb-3 leading-relaxed">{children}</p>,
+                          ul: ({children}) => <ul className="text-slate-300 mb-4 ml-4">{children}</ul>,
+                          ol: ({children}) => <ol className="text-slate-300 mb-4 ml-4">{children}</ol>,
+                          li: ({children}) => <li className="mb-1">{children}</li>,
+                          strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
+                          code: ({children}) => <code className="text-blue-300 bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>,
+                          pre: ({children}) => <pre className="bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-x-auto mb-4">{children}</pre>
+                        }}
+                      >
+                        {auditDetails.result.auditResult}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

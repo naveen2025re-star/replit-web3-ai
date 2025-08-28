@@ -500,32 +500,58 @@ export default function AuditHistoryPage() {
                 )}
               </div>
 
-              {/* Contract Code */}
+              {/* Chat Messages */}
               {auditDetails.contractCode && (
                 <div>
                   <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     Smart Contract Code
                   </h4>
-                  <div className="bg-slate-950 rounded-lg p-4 overflow-x-auto">
-                    <pre className="text-sm text-slate-300">
-                      <code>{auditDetails.contractCode}</code>
-                    </pre>
+                  <div className="bg-slate-950 rounded-lg p-4 overflow-x-auto border border-slate-800">
+                    <div className="mb-3">
+                      <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                        User Input
+                      </div>
+                      <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
+                        <code>{auditDetails.contractCode}</code>
+                      </pre>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Audit Results */}
+              {/* AI Response */}
               {auditDetails.result?.auditResult && (
                 <div>
                   <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
                     <Shield className="h-4 w-4" />
                     Security Analysis Report
                   </h4>
-                  <div className="bg-slate-950 rounded-lg p-4 prose prose-slate prose-invert max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {auditDetails.result.auditResult}
-                    </ReactMarkdown>
+                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+                    <div className="text-xs text-slate-500 mb-3 flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                      AI Assistant Response
+                    </div>
+                    <div className="prose prose-slate prose-invert max-w-none prose-headings:text-slate-200 prose-headings:font-semibold prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-4 prose-li:text-slate-300 prose-strong:text-white prose-code:text-blue-300 prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({children}) => <h1 className="text-xl font-bold text-slate-100 mb-4 mt-6 first:mt-0">{children}</h1>,
+                          h2: ({children}) => <h2 className="text-lg font-semibold text-slate-200 mb-3 mt-5 first:mt-0">{children}</h2>,
+                          h3: ({children}) => <h3 className="text-base font-medium text-slate-200 mb-2 mt-4 first:mt-0">{children}</h3>,
+                          p: ({children}) => <p className="text-slate-300 mb-3 leading-relaxed">{children}</p>,
+                          ul: ({children}) => <ul className="text-slate-300 mb-4 ml-4">{children}</ul>,
+                          ol: ({children}) => <ol className="text-slate-300 mb-4 ml-4">{children}</ol>,
+                          li: ({children}) => <li className="mb-1">{children}</li>,
+                          strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
+                          code: ({children}) => <code className="text-blue-300 bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>,
+                          pre: ({children}) => <pre className="bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-x-auto mb-4">{children}</pre>
+                        }}
+                      >
+                        {auditDetails.result.auditResult}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               )}
