@@ -239,8 +239,8 @@ export default function Landing() {
               <span className="text-white font-bold text-xl">SmartAudit AI</span>
             </div>
             <div className="hidden md:flex items-center gap-6 text-sm">
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">Scans</a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">Community</a>
+              <button onClick={() => setLocation("/app")} className="text-gray-300 hover:text-white transition-colors">Scans</button>
+              <button onClick={() => setLocation("/community")} className="text-gray-300 hover:text-white transition-colors">Community</button>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Blog</a>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Documentation</a>
               <a href="#" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
@@ -382,9 +382,11 @@ export default function Landing() {
             <div className="text-center mt-8">
               <Button 
                 variant="outline" 
+                onClick={() => setLocation("/community")}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                data-testid="button-view-community"
               >
-                More Public Scans
+                View All Public Scans
               </Button>
             </div>
           </div>

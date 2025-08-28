@@ -13,6 +13,7 @@ import ResizablePanes from "@/components/ui/resizable-panes";
 import { WalletConnect } from "@/components/ui/wallet-connect";
 import { AuditHistory } from "@/components/ui/audit-history";
 import { FileUploader } from "@/components/ui/file-uploader";
+import { ShareAuditDialog } from "@/components/share-audit-dialog";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { useLocation } from "wouter";
 import { useDisconnect } from "wagmi";
@@ -37,6 +38,7 @@ export default function Auditor() {
   const [securityScore, setSecurityScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("audit");
   const [uploadedFiles, setUploadedFiles] = useState<{fileCount: number, totalSize: number} | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user, isConnected, isAuthenticated } = useWeb3Auth();
   const [, setLocation] = useLocation();
@@ -410,8 +412,9 @@ contract MyContract {
               variant="ghost" 
               size="sm" 
               title="Share Report" 
+              onClick={() => setShareDialogOpen(true)}
               data-testid="button-share"
-              disabled={analysisState !== "completed"}
+              disabled={analysisState !== "completed" || !currentSessionId}
               className="hover:bg-muted border border-border/50 hover:border-border"
             >
               <Share className="h-4 w-4" />
@@ -634,6 +637,15 @@ contract MyContract {
           </div>
         )}
       </div>
+
+      {/* Share Dialog */}
+      {currentSessionId && (
+        <ShareAuditDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          auditId={currentSessionId}
+        />
+      )}
     </div>
   );
 }

@@ -45,6 +45,10 @@ export const auditSessions = pgTable("audit_sessions", {
   githubRepoId: varchar("github_repo_id").references(() => githubRepositories.id),
   githubFilePath: text("github_file_path"),
   status: text("status").notNull().default("pending"), // pending, analyzing, completed, failed
+  isPublic: boolean("is_public").notNull().default(false),
+  publicTitle: text("public_title"),
+  publicDescription: text("public_description"),
+  tags: jsonb("tags").$type<string[]>().default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
 });
@@ -149,6 +153,17 @@ export const insertAuditSessionSchema = createInsertSchema(auditSessions).pick({
   contractSource: true,
   githubRepoId: true,
   githubFilePath: true,
+  isPublic: true,
+  publicTitle: true,
+  publicDescription: true,
+  tags: true,
+});
+
+export const updateAuditVisibilitySchema = createInsertSchema(auditSessions).pick({
+  isPublic: true,
+  publicTitle: true,
+  publicDescription: true,
+  tags: true,
 });
 
 export const insertAuditResultSchema = createInsertSchema(auditResults).pick({
@@ -173,6 +188,7 @@ export type InsertGithubRepository = z.infer<typeof insertGithubRepositorySchema
 export type GithubRepository = typeof githubRepositories.$inferSelect;
 export type InsertAuditSession = z.infer<typeof insertAuditSessionSchema>;
 export type AuditSession = typeof auditSessions.$inferSelect;
+export type UpdateAuditVisibility = z.infer<typeof updateAuditVisibilitySchema>;
 export type InsertAuditResult = z.infer<typeof insertAuditResultSchema>;
 export type AuditResult = typeof auditResults.$inferSelect;
 export type InsertAuthNonce = z.infer<typeof insertAuthNonceSchema>;

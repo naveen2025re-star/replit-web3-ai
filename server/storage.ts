@@ -13,10 +13,11 @@ import {
   type GithubRepository,
   type InsertGithubRepository,
   type AuthNonce,
-  type InsertAuthNonce
+  type InsertAuthNonce,
+  type UpdateAuditVisibility
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, lt, gt, and } from "drizzle-orm";
+import { eq, desc, lt, gt, and, sql, like, arrayContains } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -48,6 +49,20 @@ export interface IStorage {
   getAuthNonce(nonce: string): Promise<AuthNonce | undefined>;
   markNonceAsUsed(nonce: string): Promise<void>;
   cleanupExpiredNonces(): Promise<void>;
+  
+  // Community operations
+  getPublicAudits(options: {
+    offset: number;
+    limit: number;
+    tags?: string;
+    search?: string;
+  }): Promise<{
+    audits: (AuditSession & { user: Pick<User, 'username' | 'walletAddress'> | null; result: Pick<AuditResult, 'vulnerabilityCount' | 'securityScore'> | null })[];
+    total: number;
+  }>;
+  getPublicAuditById(auditId: string): Promise<(AuditSession & { user: Pick<User, 'username' | 'walletAddress'> | null; result: AuditResult | null }) | null>;
+  updateAuditVisibility(auditId: string, updates: UpdateAuditVisibility): Promise<void>;
+  getTrendingTags(): Promise<{ tag: string; count: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -208,6 +223,160 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(authNonces)
       .where(lt(authNonces.expiresAt, new Date()));
+  }
+
+  // Community operations
+  async getPublicAudits(options: {
+    offset: number;
+    limit: number;
+    tags?: string;
+    search?: string;
+  }): Promise<{
+    audits: (AuditSession & { user: Pick<User, 'username' | 'walletAddress'> | null; result: Pick<AuditResult, 'vulnerabilityCount' | 'securityScore'> | null })[];
+    total: number;
+  }> {
+    let baseQuery = db
+      .select({
+        id: auditSessions.id,
+        userId: auditSessions.userId,
+        sessionKey: auditSessions.sessionKey,
+        contractCode: auditSessions.contractCode,
+        contractLanguage: auditSessions.contractLanguage,
+        contractSource: auditSessions.contractSource,
+        githubRepoId: auditSessions.githubRepoId,
+        githubFilePath: auditSessions.githubFilePath,
+        status: auditSessions.status,
+        isPublic: auditSessions.isPublic,
+        publicTitle: auditSessions.publicTitle,
+        publicDescription: auditSessions.publicDescription,
+        tags: auditSessions.tags,
+        createdAt: auditSessions.createdAt,
+        completedAt: auditSessions.completedAt,
+        user: {
+          username: users.username,
+          walletAddress: users.walletAddress,
+        },
+        result: {
+          vulnerabilityCount: auditResults.vulnerabilityCount,
+          securityScore: auditResults.securityScore,
+        },
+      })
+      .from(auditSessions)
+      .leftJoin(users, eq(auditSessions.userId, users.id))
+      .leftJoin(auditResults, eq(auditSessions.id, auditResults.sessionId))
+      .where(and(
+        eq(auditSessions.isPublic, true),
+        eq(auditSessions.status, 'completed')
+      ));
+
+    if (options.search) {
+      baseQuery = baseQuery.where(and(
+        eq(auditSessions.isPublic, true),
+        eq(auditSessions.status, 'completed'),
+        like(auditSessions.publicTitle, `%${options.search}%`)
+      ));
+    }
+
+    if (options.tags) {
+      const tagArray = options.tags.split(',');
+      for (const tag of tagArray) {
+        baseQuery = baseQuery.where(and(
+          eq(auditSessions.isPublic, true),
+          eq(auditSessions.status, 'completed'),
+          sql`${auditSessions.tags} @> ${JSON.stringify([tag.trim()])}`
+        ));
+      }
+    }
+
+    const audits = await baseQuery
+      .orderBy(desc(auditSessions.createdAt))
+      .limit(options.limit)
+      .offset(options.offset);
+
+    // Get total count for pagination
+    const totalResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(auditSessions)
+      .where(and(
+        eq(auditSessions.isPublic, true),
+        eq(auditSessions.status, 'completed')
+      ));
+
+    return {
+      audits: audits as any,
+      total: totalResult[0]?.count || 0,
+    };
+  }
+
+  async getPublicAuditById(auditId: string): Promise<(AuditSession & { user: Pick<User, 'username' | 'walletAddress'> | null; result: AuditResult | null }) | null> {
+    const [audit] = await db
+      .select({
+        id: auditSessions.id,
+        userId: auditSessions.userId,
+        sessionKey: auditSessions.sessionKey,
+        contractCode: auditSessions.contractCode,
+        contractLanguage: auditSessions.contractLanguage,
+        contractSource: auditSessions.contractSource,
+        githubRepoId: auditSessions.githubRepoId,
+        githubFilePath: auditSessions.githubFilePath,
+        status: auditSessions.status,
+        isPublic: auditSessions.isPublic,
+        publicTitle: auditSessions.publicTitle,
+        publicDescription: auditSessions.publicDescription,
+        tags: auditSessions.tags,
+        createdAt: auditSessions.createdAt,
+        completedAt: auditSessions.completedAt,
+        user: {
+          username: users.username,
+          walletAddress: users.walletAddress,
+        },
+        result: auditResults,
+      })
+      .from(auditSessions)
+      .leftJoin(users, eq(auditSessions.userId, users.id))
+      .leftJoin(auditResults, eq(auditSessions.id, auditResults.sessionId))
+      .where(and(
+        eq(auditSessions.id, auditId),
+        eq(auditSessions.isPublic, true),
+        eq(auditSessions.status, 'completed')
+      ));
+
+    return audit as any || null;
+  }
+
+  async updateAuditVisibility(auditId: string, updates: UpdateAuditVisibility): Promise<void> {
+    await db
+      .update(auditSessions)
+      .set(updates)
+      .where(eq(auditSessions.id, auditId));
+  }
+
+  async getTrendingTags(): Promise<{ tag: string; count: number }[]> {
+    const result = await db
+      .select({
+        tags: auditSessions.tags,
+      })
+      .from(auditSessions)
+      .where(and(
+        eq(auditSessions.isPublic, true),
+        eq(auditSessions.status, 'completed')
+      ));
+
+    // Process tags and count occurrences
+    const tagCounts: Record<string, number> = {};
+    
+    result.forEach(row => {
+      if (row.tags && Array.isArray(row.tags)) {
+        row.tags.forEach(tag => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+      }
+    });
+
+    return Object.entries(tagCounts)
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
   }
 }
 

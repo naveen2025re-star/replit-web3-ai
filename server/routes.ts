@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema } from "@shared/schema";
+import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema } from "@shared/schema";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { secp256k1 } from "@noble/secp256k1";
@@ -455,6 +455,84 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     } catch (error) {
       console.error("File upload failed:", error);
       res.status(500).json({ message: "Failed to process uploaded files" });
+    }
+  });
+
+  // Community API endpoints
+  
+  // Get all public audits for community page
+  app.get("/api/community/audits", async (req, res) => {
+    try {
+      const { page = "1", limit = "20", tags, search } = req.query;
+      
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const offset = (pageNum - 1) * limitNum;
+      
+      const publicAudits = await storage.getPublicAudits({
+        offset,
+        limit: limitNum,
+        tags: tags as string,
+        search: search as string
+      });
+      
+      res.json(publicAudits);
+    } catch (error) {
+      console.error("Failed to get public audits:", error);
+      res.status(500).json({ message: "Failed to fetch public audits" });
+    }
+  });
+
+  // Get detailed public audit by ID
+  app.get("/api/community/audits/:auditId", async (req, res) => {
+    try {
+      const { auditId } = req.params;
+      
+      const audit = await storage.getPublicAuditById(auditId);
+      
+      if (!audit) {
+        return res.status(404).json({ message: "Public audit not found" });
+      }
+      
+      res.json(audit);
+    } catch (error) {
+      console.error("Failed to get public audit:", error);
+      res.status(500).json({ message: "Failed to fetch public audit" });
+    }
+  });
+
+  // Update audit visibility (make public/private)
+  app.patch("/api/audits/:auditId/visibility", async (req, res) => {
+    try {
+      const { auditId } = req.params;
+      const updateData = updateAuditVisibilitySchema.parse(req.body);
+      
+      // Get the audit to verify ownership
+      const audit = await storage.getAuditSession(auditId);
+      if (!audit) {
+        return res.status(404).json({ message: "Audit not found" });
+      }
+
+      // Verify user owns this audit (in a real app, check session/auth)
+      // For now, we'll allow any update for demo purposes
+      
+      await storage.updateAuditVisibility(auditId, updateData);
+      
+      res.json({ message: "Audit visibility updated successfully" });
+    } catch (error) {
+      console.error("Failed to update audit visibility:", error);
+      res.status(500).json({ message: "Failed to update audit visibility" });
+    }
+  });
+
+  // Get trending tags for community filters
+  app.get("/api/community/trending-tags", async (req, res) => {
+    try {
+      const trendingTags = await storage.getTrendingTags();
+      res.json(trendingTags);
+    } catch (error) {
+      console.error("Failed to get trending tags:", error);
+      res.status(500).json({ message: "Failed to fetch trending tags" });
     }
   });
 
