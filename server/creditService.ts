@@ -323,48 +323,82 @@ export class CreditService {
   }
   
   /**
+   * Determine user's plan tier based on their credit history
+   */
+  static async getUserPlanTier(userId: string): Promise<'Free' | 'Pro' | 'Pro+' | 'Enterprise'> {
+    try {
+      const user = await db.select({
+        totalCreditsEarned: users.totalCreditsEarned
+      })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user.length) return 'Free';
+
+      const totalEarned = user[0].totalCreditsEarned;
+      
+      // Determine tier based on total credits earned
+      if (totalEarned >= 15000) return 'Pro+';  // Has purchased Pro+ (15000 credits)
+      if (totalEarned >= 5000) return 'Pro';    // Has purchased Pro (5000 credits)
+      return 'Free';                            // Only has initial 1000 credits
+    } catch (error) {
+      console.error('Error determining user plan tier:', error);
+      return 'Free'; // Default to Free on error
+    }
+  }
+
+  /**
+   * Check if user can create private audits
+   */
+  static async canCreatePrivateAudits(userId: string): Promise<boolean> {
+    const tier = await this.getUserPlanTier(userId);
+    return tier === 'Pro' || tier === 'Pro+' || tier === 'Enterprise';
+  }
+
+  /**
    * Initialize default credit packages
    */
   static async initializeDefaultPackages() {
     const defaultPackages = [
       {
-        name: 'Starter Pack',
-        credits: 500,
+        name: 'Free',
+        credits: 1000,
         bonusCredits: 0,
-        totalCredits: 500,
-        price: 999, // $9.99
+        totalCredits: 1000,
+        price: 0, // Free
         popular: false,
         savings: 0,
         sortOrder: 1
       },
       {
-        name: 'Developer Pack',
-        credits: 1500,
-        bonusCredits: 300,
-        totalCredits: 1800,
-        price: 2499, // $24.99
+        name: 'Pro',
+        credits: 5000,
+        bonusCredits: 0,
+        totalCredits: 5000,
+        price: 2999, // $29.99
         popular: true,
-        savings: 20,
+        savings: 0,
         sortOrder: 2
       },
       {
-        name: 'Team Pack',
-        credits: 3000,
-        bonusCredits: 1000,
-        totalCredits: 4000,
-        price: 4999, // $49.99
+        name: 'Pro+',
+        credits: 15000,
+        bonusCredits: 0,
+        totalCredits: 15000,
+        price: 7999, // $79.99
         popular: false,
-        savings: 33,
+        savings: 20,
         sortOrder: 3
       },
       {
-        name: 'Enterprise Pack',
-        credits: 8000,
-        bonusCredits: 4000,
-        totalCredits: 12000,
-        price: 9999, // $99.99
+        name: 'Enterprise',
+        credits: 0,
+        bonusCredits: 0,
+        totalCredits: 0,
+        price: 0, // Contact us
         popular: false,
-        savings: 50,
+        savings: 0,
         sortOrder: 4
       }
     ];

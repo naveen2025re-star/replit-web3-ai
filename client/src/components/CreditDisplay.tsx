@@ -10,6 +10,8 @@ interface CreditStats {
   totalUsed: number;
   totalEarned: number;
   lastGrant: string | null;
+  planTier?: 'Free' | 'Pro' | 'Pro+' | 'Enterprise';
+  canCreatePrivateAudits?: boolean;
   recentTransactions: Array<{
     id: string;
     type: string;
@@ -90,9 +92,16 @@ export function CreditDisplay({
                     <Coins className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <span className="text-lg font-bold text-white">
-                      {formatNumber(credits.balance)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-white">
+                        {formatNumber(credits.balance)}
+                      </span>
+                      {credits.planTier && (
+                        <Badge variant="secondary" className="text-xs h-5">
+                          {credits.planTier}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-400">Credits Available</p>
                   </div>
                 </div>

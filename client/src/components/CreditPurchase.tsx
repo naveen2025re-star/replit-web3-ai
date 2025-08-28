@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Check, Star, Zap, Shield, Users } from "lucide-react";
+import { Coins, Check, Star, Zap, Shield, Users, AlertCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -107,9 +107,10 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
   };
 
   const getPackageIcon = (name: string) => {
-    if (name.includes('Starter')) return <Zap className="h-5 w-5" />;
-    if (name.includes('Developer')) return <Shield className="h-5 w-5" />;
-    if (name.includes('Team')) return <Users className="h-5 w-5" />;
+    if (name.includes('Free')) return <Zap className="h-5 w-5" />;
+    if (name.includes('Pro+')) return <Star className="h-5 w-5" />;
+    if (name.includes('Pro')) return <Shield className="h-5 w-5" />;
+    if (name.includes('Enterprise')) return <Users className="h-5 w-5" />;
     return <Star className="h-5 w-5" />;
   };
 
@@ -173,7 +174,7 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                 <CardTitle className="text-lg">{pkg.name}</CardTitle>
                 <div className="space-y-1">
                   <p className="text-3xl font-bold text-primary">
-                    {formatPrice(pkg.price)}
+                    {pkg.name === 'Enterprise' ? 'Contact Us' : pkg.price === 0 ? 'Free' : formatPrice(pkg.price)}
                   </p>
                   {pkg.savings > 0 && (
                     <Badge variant="secondary" className="text-xs">
@@ -222,6 +223,18 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                     <Check className="h-3 w-3 text-green-600" />
                     <span>5-500 credits per audit</span>
                   </div>
+                  {pkg.name === 'Free' && (
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-3 w-3 text-amber-600" />
+                      <span className="text-amber-600">Public audits only</span>
+                    </div>
+                  )}
+                  {(pkg.name === 'Pro' || pkg.name === 'Pro+') && (
+                    <div className="flex items-center gap-2">
+                      <Check className="h-3 w-3 text-green-600" />
+                      <span className="text-green-600">Public & private audits</span>
+                    </div>
+                  )}
                 </div>
 
                 {paymentData && selectedPackage === pkg.id ? (
@@ -269,10 +282,14 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                   <Button
                     className="w-full"
                     variant={pkg.popular ? "default" : "outline"}
-                    disabled={purchaseMutation.isPending}
+                    disabled={purchaseMutation.isPending || pkg.name === 'Enterprise'}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handlePurchase(pkg.id);
+                      if (pkg.name === 'Enterprise') {
+                        window.open('mailto:enterprise@yourapp.com?subject=Enterprise Plan Inquiry', '_blank');
+                      } else {
+                        handlePurchase(pkg.id);
+                      }
                     }}
                     data-testid={`button-purchase-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
                   >
@@ -280,6 +297,16 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
                       <>
                         <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
                         Processing...
+                      </>
+                    ) : pkg.name === 'Enterprise' ? (
+                      <>
+                        <Users className="h-4 w-4 mr-2" />
+                        Contact Sales
+                      </>
+                    ) : pkg.price === 0 ? (
+                      <>
+                        <Coins className="h-4 w-4 mr-2" />
+                        Get Free Credits
                       </>
                     ) : (
                       <>

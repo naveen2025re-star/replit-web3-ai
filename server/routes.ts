@@ -195,8 +195,20 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         tags: z.array(z.string()).default([])
       }).parse(req.body);
 
-      // Check credit requirements for authenticated users
+      // Check credit requirements and plan restrictions for authenticated users
       if (userId) {
+        // Check plan restrictions for private audits
+        if (!isPublic) {
+          const canCreatePrivate = await CreditService.canCreatePrivateAudits(userId);
+          if (!canCreatePrivate) {
+            return res.status(400).json({ 
+              message: "Private audits require Pro or Pro+ plan",
+              error: "plan_restriction",
+              planRequired: "Pro"
+            });
+          }
+        }
+
         const factors: CreditCalculationFactors = {
           codeLength: contractCode.length,
           complexity: Math.min(10, Math.max(1, Math.ceil(contractCode.length / 1000))),
@@ -684,7 +696,14 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       }
 
       const credits = await CreditService.getUserCredits(userId);
-      res.json(credits);
+      const planTier = await CreditService.getUserPlanTier(userId);
+      const canCreatePrivate = await CreditService.canCreatePrivateAudits(userId);
+      
+      res.json({
+        ...credits,
+        planTier,
+        canCreatePrivateAudits: canCreatePrivate
+      });
     } catch (error) {
       console.error("Get credits balance failed:", error);
       res.status(500).json({ message: "Failed to fetch credits" });
@@ -728,13 +747,26 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // PayPal Routes
+  // PayPal Routes (following blueprint pattern)
+  app.get("/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/paypal/order", async (req, res) => {
+    // Request body should contain: { intent, amount, currency }
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+
+  // Keep legacy API routes for backward compatibility
   app.get("/api/paypal/setup", async (req, res) => {
     await loadPaypalDefault(req, res);
   });
 
   app.post("/api/paypal/order", async (req, res) => {
-    // Request body should contain: { intent, amount, currency }
     await createPaypalOrder(req, res);
   });
 
@@ -822,6 +854,15 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   });
 
   // Initialize default credit packages (admin endpoint)
+  app.post("/api/credits/init-packages", async (req, res) => {
+    try {
+      await CreditService.initializeDefaultPackages();
+      res.json({ success: true, message: "Credit packages initialized" });
+    } catch (error) {
+      console.error("Failed to initialize credit packages:", error);
+      res.status(500).json({ message: "Failed to initialize credit packages" });
+    }
+  });
   app.post("/api/admin/init-packages", async (req, res) => {
     try {
       await CreditService.initializeDefaultPackages();
