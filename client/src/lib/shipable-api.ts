@@ -4,6 +4,10 @@ export interface CreateSessionRequest {
   contractCode: string;
   contractLanguage: string;
   userId?: string;
+  isPublic?: boolean;
+  title?: string;
+  description?: string;
+  tags?: string[];
 }
 
 export interface CreateSessionResponse {

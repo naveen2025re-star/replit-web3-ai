@@ -184,10 +184,14 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // Create new audit session
   app.post("/api/audit/sessions", async (req, res) => {
     try {
-      const { contractCode, contractLanguage, userId } = z.object({
+      const { contractCode, contractLanguage, userId, isPublic, title, description, tags } = z.object({
         contractCode: z.string().min(1),
         contractLanguage: z.string().default("solidity"),
-        userId: z.string().optional()
+        userId: z.string().optional(),
+        isPublic: z.boolean().default(false),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        tags: z.array(z.string()).default([])
       }).parse(req.body);
 
       // Step 1: Create session with Shipable AI
@@ -212,6 +216,10 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         contractCode,
         contractLanguage,
         userId,
+        isPublic,
+        title,
+        description,
+        tags,
       });
 
       res.json({

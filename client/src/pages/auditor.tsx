@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Code, Upload, Search, Trash, Save, History, Settings, User, Download, Copy, Share, CheckCircle, AlertCircle, TriangleAlert, Info, Lightbulb, Wallet, Github } from "lucide-react";
+import { Shield, Code, Upload, Search, Trash, Save, History, Settings, User, Download, Copy, Share, CheckCircle, AlertCircle, TriangleAlert, Info, Lightbulb, Wallet, Github, Globe, Lock } from "lucide-react";
 import CodeEditor from "@/components/ui/code-editor";
 import MarkdownRenderer from "@/components/ui/markdown-renderer";
 import ResizablePanes from "@/components/ui/resizable-panes";
@@ -14,6 +14,7 @@ import { WalletConnect } from "@/components/ui/wallet-connect";
 import { AuditHistory } from "@/components/ui/audit-history";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { ShareAuditDialog } from "@/components/share-audit-dialog";
+import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { useLocation } from "wouter";
 import { useDisconnect } from "wagmi";
@@ -39,6 +40,12 @@ export default function Auditor() {
   const [activeTab, setActiveTab] = useState("audit");
   const [uploadedFiles, setUploadedFiles] = useState<{fileCount: number, totalSize: number} | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [auditVisibility, setAuditVisibility] = useState({
+    isPublic: false,
+    title: "",
+    description: "",
+    tags: [] as string[]
+  });
   const { toast } = useToast();
   const { user, isConnected, isAuthenticated } = useWeb3Auth();
   const [, setLocation] = useLocation();
@@ -74,6 +81,10 @@ export default function Auditor() {
         contractCode,
         contractLanguage,
         userId: user?.id || '',
+        isPublic: auditVisibility.isPublic,
+        title: auditVisibility.title || `${contractLanguage} Contract Audit`,
+        description: auditVisibility.description || 'Smart contract security analysis',
+        tags: auditVisibility.tags
       });
 
       setCurrentSessionId(sessionResponse.sessionId);
@@ -174,6 +185,12 @@ export default function Auditor() {
     setSecurityScore(null);
     setCurrentSessionId(null);
     setUploadedFiles(null);
+    setAuditVisibility({
+      isPublic: false,
+      title: "",
+      description: "",
+      tags: []
+    });
     
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -308,7 +325,14 @@ contract MyContract {
       </div>
       
       {/* Action Panel */}
-      <div className="border-t border-border p-6 bg-muted/50">
+      <div className="border-t border-border p-6 bg-muted/50 space-y-6">
+        {/* Audit Visibility Selector */}
+        <AuditVisibilitySelector
+          value={auditVisibility}
+          onChange={setAuditVisibility}
+          disabled={analysisState === "loading" || analysisState === "streaming"}
+        />
+        
         <Button 
           onClick={handleAnalyze}
           disabled={analysisState === "loading" || analysisState === "streaming" || !contractCode.trim()}
@@ -352,12 +376,34 @@ contract MyContract {
         </div>
         
         {contractCode.trim() && (
-          <div className="mt-4 p-3 bg-muted rounded-lg border border-border">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Contract ready</span>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span>{contractCode.split('\n').length} lines</span>
-                <span>{Math.ceil(contractCode.length / 1000)}k chars</span>
+          <div className="mt-4 space-y-3">
+            <div className="p-3 bg-muted rounded-lg border border-border">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Contract ready</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>{contractCode.split('\n').length} lines</span>
+                  <span>{Math.ceil(contractCode.length / 1000)}k chars</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 text-sm">
+                {auditVisibility.isPublic ? (
+                  <>
+                    <Globe className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <span className="text-green-700 dark:text-green-300 font-medium">
+                      Public audit - will appear in community
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-blue-700 dark:text-blue-300 font-medium">
+                      Private audit - only visible to you
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
