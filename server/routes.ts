@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema } from "@shared/schema";
+import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { secp256k1 } from "@noble/secp256k1";
@@ -194,6 +195,28 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         tags: z.array(z.string()).default([])
       }).parse(req.body);
 
+      // Check credit requirements for authenticated users
+      if (userId) {
+        const factors: CreditCalculationFactors = {
+          codeLength: contractCode.length,
+          complexity: Math.min(10, Math.max(1, Math.ceil(contractCode.length / 1000))),
+          hasMultipleFiles: contractCode.includes("import") || contractCode.includes("pragma"),
+          analysisType: "security",
+          language: contractLanguage
+        };
+
+        const creditCheck = await CreditService.checkCreditsAndCalculateCost(userId, factors);
+        if (!creditCheck.hasEnough) {
+          return res.status(400).json({ 
+            message: "Insufficient credits",
+            needed: creditCheck.needed,
+            current: creditCheck.current,
+            cost: creditCheck.cost,
+            error: "insufficient_credits"
+          });
+        }
+      }
+
       // Step 1: Create session with Shipable AI
       const sessionResponse = await fetch(`${SHIPABLE_API_BASE}/chat/sessions`, {
         method: "POST",
@@ -244,6 +267,32 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const session = await storage.getAuditSession(sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Deduct credits for authenticated users at the start of analysis
+      if (session.userId) {
+        const factors: CreditCalculationFactors = {
+          codeLength: session.contractCode.length,
+          complexity: Math.min(10, Math.max(1, Math.ceil(session.contractCode.length / 1000))),
+          hasMultipleFiles: session.contractCode.includes("import") || session.contractCode.includes("pragma"),
+          analysisType: "security",
+          language: session.contractLanguage
+        };
+
+        const deductionResult = await CreditService.deductCreditsForAudit(
+          session.userId,
+          sessionId,
+          factors
+        );
+
+        if (!deductionResult.success) {
+          return res.status(400).json({ 
+            message: deductionResult.error || "Credit deduction failed",
+            error: "credit_deduction_failed"
+          });
+        }
+
+        console.log(`[CREDITS] Deducted ${deductionResult.creditsDeducted} credits for session ${sessionId}`);
       }
 
       // Update session status to analyzing
@@ -620,6 +669,113 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     } catch (error) {
       console.error("Error getting audit session details:", error);
       res.status(500).json({ message: "Failed to get audit session details" });
+    }
+  });
+
+  // Credit system endpoints
+  
+  // Get user credit balance and transactions
+  app.get("/api/credits/balance", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const credits = await CreditService.getUserCredits(userId);
+      res.json(credits);
+    } catch (error) {
+      console.error("Get credits balance failed:", error);
+      res.status(500).json({ message: "Failed to fetch credits" });
+    }
+  });
+
+  // Get available credit packages
+  app.get("/api/credits/packages", async (req, res) => {
+    try {
+      const packages = await CreditService.getCreditPackages();
+      res.json(packages);
+    } catch (error) {
+      console.error("Get credit packages failed:", error);
+      res.status(500).json({ message: "Failed to fetch credit packages" });
+    }
+  });
+
+  // Calculate credits needed for an audit (preview)
+  app.post("/api/credits/calculate", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { contractCode, language = "solidity", analysisType = "security" } = z.object({
+        contractCode: z.string(),
+        language: z.string().optional(),
+        analysisType: z.enum(["security", "optimization", "full"]).optional()
+      }).parse(req.body);
+
+      const factors: CreditCalculationFactors = {
+        codeLength: contractCode.length,
+        complexity: Math.min(10, Math.max(1, Math.ceil(contractCode.length / 1000))), // Simple complexity estimate
+        hasMultipleFiles: contractCode.includes("import") || contractCode.includes("pragma"),
+        analysisType: analysisType as any,
+        language
+      };
+
+      const calculation = await CreditService.checkCreditsAndCalculateCost(userId, factors);
+      res.json(calculation);
+    } catch (error) {
+      console.error("Credit calculation failed:", error);
+      res.status(500).json({ message: "Failed to calculate credits" });
+    }
+  });
+
+  // Purchase credits (Stripe integration placeholder)
+  app.post("/api/credits/purchase", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { packageId } = z.object({
+        packageId: z.string()
+      }).parse(req.body);
+
+      // TODO: Implement Stripe checkout session creation
+      // For now, return mock success for testing
+      const result = await CreditService.addCredits(
+        userId,
+        1000, // Mock credits
+        "purchase",
+        "Mock credit purchase for testing",
+        { packageId }
+      );
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          creditsAdded: 1000,
+          newBalance: result.newBalance 
+        });
+      } else {
+        res.status(400).json({ message: result.error });
+      }
+    } catch (error) {
+      console.error("Credit purchase failed:", error);
+      res.status(500).json({ message: "Failed to process purchase" });
+    }
+  });
+
+  // Initialize default credit packages (admin endpoint)
+  app.post("/api/admin/init-packages", async (req, res) => {
+    try {
+      await CreditService.initializeDefaultPackages();
+      res.json({ message: "Default packages initialized" });
+    } catch (error) {
+      console.error("Package initialization failed:", error);
+      res.status(500).json({ message: "Failed to initialize packages" });
     }
   });
 

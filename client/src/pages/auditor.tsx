@@ -26,8 +26,11 @@ import {
   CheckCircle,
   Trash2,
   MoreVertical,
-  Plus
+  Plus,
+  Coins
 } from "lucide-react";
+import CreditDisplay from "@/components/CreditDisplay";
+import CreditPurchase from "@/components/CreditPurchase";
 import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { SophisticatedSidebar } from "@/components/sophisticated-sidebar";
@@ -85,6 +88,7 @@ export default function AuditorPage() {
   });
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles | null>(null);
   const [showFileUploader, setShowFileUploader] = useState(false);
+  const [showCreditPurchase, setShowCreditPurchase] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -237,17 +241,33 @@ export default function AuditorPage() {
       
       abortControllerRef.current = new AbortController();
 
-      const sessionResponse = await createAuditSession({
-        contractCode: inputValue,
-        contractLanguage: "solidity",
-        userId: user.id,
-        isPublic: auditVisibility.isPublic,
-        title: auditVisibility.title,
-        description: auditVisibility.description,
-        tags: auditVisibility.tags
-      });
+      try {
+        const sessionResponse = await createAuditSession({
+          contractCode: inputValue,
+          contractLanguage: "solidity",
+          userId: user.id,
+          isPublic: auditVisibility.isPublic,
+          title: auditVisibility.title,
+          description: auditVisibility.description,
+          tags: auditVisibility.tags
+        });
 
-      setCurrentSessionId(sessionResponse.sessionId);
+        setCurrentSessionId(sessionResponse.sessionId);
+      } catch (error: any) {
+        // Handle insufficient credits error
+        if (error.message?.includes('Insufficient credits') || error.error === 'insufficient_credits') {
+          toast({
+            title: "Insufficient Credits",
+            description: `You need ${error.needed || error.cost || 'more'} credits to analyze this contract. You currently have ${error.current || 0} credits.`,
+            variant: "destructive",
+          });
+          setShowCreditPurchase(true);
+          setAnalysisState("initial");
+          setMessages(prev => prev.slice(0, -2)); // Remove the last two messages (user + assistant)
+          return;
+        }
+        throw error; // Re-throw other errors
+      }
       setAnalysisState("streaming");
 
       // Start streaming analysis
@@ -522,6 +542,7 @@ export default function AuditorPage() {
           // Navigate to community page or open audit details
           setLocation(`/community?audit=${auditId}`);
         }}
+        onPurchaseCredits={() => setShowCreditPurchase(true)}
       />
 
       {/* Main Chat Area */}
@@ -980,6 +1001,13 @@ Focus on payment security and marketplace vulnerabilities.`)}
           <FileUploader onFilesProcessed={handleFilesProcessed} />
         </DialogContent>
       </Dialog>
+
+      {/* Credit Purchase Dialog */}
+      <CreditPurchase
+        open={showCreditPurchase}
+        onOpenChange={setShowCreditPurchase}
+        userId={user?.id}
+      />
     </div>
   );
 }

@@ -19,9 +19,11 @@ import {
   Archive,
   Edit3,
   Trash2,
-  Eye
+  Eye,
+  Coins
 } from "lucide-react";
 import { Link } from "wouter";
+import CreditDisplay from "@/components/CreditDisplay";
 
 interface AuditSession {
   id: string;
@@ -43,6 +45,7 @@ interface SidebarProps {
   onEditAuditTitle?: (sessionId: string, newTitle: string) => void;
   onDeleteAudit?: (sessionId: string) => void;
   onViewCommunityAudit?: (auditId: string) => void;
+  onPurchaseCredits?: () => void;
 }
 
 export function SophisticatedSidebar({ 
@@ -54,7 +57,8 @@ export function SophisticatedSidebar({
   onShowSettings,
   onEditAuditTitle,
   onDeleteAudit,
-  onViewCommunityAudit
+  onViewCommunityAudit,
+  onPurchaseCredits
 }: SidebarProps) {
   const [editingAudit, setEditingAudit] = useState<{id: string, title: string} | null>(null);
   const [newTitle, setNewTitle] = useState('');
@@ -120,6 +124,15 @@ export function SophisticatedSidebar({
               Audit History
             </Button>
           </Link>
+        </div>
+        
+        {/* Credit Display */}
+        <div className="px-5 pb-4">
+          <CreditDisplay 
+            userId={user?.id}
+            compact={true}
+            onPurchaseClick={onPurchaseCredits}
+          />
         </div>
       </div>
 

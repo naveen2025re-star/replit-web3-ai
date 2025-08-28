@@ -4,6 +4,8 @@ import {
   auditResults,
   githubRepositories,
   authNonces,
+  creditTransactions,
+  creditPackages,
   type User, 
   type InsertUser,
   type AuditSession,
@@ -14,7 +16,9 @@ import {
   type InsertGithubRepository,
   type AuthNonce,
   type InsertAuthNonce,
-  type UpdateAuditVisibility
+  type UpdateAuditVisibility,
+  type CreditTransaction,
+  type CreditPackage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, lt, gt, gte, lte, and, or, sql, like, arrayContains } from "drizzle-orm";

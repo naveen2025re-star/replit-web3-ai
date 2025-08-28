@@ -14,6 +14,10 @@ export const users = pgTable("users", {
   githubUsername: text("github_username"),
   githubAccessToken: text("github_access_token"),
   profileImageUrl: text("profile_image_url"),
+  credits: integer("credits").default(1000).notNull(), // Start with 1000 free credits
+  totalCreditsUsed: integer("total_credits_used").default(0).notNull(),
+  totalCreditsEarned: integer("total_credits_earned").default(1000).notNull(), // Track total earned including initial
+  lastCreditGrant: timestamp("last_credit_grant").defaultNow(), // Track when last credits were granted
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -49,6 +53,8 @@ export const auditSessions = pgTable("audit_sessions", {
   publicTitle: text("public_title"),
   publicDescription: text("public_description"),
   tags: jsonb("tags").$type<string[]>().default([]),
+  creditsUsed: integer("credits_used").default(0).notNull(), // Track credits spent on this audit
+  codeComplexity: integer("code_complexity").default(1).notNull(), // 1-10 scale for credit calculation
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
 });
@@ -79,10 +85,45 @@ export const authNonces = pgTable("auth_nonces", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Credit transactions table for detailed tracking
+export const creditTransactions = pgTable("credit_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["deduction", "purchase", "bonus", "refund", "initial"] }).notNull(),
+  amount: integer("amount").notNull(), // Positive for additions, negative for deductions
+  reason: text("reason").notNull(), // Description of transaction
+  sessionId: varchar("session_id").references(() => auditSessions.id), // Link to audit session if applicable
+  metadata: jsonb("metadata").$type<{
+    codeLength?: number;
+    complexity?: number;
+    packageId?: string;
+    stripePaymentId?: string;
+    originalAmount?: number;
+  }>(), // Additional data
+  balanceAfter: integer("balance_after").notNull(), // User's credit balance after this transaction
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Credit packages for purchase
+export const creditPackages = pgTable("credit_packages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  credits: integer("credits").notNull(),
+  bonusCredits: integer("bonus_credits").default(0).notNull(), // Extra credits for bulk purchases
+  totalCredits: integer("total_credits").notNull(), // credits + bonusCredits
+  price: integer("price").notNull(), // Price in cents
+  popular: boolean("popular").default(false).notNull(),
+  savings: integer("savings").default(0).notNull(), // Percentage savings vs individual purchase
+  active: boolean("active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   auditSessions: many(auditSessions),
   githubRepositories: many(githubRepositories),
+  creditTransactions: many(creditTransactions),
 }));
 
 export const githubRepositoriesRelations = relations(githubRepositories, ({ one, many }) => ({
@@ -103,6 +144,7 @@ export const auditSessionsRelations = relations(auditSessions, ({ one, many }) =
     references: [githubRepositories.id],
   }),
   results: many(auditResults),
+  creditTransactions: many(creditTransactions),
 }));
 
 export const auditResultsRelations = relations(auditResults, ({ one }) => ({
@@ -116,6 +158,17 @@ export const authNoncesRelations = relations(authNonces, ({ one }) => ({
   user: one(users, {
     fields: [authNonces.walletAddress],
     references: [users.walletAddress],
+  }),
+}));
+
+export const creditTransactionsRelations = relations(creditTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [creditTransactions.userId],
+    references: [users.id],
+  }),
+  session: one(auditSessions, {
+    fields: [creditTransactions.sessionId],
+    references: [auditSessions.id],
   }),
 }));
 
@@ -181,6 +234,28 @@ export const insertAuthNonceSchema = createInsertSchema(authNonces).pick({
   expiresAt: true,
 });
 
+export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).pick({
+  userId: true,
+  type: true,
+  amount: true,
+  reason: true,
+  sessionId: true,
+  metadata: true,
+  balanceAfter: true,
+});
+
+export const insertCreditPackageSchema = createInsertSchema(creditPackages).pick({
+  name: true,
+  credits: true,
+  bonusCredits: true,
+  totalCredits: true,
+  price: true,
+  popular: true,
+  savings: true,
+  active: true,
+  sortOrder: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -193,3 +268,7 @@ export type InsertAuditResult = z.infer<typeof insertAuditResultSchema>;
 export type AuditResult = typeof auditResults.$inferSelect;
 export type InsertAuthNonce = z.infer<typeof insertAuthNonceSchema>;
 export type AuthNonce = typeof authNonces.$inferSelect;
+export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSchema>;
+export type CreditTransaction = typeof creditTransactions.$inferSelect;
+export type InsertCreditPackage = z.infer<typeof insertCreditPackageSchema>;
+export type CreditPackage = typeof creditPackages.$inferSelect;
