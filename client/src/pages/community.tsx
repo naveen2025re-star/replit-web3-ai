@@ -38,17 +38,23 @@ export default function Community() {
   // Fetch public audits
   const { data: auditsData, isLoading: auditsLoading } = useQuery({
     queryKey: ["/api/community/audits", currentPage, searchTerm, selectedTags.join(","), sortBy],
-    queryParams: {
-      page: currentPage.toString(),
-      limit: pageSize.toString(),
-      search: searchTerm,
-      tags: selectedTags.join(",")
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        search: searchTerm,
+        tags: selectedTags.join(",")
+      });
+      const response = await fetch(`/api/community/audits?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch audits');
+      return response.json();
     }
   });
 
   // Fetch trending tags
   const { data: trendingTags } = useQuery({
-    queryKey: ["/api/community/trending-tags"]
+    queryKey: ["/api/community/trending-tags"],
+    queryFn: () => fetch('/api/community/trending-tags').then(res => res.json())
   });
 
   // Query for selected audit details

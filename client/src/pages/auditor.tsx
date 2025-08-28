@@ -518,6 +518,10 @@ export default function AuditorPage() {
         onShowSettings={() => setShowSettings(!showSettings)}
         onEditAuditTitle={handleEditAuditTitle}
         onDeleteAudit={handleDeleteAudit}
+        onViewCommunityAudit={(auditId: string) => {
+          // Navigate to community page or open audit details
+          setLocation(`/community?audit=${auditId}`);
+        }}
       />
 
       {/* Main Chat Area */}

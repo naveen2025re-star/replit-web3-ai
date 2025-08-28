@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Archive,
   Edit3,
-  Trash2
+  Trash2,
+  Eye
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -41,6 +42,7 @@ interface SidebarProps {
   onShowSettings: () => void;
   onEditAuditTitle?: (sessionId: string, newTitle: string) => void;
   onDeleteAudit?: (sessionId: string) => void;
+  onViewCommunityAudit?: (auditId: string) => void;
 }
 
 export function SophisticatedSidebar({ 
@@ -51,7 +53,8 @@ export function SophisticatedSidebar({
   onLoadSession, 
   onShowSettings,
   onEditAuditTitle,
-  onDeleteAudit
+  onDeleteAudit,
+  onViewCommunityAudit
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
   const [editingAudit, setEditingAudit] = useState<{id: string, title: string} | null>(null);
@@ -315,6 +318,8 @@ export function SophisticatedSidebar({
                   <Card 
                     key={audit.id}
                     className="group p-4 cursor-pointer hover:bg-slate-800/70 transition-all duration-300 ease-out bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50 hover:shadow-xl transform hover:scale-[1.02] rounded-xl"
+                    onClick={() => onViewCommunityAudit?.(audit.id)}
+                    data-testid={`community-audit-card-${audit.id}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
@@ -330,6 +335,20 @@ export function SophisticatedSidebar({
                             Public
                           </Badge>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-slate-400 hover:text-blue-400 h-7 w-7 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewCommunityAudit?.(audit.id);
+                          }}
+                          data-testid={`button-view-audit-${audit.id}`}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -367,6 +386,7 @@ export function SophisticatedSidebar({
           </div>
         </div>
       )}
+
       </div>
     </>
   );
