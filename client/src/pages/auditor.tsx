@@ -247,22 +247,20 @@ export default function Auditor() {
 
       {/* Upload Section */}
       <div className="p-6 border-b border-border">
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Upload className="h-4 w-4 text-blue-500" />
-            <h2 className="font-medium text-foreground">Upload Files</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Upload multiple contract files for comprehensive analysis
-          </p>
+        <div className="flex items-center gap-2 mb-3">
+          <Upload className="h-4 w-4 text-blue-500" />
+          <h2 className="font-medium text-foreground">Upload Files</h2>
         </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Upload contract files for analysis
+        </p>
         <FileUploader onFilesProcessed={handleFilesProcessed} />
         {uploadedFiles && (
           <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
             <div className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span className="text-blue-700 dark:text-blue-300 font-medium">
-                {uploadedFiles.fileCount} files ready for analysis
+                {uploadedFiles.fileCount} files loaded
               </span>
             </div>
           </div>
@@ -271,38 +269,38 @@ export default function Auditor() {
 
       {/* Code Editor Section */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="p-6 pb-4 border-b border-border">
-          <div className="flex items-center gap-2 mb-3">
-            <Code className="h-4 w-4 text-blue-500" />
-            <h2 className="font-medium text-foreground">Smart Contract Code</h2>
-          </div>
-          <div className="flex items-center justify-between">
-            <Select value={contractLanguage} onValueChange={setContractLanguage}>
-              <SelectTrigger className="w-36 h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="solidity">Solidity</SelectItem>
-                <SelectItem value="vyper">Vyper</SelectItem>
-                <SelectItem value="rust">Rust</SelectItem>
-                <SelectItem value="move">Move</SelectItem>
-                <SelectItem value="cairo">Cairo</SelectItem>
-                <SelectItem value="javascript">JavaScript</SelectItem>
-                <SelectItem value="typescript">TypeScript</SelectItem>
-                <SelectItem value="python">Python</SelectItem>
-                <SelectItem value="go">Go</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="p-6 pb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Code className="h-4 w-4 text-blue-500" />
+              <h2 className="font-medium text-foreground">Contract Code</h2>
+            </div>
             {contractCode.trim() && (
               <Badge variant="outline" className="text-xs">
                 {contractCode.split('\n').length} lines
               </Badge>
             )}
           </div>
+          <Select value={contractLanguage} onValueChange={setContractLanguage}>
+            <SelectTrigger className="w-full h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="solidity">Solidity</SelectItem>
+              <SelectItem value="vyper">Vyper</SelectItem>
+              <SelectItem value="rust">Rust</SelectItem>
+              <SelectItem value="move">Move</SelectItem>
+              <SelectItem value="cairo">Cairo</SelectItem>
+              <SelectItem value="javascript">JavaScript</SelectItem>
+              <SelectItem value="typescript">TypeScript</SelectItem>
+              <SelectItem value="python">Python</SelectItem>
+              <SelectItem value="go">Go</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         
-        <div className="flex-1 p-6 pt-4 min-h-0">
-          <div className="h-full bg-muted/50 rounded-xl border-2 border-dashed border-border overflow-auto">
+        <div className="flex-1 px-6 pb-6 min-h-0">
+          <div className="h-full bg-muted/30 rounded-lg border border-border overflow-hidden">
             <CodeEditor
               value={contractCode}
               onChange={setContractCode}
@@ -325,85 +323,60 @@ contract MyContract {
       </div>
       
       {/* Action Panel */}
-      <div className="border-t border-border p-6 bg-muted/50 space-y-6">
-        {/* Audit Visibility Selector */}
-        <AuditVisibilitySelector
-          value={auditVisibility}
-          onChange={setAuditVisibility}
-          disabled={analysisState === "loading" || analysisState === "streaming"}
-        />
-        
-        <Button 
-          onClick={handleAnalyze}
-          disabled={analysisState === "loading" || analysisState === "streaming" || !contractCode.trim()}
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-muted text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
-          data-testid="button-analyze"
-        >
-          {analysisState === "loading" || analysisState === "streaming" ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Analyzing...
-            </>
-          ) : (
-            <>
-              <Shield className="h-4 w-4 mr-2" />
-              Start Security Analysis
-            </>
-          )}
-        </Button>
-        
-        <div className="flex gap-3 mt-3">
+      <div className="border-t border-border p-6 bg-muted/30">
+        <div className="space-y-4">
           <Button 
-            variant="outline" 
-            onClick={handleClear}
-            data-testid="button-clear"
-            className="flex-1 h-10 text-muted-foreground border-border hover:bg-muted"
-            disabled={!contractCode.trim()}
+            onClick={handleAnalyze}
+            disabled={analysisState === "loading" || analysisState === "streaming" || !contractCode.trim()}
+            className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-muted text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+            data-testid="button-analyze"
           >
-            <Trash className="h-4 w-4 mr-1" />
-            Clear
+            {analysisState === "loading" || analysisState === "streaming" ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Shield className="h-4 w-4 mr-2" />
+                Start Security Analysis
+              </>
+            )}
           </Button>
           
-          <Button 
-            variant="outline"
-            data-testid="button-save"
-            className="flex-1 h-10 text-muted-foreground border-border hover:bg-muted"
-            disabled={!contractCode.trim()}
-          >
-            <Save className="h-4 w-4 mr-1" />
-            Save
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={handleClear}
+              data-testid="button-clear"
+              className="flex-1 h-9 text-muted-foreground border-border hover:bg-muted"
+              disabled={!contractCode.trim()}
+            >
+              <Trash className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+            
+            <Button 
+              variant="outline"
+              data-testid="button-save"
+              className="flex-1 h-9 text-muted-foreground border-border hover:bg-muted"
+              disabled={!contractCode.trim()}
+            >
+              <Save className="h-3 w-3 mr-1" />
+              Save
+            </Button>
+          </div>
         </div>
         
         {contractCode.trim() && (
           <div className="mt-4 space-y-3">
-            <div className="p-3 bg-muted rounded-lg border border-border">
+            <div className="p-3 bg-card/50 rounded-lg border border-border/50">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Contract ready</span>
+                <span className="text-muted-foreground font-medium">Ready for analysis</span>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>{contractCode.split('\n').length} lines</span>
                   <span>{Math.ceil(contractCode.length / 1000)}k chars</span>
                 </div>
-              </div>
-            </div>
-            
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-2 text-sm">
-                {auditVisibility.isPublic ? (
-                  <>
-                    <Globe className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-300 font-medium">
-                      Public audit - will appear in community
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-blue-700 dark:text-blue-300 font-medium">
-                      Private audit - only visible to you
-                    </span>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -415,57 +388,70 @@ contract MyContract {
   const rightPanel = (
     <div className="flex flex-col h-full bg-card">
       {/* Results Header */}
-      <div className="bg-card border-b border-border px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${analysisState === "streaming" ? "bg-yellow-500 animate-pulse" : analysisState === "completed" ? "bg-green-500" : analysisState === "error" ? "bg-red-500" : "bg-gray-400"}`}></div>
-            <Shield className="h-5 w-5 text-chart-1" />
-            <h2 className="text-lg font-semibold text-foreground">Security Audit Report</h2>
-            {analysisState === "streaming" && (
-              <Badge variant="secondary" className="animate-pulse">
-                Analyzing...
-              </Badge>
-            )}
-            {analysisState === "completed" && (
-              <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                Complete
-              </Badge>
-            )}
+      <div className="bg-card border-b border-border px-6 py-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${analysisState === "streaming" ? "bg-yellow-500 animate-pulse" : analysisState === "completed" ? "bg-green-500" : analysisState === "error" ? "bg-red-500" : "bg-gray-400"}`}></div>
+              <Shield className="h-5 w-5 text-chart-1" />
+              <h2 className="text-lg font-semibold text-foreground">Security Audit Report</h2>
+              {analysisState === "streaming" && (
+                <Badge variant="secondary" className="animate-pulse">
+                  Analyzing...
+                </Badge>
+              )}
+              {analysisState === "completed" && (
+                <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  Complete
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                title="Export Report" 
+                data-testid="button-export"
+                disabled={analysisState !== "completed"}
+                className="hover:bg-muted border border-border/50 hover:border-border"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                title="Copy to Clipboard"
+                onClick={handleCopyReport}
+                data-testid="button-copy"
+                disabled={analysisState !== "completed"}
+                className="hover:bg-muted border border-border/50 hover:border-border"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                title="Share Report" 
+                onClick={() => setShareDialogOpen(true)}
+                data-testid="button-share"
+                disabled={analysisState !== "completed" || !currentSessionId}
+                className="hover:bg-muted border border-border/50 hover:border-border"
+              >
+                <Share className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              title="Export Report" 
-              data-testid="button-export"
-              disabled={analysisState !== "completed"}
-              className="hover:bg-muted border border-border/50 hover:border-border"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              title="Copy to Clipboard"
-              onClick={handleCopyReport}
-              data-testid="button-copy"
-              disabled={analysisState !== "completed"}
-              className="hover:bg-muted border border-border/50 hover:border-border"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              title="Share Report" 
-              onClick={() => setShareDialogOpen(true)}
-              data-testid="button-share"
-              disabled={analysisState !== "completed" || !currentSessionId}
-              className="hover:bg-muted border border-border/50 hover:border-border"
-            >
-              <Share className="h-4 w-4" />
-            </Button>
-          </div>
+          
+          {/* Audit Visibility Selector - Better positioned */}
+          {analysisState === "initial" && (
+            <div className="border-t border-border pt-4">
+              <AuditVisibilitySelector
+                value={auditVisibility}
+                onChange={setAuditVisibility}
+                disabled={analysisState === "loading" || analysisState === "streaming"}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -473,24 +459,24 @@ contract MyContract {
       <div className="flex-1 overflow-y-auto">
         {analysisState === "initial" && (
           <div className="h-full flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                <Search className="h-12 w-12 text-muted-foreground" />
+            <div className="text-center max-w-lg">
+              <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search className="h-10 w-10 text-muted-foreground" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Ready for Analysis</h3>
-              <p className="text-muted-foreground max-w-md">
-                Paste your smart contract code on the left and click "Start Security Audit" to begin the analysis process.
+              <p className="text-muted-foreground mb-8">
+                Paste your smart contract code on the left and configure your audit preferences above, then click "Start Security Analysis" to begin.
               </p>
-              <div className="mt-6 grid grid-cols-2 gap-4 max-w-md mx-auto text-sm">
-                <Card className="p-4">
-                  <AlertCircle className="h-5 w-5 text-destructive mb-2" />
-                  <div className="font-medium text-foreground">Vulnerability Detection</div>
-                  <div className="text-muted-foreground text-xs">Find security issues</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <Card className="p-4 text-left">
+                  <AlertCircle className="h-5 w-5 text-destructive mb-3" />
+                  <div className="font-medium text-foreground mb-1">Vulnerability Detection</div>
+                  <div className="text-muted-foreground text-xs">Find critical security issues and potential exploits</div>
                 </Card>
-                <Card className="p-4">
-                  <Lightbulb className="h-5 w-5 text-chart-1 mb-2" />
-                  <div className="font-medium text-foreground">Best Practices</div>
-                  <div className="text-muted-foreground text-xs">Code optimization</div>
+                <Card className="p-4 text-left">
+                  <Lightbulb className="h-5 w-5 text-chart-1 mb-3" />
+                  <div className="font-medium text-foreground mb-1">Best Practices</div>
+                  <div className="text-muted-foreground text-xs">Code optimization and industry standards</div>
                 </Card>
               </div>
             </div>
