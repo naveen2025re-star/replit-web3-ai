@@ -36,7 +36,7 @@ import CreditDisplay from "@/components/CreditDisplay";
 import CreditPurchase from "@/components/CreditPurchase";
 import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { FileUploader } from "@/components/ui/file-uploader";
-import { SophisticatedSidebar } from "@/components/sophisticated-sidebar";
+import { ChatGPTSidebar } from "@/components/chatgpt-sidebar";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { createAuditSession } from "@/lib/shipable-api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -738,20 +738,13 @@ export default function AuditorPage() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-950 to-slate-900 overflow-hidden">
-      <SophisticatedSidebar
+      <ChatGPTSidebar
         auditHistory={auditHistory}
-        communityAudits={communityAudits}
         user={user}
         onNewAudit={newAuditSession}
         onLoadSession={loadAuditSession}
-        onShowSettings={() => setShowSettings(!showSettings)}
         onEditAuditTitle={handleEditAuditTitle}
         onDeleteAudit={handleDeleteAudit}
-        onViewCommunityAudit={(auditId: string) => {
-          // Navigate to community page or open audit details
-          setLocation(`/community?audit=${auditId}`);
-        }}
-        onPurchaseCredits={() => setShowCreditPurchase(true)}
       />
 
       {/* Main Chat Area */}

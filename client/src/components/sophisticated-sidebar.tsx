@@ -22,7 +22,14 @@ import {
   Trash2,
   Eye,
   Coins,
-  LogOut
+  LogOut,
+  Search,
+  Pin,
+  Share,
+  Download,
+  ChevronDown,
+  ChevronRight,
+  Tag
 } from "lucide-react";
 import { Link } from "wouter";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
@@ -67,7 +74,15 @@ export function SophisticatedSidebar({
   const [newTitle, setNewTitle] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
   const [localDisplayName, setLocalDisplayName] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedSections, setExpandedSections] = useState({
+    recent: true,
+    previous7: true,
+    previous30: true
+  });
+  const [contextMenu, setContextMenu] = useState<{sessionId: string, x: number, y: number} | null>(null);
   const queryClient = useQueryClient();
   const { disconnect } = useWeb3Auth();
 
@@ -81,6 +96,62 @@ export function SophisticatedSidebar({
       setLocalDisplayName(user?.displayName || '');
     }
   }, [showProfileSettings, user?.displayName]);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    if (contextMenu) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [contextMenu]);
+
+  // Filter and group audit sessions
+  const filteredSessions = auditHistory.filter(session => 
+    session.publicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    session.contractLanguage?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const groupedSessions = {
+    recent: filteredSessions.filter(s => new Date(s.createdAt) > sevenDaysAgo),
+    previous7: filteredSessions.filter(s => {
+      const date = new Date(s.createdAt);
+      return date <= sevenDaysAgo && date > thirtyDaysAgo;
+    }),
+    previous30: filteredSessions.filter(s => new Date(s.createdAt) <= thirtyDaysAgo)
+  };
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section as keyof typeof prev]
+    }));
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, sessionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ sessionId, x: e.clientX, y: e.clientY });
+  };
+
+  const handleRename = (sessionId: string) => {
+    setContextMenu(null);
+    const session = auditHistory.find(s => s.id === sessionId);
+    if (session && onEditAuditTitle) {
+      onEditAuditTitle(sessionId, session.publicTitle || '');
+    }
+  };
+
+  const handleDelete = (sessionId: string) => {
+    setContextMenu(null);
+    if (onDeleteAudit) {
+      onDeleteAudit(sessionId);
+    }
+  };
 
   return (
     <>
@@ -131,7 +202,7 @@ export function SophisticatedSidebar({
             className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] h-12 font-medium text-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
-            New Security Audit
+            New Chat
           </Button>
           <Link href="/history">
             <Button 
@@ -142,6 +213,24 @@ export function SophisticatedSidebar({
               Audit History
             </Button>
           </Link>
+          
+          {/* Search */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search"
+              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder-slate-400 h-9 text-sm"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 text-slate-400 hover:text-white"
+            >
+              <MoreVertical className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </div>
 
