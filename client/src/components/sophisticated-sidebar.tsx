@@ -78,6 +78,11 @@ export function SophisticatedSidebar({
       setDisplayName(user.displayName || '');
     }
   }, [showProfileSettings, user?.displayName]);
+  
+  // Debug: Log user data changes
+  useEffect(() => {
+    console.log('User data changed:', user);
+  }, [user]);
 
   return (
     <>
@@ -356,7 +361,11 @@ export function SophisticatedSidebar({
                     <div className="flex justify-end gap-2">
                       <Button 
                         variant="outline" 
-                        onClick={() => setShowProfileSettings(false)}
+                        onClick={() => {
+                          setShowProfileSettings(false);
+                          // Reset to current user displayName when cancelling
+                          setDisplayName(user?.displayName || '');
+                        }}
                         className="border-slate-600 text-slate-300 hover:bg-slate-800"
                       >
                         Cancel
@@ -383,16 +392,15 @@ export function SophisticatedSidebar({
                             }
 
                             const updatedUser = await response.json();
+                            console.log('Profile update response:', updatedUser);
 
-                            // Invalidate relevant queries to refresh user data
-                            await queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user.walletAddress}`] });
-                            await queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions'] });
-                            await queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+                            // Update the query cache immediately with the new user data
+                            queryClient.setQueryData([`/api/auth/user/${user.walletAddress}`], updatedUser);
                             
-                            // Wait a moment for cache to update, then close dialog
-                            setTimeout(() => {
-                              setShowProfileSettings(false);
-                            }, 500);
+                            // Also invalidate to ensure fresh data
+                            queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user.walletAddress}`] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions'] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
 
                             // Show success feedback
                             const successMsg = document.createElement('div');
@@ -400,6 +408,9 @@ export function SophisticatedSidebar({
                             successMsg.textContent = 'Profile updated successfully!';
                             document.body.appendChild(successMsg);
                             setTimeout(() => document.body.removeChild(successMsg), 3000);
+                            
+                            // Close the dialog after successful update
+                            setShowProfileSettings(false);
                           } catch (error) {
                             console.error('Failed to save profile:', error);
                             
