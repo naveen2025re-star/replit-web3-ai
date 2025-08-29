@@ -82,10 +82,36 @@ export default function Community() {
   };
 
   const getSeverityFromScore = (score: number) => {
-    if (score >= 90) return 'Low';
-    if (score >= 70) return 'Medium';
-    if (score >= 50) return 'High';
-    return 'Critical';
+    if (score >= 90) return 'Low Risk';
+    if (score >= 70) return 'Medium Risk';
+    if (score >= 50) return 'High Risk';
+    return 'Critical Risk';
+  };
+
+  const formatUserDisplayName = (user: any) => {
+    if (!user) return 'Anonymous';
+    
+    // If user has a proper username (not an ID-like string), use it
+    if (user.username && !user.username.match(/^user_[a-f0-9_]+$/)) {
+      return user.username;
+    }
+    
+    // If user has GitHub username, use it
+    if (user.githubUsername) {
+      return user.githubUsername;
+    }
+    
+    // If user has ENS name, use it
+    if (user.ensName) {
+      return user.ensName;
+    }
+    
+    // Fallback to shortened wallet address
+    if (user.walletAddress) {
+      return user.walletAddress.slice(0, 6) + '...' + user.walletAddress.slice(-4);
+    }
+    
+    return 'Anonymous';
   };
 
   const toggleTag = (tag: string) => {
@@ -273,7 +299,9 @@ export default function Community() {
             {auditsData.audits.map((audit: any) => {
               const severity = audit.result?.securityScore 
                 ? getSeverityFromScore(audit.result.securityScore)
-                : 'Unknown';
+                : audit.result ? 'Analyzed' : 'Unknown';
+              
+              const userDisplayName = formatUserDisplayName(audit.user);
               
               return (
                 <Card 
@@ -290,7 +318,7 @@ export default function Community() {
                         </CardTitle>
                         <CardDescription className="text-gray-400 text-sm flex items-center gap-2">
                           <User className="h-3 w-3" />
-                          by {audit.user?.username || audit.user?.walletAddress?.slice(0, 8) + '...' || 'Anonymous'}
+                          by {userDisplayName}
                         </CardDescription>
                       </div>
                       <ExternalLink className="h-4 w-4 text-gray-500 group-hover:text-gray-300 transition-colors flex-shrink-0" />
@@ -328,15 +356,17 @@ export default function Community() {
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
-                          <div className={`w-2 h-2 rounded-full ${getSeverityColor(severity)}`}></div>
-                          <span className="text-gray-300">{severity}</span>
+                          <div className={`w-2 h-2 rounded-full ${
+                            severity === 'Unknown' ? 'bg-gray-500' : getSeverityColor(severity)
+                          }`}></div>
+                          <span className="text-gray-300 text-xs">{severity}</span>
                         </div>
                         
                         {audit.result?.vulnerabilityCount && (
                           <div className="flex items-center gap-1 text-gray-400">
                             <AlertTriangle className="h-3 w-3" />
                             <span>
-                              {Object.values(audit.result.vulnerabilityCount).reduce((a: number, b: number) => a + b, 0)}
+                              {Object.values(audit.result.vulnerabilityCount as Record<string, number>).reduce((a, b) => a + b, 0)}
                             </span>
                           </div>
                         )}
@@ -541,7 +571,7 @@ export default function Community() {
                     <div className="flex justify-between">
                       <span className="text-slate-400">Auditor:</span>
                       <span className="text-white font-medium">
-                        {auditDetails.user?.username || auditDetails.user?.walletAddress?.slice(0, 8) + '...' || 'Anonymous'}
+                        {formatUserDisplayName(auditDetails.user)}
                       </span>
                     </div>
                     <div className="flex justify-between">
