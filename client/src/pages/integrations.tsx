@@ -373,12 +373,12 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Integrations</h1>
-          <p className="text-gray-300">Connect SmartAudit AI with your development workflow</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Integrations</h1>
+          <p className="text-gray-300 text-sm md:text-base">Connect SmartAudit AI with your development workflow</p>
         </div>
 
         <Tabs defaultValue="github" className="space-y-6">
@@ -399,7 +399,7 @@ export default function IntegrationsPage() {
 
           {/* GitHub Integration */}
           <TabsContent value="github">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
@@ -479,7 +479,10 @@ export default function IntegrationsPage() {
                         data-testid="button-scan-repository"
                       >
                         {githubScanMutation.isPending ? (
-                          <>Scanning...</>
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Scanning Repository...
+                          </>
                         ) : (
                           <>
                             <Shield className="h-4 w-4 mr-2" />
@@ -610,7 +613,10 @@ export default function IntegrationsPage() {
                             data-testid="button-ai-analyze"
                           >
                             {aiAnalysisMutation.isPending ? (
-                              <>Analyzing...</>
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Starting Analysis...
+                              </>
                             ) : (
                               <>
                                 <Brain className="h-4 w-4 mr-2" />
@@ -657,7 +663,7 @@ export default function IntegrationsPage() {
 
           {/* CI/CD Integration */}
           <TabsContent value="cicd">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
