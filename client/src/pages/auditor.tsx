@@ -168,10 +168,17 @@ export default function AuditorPage() {
                 
                 // Start streaming analysis
                 const eventSource = new EventSource(`/api/audit/analyze/${sessionId}`);
+                console.log('Starting EventSource for session:', sessionId);
+                
+                eventSource.onopen = () => {
+                  console.log('EventSource connected');
+                };
                 
                 eventSource.onmessage = (event) => {
+                  console.log('EventSource received:', event.data);
                   try {
                     const data = JSON.parse(event.data);
+                    console.log('Parsed data:', data);
                     
                     if (data.type === 'partial') {
                       // Add AI message or update existing one
@@ -235,7 +242,9 @@ export default function AuditorPage() {
                   }
                 };
                 
-                eventSource.onerror = () => {
+                eventSource.onerror = (error) => {
+                  console.error('EventSource error:', error);
+                  console.log('EventSource readyState:', eventSource.readyState);
                   eventSource.close();
                   setAnalysisState("initial");
                   toast({
