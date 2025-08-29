@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import {
   LogOut
 } from "lucide-react";
 import { Link } from "wouter";
+import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import CreditDisplay from "@/components/CreditDisplay";
 
 interface AuditSession {
@@ -68,6 +69,15 @@ export function SophisticatedSidebar({
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const queryClient = useQueryClient();
+  const { disconnect } = useWeb3Auth();
+
+  // Update display name when user data changes or dialog opens
+  useEffect(() => {
+    if (showProfileSettings && user) {
+      console.log('Setting display name from user:', user.displayName);
+      setDisplayName(user.displayName || '');
+    }
+  }, [showProfileSettings, user?.displayName]);
 
   return (
     <>
@@ -309,6 +319,7 @@ export function SophisticatedSidebar({
                     variant="ghost" 
                     size="sm"
                     onClick={() => {
+                      console.log('Opening profile settings, user:', user);
                       setDisplayName(user?.displayName || '');
                       setShowProfileSettings(true);
                     }}
@@ -374,9 +385,14 @@ export function SophisticatedSidebar({
                             const updatedUser = await response.json();
 
                             // Invalidate relevant queries to refresh user data
-                            queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user.walletAddress}`] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions'] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+                            await queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user.walletAddress}`] });
+                            await queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions'] });
+                            await queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+                            
+                            // Wait a moment for cache to update, then close dialog
+                            setTimeout(() => {
+                              setShowProfileSettings(false);
+                            }, 500);
 
                             // Show success feedback
                             const successMsg = document.createElement('div');
@@ -384,8 +400,6 @@ export function SophisticatedSidebar({
                             successMsg.textContent = 'Profile updated successfully!';
                             document.body.appendChild(successMsg);
                             setTimeout(() => document.body.removeChild(successMsg), 3000);
-                            
-                            setShowProfileSettings(false);
                           } catch (error) {
                             console.error('Failed to save profile:', error);
                             
@@ -408,7 +422,30 @@ export function SophisticatedSidebar({
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => window.location.href = '/api/logout'}
+                onClick={async () => {
+                  try {
+                    // First disconnect wallet and clear client state
+                    disconnect();
+                    
+                    // Clear all cached queries
+                    queryClient.clear();
+                    
+                    // Clear any stored auth data
+                    localStorage.clear();
+                    
+                    // Then call server logout to clear session
+                    await fetch('/api/logout', { method: 'GET' });
+                    
+                    // Force page reload to ensure clean state
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 100);
+                  } catch (error) {
+                    console.error('Logout error:', error);
+                    // Fallback: just reload the page
+                    window.location.reload();
+                  }
+                }}
                 className="text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg"
                 title="Logout"
               >
