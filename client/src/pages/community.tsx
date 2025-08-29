@@ -305,7 +305,8 @@ export default function Community() {
             {auditsData.audits.map((audit: any) => {
               const severity = audit.result?.securityScore 
                 ? getSeverityFromScore(audit.result.securityScore)
-                : audit.result ? 'Analyzed' : 'Unknown';
+                : audit.status === 'completed' ? 'Completed' : 
+                  audit.result ? 'Analyzed' : 'Unknown';
               
               const userDisplayName = formatUserDisplayName(audit.user);
               
@@ -363,7 +364,9 @@ export default function Community() {
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
                           <div className={`w-2 h-2 rounded-full ${
-                            severity === 'Unknown' ? 'bg-gray-500' : getSeverityColor(severity)
+                            severity === 'Unknown' ? 'bg-gray-500' : 
+                            severity === 'Completed' ? 'bg-green-500' :
+                            getSeverityColor(severity)
                           }`}></div>
                           <span className="text-gray-300 text-xs">{severity}</span>
                         </div>

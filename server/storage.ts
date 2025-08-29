@@ -228,7 +228,10 @@ export class DatabaseStorage implements IStorage {
       result: audit.audit_results,
       user: audit.users ? { 
         username: audit.users.username, 
-        walletAddress: audit.users.walletAddress 
+        walletAddress: audit.users.walletAddress,
+        displayName: audit.users.displayName,
+        ensName: audit.users.ensName,
+        githubUsername: audit.users.githubUsername
       } : null
     };
   }
