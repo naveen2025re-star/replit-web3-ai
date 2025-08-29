@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
   Shield, 
@@ -66,6 +67,7 @@ export function SophisticatedSidebar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const queryClient = useQueryClient();
 
   return (
     <>
@@ -369,6 +371,13 @@ export function SophisticatedSidebar({
                               throw new Error('Failed to update profile');
                             }
 
+                            const updatedUser = await response.json();
+
+                            // Invalidate relevant queries to refresh user data
+                            queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user.walletAddress}`] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions'] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+
                             // Show success feedback
                             const successMsg = document.createElement('div');
                             successMsg.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
@@ -377,9 +386,6 @@ export function SophisticatedSidebar({
                             setTimeout(() => document.body.removeChild(successMsg), 3000);
                             
                             setShowProfileSettings(false);
-                            
-                            // Refresh the page to update the user data everywhere
-                            window.location.reload();
                           } catch (error) {
                             console.error('Failed to save profile:', error);
                             

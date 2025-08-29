@@ -33,12 +33,14 @@ function Router() {
 
   // Show loading screen for initial app load
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAppLoading(false);
-    }, 1000); // Minimum loading time for smooth UX
-
-    return () => clearTimeout(timer);
-  }, []);
+    // Only set loading to false after authentication state is determined
+    if (!isAuthenticating) {
+      const timer = setTimeout(() => {
+        setAppLoading(false);
+      }, 500); // Reduced timing for faster loading
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticating]);
 
   // Show loading screen during authentication check or initial app load
   if (appLoading || isAuthenticating) {
