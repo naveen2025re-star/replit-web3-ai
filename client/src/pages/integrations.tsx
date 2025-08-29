@@ -482,12 +482,39 @@ export default function IntegrationsPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <FolderOpen className="h-5 w-5 text-blue-400 mr-2" />
-                              <span className="text-white font-medium">Smart Contract Files ({scanResults.totalFiles})</span>
+                              <span className="text-white font-medium">Blockchain Files ({scanResults.totalFiles})</span>
                             </div>
                             <Badge variant="outline" className="text-blue-400 border-blue-500/30">
                               {selectedFiles.length} selected
                             </Badge>
                           </div>
+                          
+                          {/* Language Breakdown - Show if there are files */}
+                          {scanResults.totalFiles > 0 && scanResults.languageBreakdown && (
+                            <div className="bg-slate-800/50 p-3 rounded-lg">
+                              <p className="text-gray-300 text-sm mb-2">Languages detected:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {Object.entries(scanResults.languageBreakdown).map(([language, files]: [string, any]) => (
+                                  <div
+                                    key={language}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                      language === 'Solidity' ? 'bg-blue-500/20 text-blue-300' :
+                                      language === 'Rust' ? 'bg-orange-500/20 text-orange-300' :
+                                      language === 'Move' ? 'bg-purple-500/20 text-purple-300' :
+                                      language === 'Cairo' ? 'bg-red-500/20 text-red-300' :
+                                      language === 'Go' ? 'bg-cyan-500/20 text-cyan-300' :
+                                      language === 'TypeScript' ? 'bg-blue-400/20 text-blue-200' :
+                                      language === 'JavaScript' ? 'bg-yellow-500/20 text-yellow-300' :
+                                      language === 'Python' ? 'bg-green-500/20 text-green-300' :
+                                      'bg-gray-500/20 text-gray-300'
+                                    }`}
+                                  >
+                                    {language} ({files.length})
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           
                           {/* Select All Checkbox - Only show if there are files */}
                           {scanResults.totalFiles > 0 && (
@@ -509,10 +536,10 @@ export default function IntegrationsPage() {
                             {scanResults.totalFiles === 0 ? (
                               <div className="text-center py-8">
                                 <FolderOpen className="h-12 w-12 mx-auto text-gray-500 mb-3" />
-                                <p className="text-gray-300 font-medium mb-1">No Solidity files found</p>
+                                <p className="text-gray-300 font-medium mb-1">No blockchain files found</p>
                                 <p className="text-gray-500 text-sm">
-                                  This repository doesn't contain any .sol files.<br />
-                                  Smart contracts should be in folders like contracts/, src/, or at the root level.
+                                  This repository doesn't contain any blockchain programming files.<br />
+                                  Supported: .sol, .rs, .move, .cairo, .go, .ts, .py, and others.
                                 </p>
                               </div>
                             ) : (
@@ -524,13 +551,38 @@ export default function IntegrationsPage() {
                                     onCheckedChange={(checked) => handleFileSelection(contract.path, !!checked)}
                                     data-testid={`checkbox-file-${contract.path.replace(/[^a-zA-Z0-9]/g, '-')}`}
                                   />
-                                  <FileText className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                                  <FileText className={`h-4 w-4 flex-shrink-0 ${
+                                    contract.language === 'Solidity' ? 'text-blue-400' :
+                                    contract.language === 'Rust' ? 'text-orange-400' :
+                                    contract.language === 'Move' ? 'text-purple-400' :
+                                    contract.language === 'Cairo' ? 'text-red-400' :
+                                    contract.language === 'Go' ? 'text-cyan-400' :
+                                    contract.language === 'TypeScript' ? 'text-blue-300' :
+                                    contract.language === 'JavaScript' ? 'text-yellow-400' :
+                                    contract.language === 'Python' ? 'text-green-400' :
+                                    'text-gray-400'
+                                  }`} />
                                   <div className="flex-1 min-w-0">
                                     <div className="text-white text-sm font-mono truncate">
                                       {contract.path}
                                     </div>
-                                    <div className="text-gray-400 text-xs">
-                                      {(contract.size / 1024).toFixed(1)} KB
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className="text-gray-400">
+                                        {(contract.size / 1024).toFixed(1)} KB
+                                      </span>
+                                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                        contract.language === 'Solidity' ? 'bg-blue-500/20 text-blue-300' :
+                                        contract.language === 'Rust' ? 'bg-orange-500/20 text-orange-300' :
+                                        contract.language === 'Move' ? 'bg-purple-500/20 text-purple-300' :
+                                        contract.language === 'Cairo' ? 'bg-red-500/20 text-red-300' :
+                                        contract.language === 'Go' ? 'bg-cyan-500/20 text-cyan-300' :
+                                        contract.language === 'TypeScript' ? 'bg-blue-400/20 text-blue-200' :
+                                        contract.language === 'JavaScript' ? 'bg-yellow-500/20 text-yellow-300' :
+                                        contract.language === 'Python' ? 'bg-green-500/20 text-green-300' :
+                                        'bg-gray-500/20 text-gray-300'
+                                      }`}>
+                                        {contract.language}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>

@@ -1016,8 +1016,69 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // Helper function to recursively find Solidity files in GitHub repositories
-  async function findSolidityFilesRecursive(
+  // Helper function to detect blockchain programming language from file extension
+  function detectBlockchainLanguage(filename: string): { language: string; category: string } | null {
+    const extension = filename.toLowerCase().split('.').pop();
+    
+    const languageMap: Record<string, { language: string; category: string }> = {
+      // Solidity - Ethereum
+      'sol': { language: 'Solidity', category: 'Smart Contract' },
+      
+      // Rust - Solana, Near, Polkadot
+      'rs': { language: 'Rust', category: 'Smart Contract' },
+      
+      // Move - Aptos, Sui
+      'move': { language: 'Move', category: 'Smart Contract' },
+      
+      // Cairo - StarkNet
+      'cairo': { language: 'Cairo', category: 'Smart Contract' },
+      
+      // Go - Various blockchain projects
+      'go': { language: 'Go', category: 'Blockchain' },
+      
+      // TypeScript/JavaScript - Web3 applications
+      'ts': { language: 'TypeScript', category: 'Web3 Application' },
+      'js': { language: 'JavaScript', category: 'Web3 Application' },
+      
+      // Python - Web3 scripts and applications
+      'py': { language: 'Python', category: 'Web3 Application' },
+      
+      // Vyper - Ethereum alternative to Solidity
+      'vy': { language: 'Vyper', category: 'Smart Contract' },
+      
+      // Yul - Ethereum assembly
+      'yul': { language: 'Yul', category: 'Smart Contract' },
+      
+      // Clarity - Stacks blockchain
+      'clar': { language: 'Clarity', category: 'Smart Contract' },
+      
+      // Cadence - Flow blockchain
+      'cdc': { language: 'Cadence', category: 'Smart Contract' },
+      
+      // Plutus - Cardano
+      'hs': { language: 'Haskell/Plutus', category: 'Smart Contract' },
+      
+      // AssemblyScript - Near, others
+      'as': { language: 'AssemblyScript', category: 'Smart Contract' },
+      
+      // C++ - EOS, others
+      'cpp': { language: 'C++', category: 'Smart Contract' },
+      'cc': { language: 'C++', category: 'Smart Contract' },
+      'cxx': { language: 'C++', category: 'Smart Contract' },
+      
+      // Michelson - Tezos
+      'tz': { language: 'Michelson', category: 'Smart Contract' },
+      
+      // WASM files
+      'wasm': { language: 'WebAssembly', category: 'Smart Contract' },
+      'wat': { language: 'WebAssembly Text', category: 'Smart Contract' }
+    };
+    
+    return languageMap[extension || ''] || null;
+  }
+
+  // Helper function to recursively find blockchain files in GitHub repositories
+  async function findBlockchainFilesRecursive(
     repositoryFullName: string,
     branch: string,
     accessToken: string,
@@ -1030,7 +1091,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       return [];
     }
 
-    const excludedDirs = ['node_modules', '.git', 'build', 'dist', 'artifacts', 'cache', 'coverage', '.next', 'out'];
+    const excludedDirs = ['node_modules', '.git', 'build', 'dist', 'artifacts', 'cache', 'coverage', '.next', 'out', 'target', 'deps'];
 
     try {
       const url = path 
@@ -1057,18 +1118,23 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const files: any[] = [];
 
       for (const item of items) {
-        if (item.type === 'file' && item.name.endsWith('.sol')) {
-          // Found a Solidity file
-          files.push({
-            path: item.path,
-            size: item.size,
-            sha: item.sha,
-            language: "Solidity"
-          });
+        if (item.type === 'file') {
+          const langInfo = detectBlockchainLanguage(item.name);
+          if (langInfo) {
+            // Found a blockchain programming file
+            files.push({
+              path: item.path,
+              size: item.size,
+              sha: item.sha,
+              language: langInfo.language,
+              category: langInfo.category,
+              filename: item.name
+            });
+          }
         } else if (item.type === 'dir' && !excludedDirs.includes(item.name)) {
           // Recursively scan directories (exclude common build/dependency directories)
           try {
-            const subFiles = await findSolidityFilesRecursive(
+            const subFiles = await findBlockchainFilesRecursive(
               repositoryFullName,
               branch,
               accessToken,
@@ -1118,8 +1184,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const [owner, repo] = repositoryFullName.split('/');
       
       try {
-        // Recursively find Solidity files in all directories
-        const solidityFiles = await findSolidityFilesRecursive(
+        // Recursively find blockchain files in all directories
+        const blockchainFiles = await findBlockchainFilesRecursive(
           repositoryFullName,
           branch,
           connection.accessToken,
@@ -1127,7 +1193,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
           0
         );
         
-        if (solidityFiles.length === 0) {
+        if (blockchainFiles.length === 0) {
           return res.json({
             scan: {
               scanId: `github_${owner}_${repo}_${Date.now()}`,
@@ -1137,26 +1203,43 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               estimatedCredits: 0,
               status: "empty"
             },
-            message: "No Solidity (.sol) files found in this repository. Make sure your smart contracts have a .sol extension and are not in excluded directories (node_modules, build, dist, etc.)."
+            message: "No blockchain programming files found in this repository. Supported languages include Solidity (.sol), Rust (.rs), Move (.move), Cairo (.cairo), Go (.go), TypeScript (.ts), Python (.py), and many others."
           });
         }
+
+        // Group files by language for better organization
+        const languageGroups = blockchainFiles.reduce((groups: any, file: any) => {
+          if (!groups[file.language]) {
+            groups[file.language] = [];
+          }
+          groups[file.language].push(file);
+          return groups;
+        }, {});
 
         const scanResult = {
           scanId: `github_${owner}_${repo}_${Date.now()}`,
           repository: { owner, repo, fullName: repositoryFullName, branch },
-          contracts: solidityFiles.map((file: any) => ({
+          contracts: blockchainFiles.map((file: any) => ({
             path: file.path,
             size: file.size,
-            language: "Solidity"
+            language: file.language,
+            category: file.category,
+            filename: file.filename
           })),
-          totalFiles: solidityFiles.length,
-          estimatedCredits: Math.max(5, solidityFiles.length * 5),
+          totalFiles: blockchainFiles.length,
+          languageBreakdown: languageGroups,
+          estimatedCredits: Math.max(5, blockchainFiles.length * 5),
           status: "ready"
         };
 
+        const uniqueLanguages = Array.from(new Set(blockchainFiles.map((f: any) => f.language)));
+        const languageList = uniqueLanguages.length > 3 
+          ? `${uniqueLanguages.slice(0, 3).join(', ')} and ${uniqueLanguages.length - 3} others`
+          : uniqueLanguages.join(', ');
+
         res.json({
           scan: scanResult,
-          message: `Repository scan completed successfully. Found ${solidityFiles.length} smart contract file${solidityFiles.length === 1 ? '' : 's'} ready for analysis.`
+          message: `Repository scan completed successfully. Found ${blockchainFiles.length} blockchain file${blockchainFiles.length === 1 ? '' : 's'} in ${uniqueLanguages.length} language${uniqueLanguages.length === 1 ? '' : 's'}: ${languageList}.`
         });
       } catch (apiError: any) {
         console.error("GitHub API error during scan:", apiError);
