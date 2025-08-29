@@ -27,7 +27,10 @@ import {
   Trash2,
   MoreVertical,
   Plus,
-  Coins
+  Coins,
+  AlertCircle,
+  Info,
+  Lightbulb
 } from "lucide-react";
 import CreditDisplay from "@/components/CreditDisplay";
 import CreditPurchase from "@/components/CreditPurchase";
@@ -1048,31 +1051,168 @@ Focus on payment security and marketplace vulnerabilities.`)}
                           </pre>
                         </div>
                       ) : (
-                        <div className="text-slate-100">
+                        <div className="bg-gradient-to-br from-slate-900/50 to-slate-800/30 rounded-xl border border-slate-700/50 p-6 shadow-xl">
                           <div className="prose prose-invert prose-sm max-w-none overflow-hidden">
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed break-words">
+                            <div className="whitespace-pre-wrap leading-relaxed break-words">
+                              {/* Smart Analysis Summary */}
+                              {!message.isStreaming && message.content && (
+                                <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Shield className="h-4 w-4 text-blue-400" />
+                                    <span className="text-sm font-semibold text-blue-300">Quick Analysis Summary</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 text-xs">
+                                    {message.content.toLowerCase().includes('critical') && (
+                                      <span className="px-2 py-1 bg-red-500/20 text-red-300 rounded border border-red-500/30">
+                                        Critical Issues Found
+                                      </span>
+                                    )}
+                                    {message.content.toLowerCase().includes('vulnerability') && (
+                                      <span className="px-2 py-1 bg-orange-500/20 text-orange-300 rounded border border-orange-500/30">
+                                        Security Vulnerabilities
+                                      </span>
+                                    )}
+                                    {message.content.toLowerCase().includes('gas') && (
+                                      <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded border border-green-500/30">
+                                        Gas Optimization
+                                      </span>
+                                    )}
+                                    {message.content.toLowerCase().includes('recommendation') && (
+                                      <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
+                                        Recommendations
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]}
                                 components={{
-                                // Custom styling for markdown elements
-                                h1: ({children}) => <h1 className="text-xl font-bold text-white mb-4 pb-2 border-b border-slate-700">{children}</h1>,
-                                h2: ({children}) => <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2"><Shield className="h-4 w-4 text-blue-400" />{children}</h2>,
-                                h3: ({children}) => <h3 className="text-base font-medium text-white mb-2 flex items-center gap-2"><AlertTriangle className="h-3 w-3 text-orange-400" />{children}</h3>,
-                                p: ({children}) => <p className="text-slate-100 mb-3 leading-relaxed break-words">{children}</p>,
-                                ul: ({children}) => <ul className="list-disc list-inside mb-3 space-y-1 text-slate-100">{children}</ul>,
-                                ol: ({children}) => <ol className="list-decimal list-inside mb-3 space-y-1 text-slate-100">{children}</ol>,
-                                li: ({children}) => <li className="text-slate-100 mb-1">{children}</li>,
-                                code: ({children}) => <code className="bg-slate-800 px-2 py-1 rounded text-sm font-mono text-blue-300 break-all">{children}</code>,
-                                pre: ({children}) => <pre className="bg-slate-800 border border-slate-700 rounded-lg p-3 overflow-x-auto mb-3">{children}</pre>,
-                                blockquote: ({children}) => <blockquote className="border-l-4 border-blue-500 pl-4 bg-blue-500/5 py-2 rounded-r-lg italic text-slate-300 mb-3">{children}</blockquote>,
-                                strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
-                                em: ({children}) => <em className="italic text-slate-200">{children}</em>,
+                                // Enhanced styling for better readability and visual hierarchy
+                                h1: ({children}) => (
+                                  <div className="border-l-4 border-red-500 bg-red-500/10 rounded-lg p-4 mb-6 shadow-lg">
+                                    <h1 className="text-2xl font-bold text-white mb-0 flex items-center">
+                                      <AlertTriangle className="h-6 w-6 text-red-400 mr-3" />
+                                      {children}
+                                    </h1>
+                                  </div>
+                                ),
+                                h2: ({children}) => (
+                                  <div className="border-l-4 border-yellow-500 bg-yellow-500/10 rounded-lg p-4 mb-4 shadow-md">
+                                    <h2 className="text-xl font-semibold text-white mb-0 flex items-center">
+                                      <Shield className="h-5 w-5 text-yellow-400 mr-2" />
+                                      {children}
+                                    </h2>
+                                  </div>
+                                ),
+                                h3: ({children}) => (
+                                  <div className="border-l-4 border-blue-500 bg-blue-500/10 rounded-lg p-3 mb-3 shadow-sm">
+                                    <h3 className="text-lg font-medium text-white mb-0 flex items-center">
+                                      <AlertCircle className="h-4 w-4 text-blue-400 mr-2" />
+                                      {children}
+                                    </h3>
+                                  </div>
+                                ),
+                                h4: ({children}) => (
+                                  <div className="border-l-3 border-purple-500 bg-purple-500/10 rounded-lg p-2 mb-2">
+                                    <h4 className="text-base font-medium text-white mb-0 flex items-center">
+                                      <Info className="h-4 w-4 text-purple-400 mr-2" />
+                                      {children}
+                                    </h4>
+                                  </div>
+                                ),
+                                p: ({children}) => (
+                                  <p className="text-slate-200 mb-4 leading-relaxed break-words text-base">{children}</p>
+                                ),
+                                ul: ({children}) => (
+                                  <ul className="list-none mb-4 space-y-2 text-slate-200">{children}</ul>
+                                ),
+                                ol: ({children}) => (
+                                  <ol className="list-decimal list-inside mb-4 space-y-2 text-slate-200 ml-4">{children}</ol>
+                                ),
+                                li: ({children}) => (
+                                  <li className="text-slate-200 mb-1 flex items-start">
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full mr-3 mt-2 flex-shrink-0"></div>
+                                    <div className="flex-1">{children}</div>
+                                  </li>
+                                ),
+                                code: ({children, className}) => {
+                                  if (className?.includes('language-')) {
+                                    return (
+                                      <div className="bg-slate-950 border border-slate-700 rounded-lg p-4 mb-4 shadow-inner">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <span className="text-xs text-slate-400 font-mono">{className?.replace('language-', '') || 'code'}</span>
+                                          <div className="flex gap-1">
+                                            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                                            <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                          </div>
+                                        </div>
+                                        <pre className="text-sm font-mono text-slate-300 overflow-x-auto">
+                                          <code className={className}>{children}</code>
+                                        </pre>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <code className="bg-slate-800 border border-slate-600 px-2 py-1 rounded text-sm font-mono text-cyan-300 break-all">
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                pre: ({children}) => (
+                                  <div className="bg-slate-950 border border-slate-700 rounded-lg p-4 mb-4 shadow-inner">
+                                    <pre className="text-sm font-mono text-slate-300 overflow-x-auto">{children}</pre>
+                                  </div>
+                                ),
+                                blockquote: ({children}) => (
+                                  <div className="border-l-4 border-green-500 bg-green-500/10 rounded-lg p-4 mb-4 shadow-sm">
+                                    <div className="flex items-start">
+                                      <Lightbulb className="h-5 w-5 text-green-400 mr-3 mt-1 flex-shrink-0" />
+                                      <blockquote className="text-green-100 mb-0 italic">{children}</blockquote>
+                                    </div>
+                                  </div>
+                                ),
+                                strong: ({children}) => (
+                                  <strong className="font-semibold text-white bg-slate-800/50 px-1 rounded">{children}</strong>
+                                ),
+                                em: ({children}) => (
+                                  <em className="italic text-slate-300">{children}</em>
+                                ),
+                                table: ({children}) => (
+                                  <div className="overflow-x-auto mb-4">
+                                    <table className="min-w-full bg-slate-800/30 border border-slate-700 rounded-lg">
+                                      {children}
+                                    </table>
+                                  </div>
+                                ),
+                                thead: ({children}) => (
+                                  <thead className="bg-slate-700/50">{children}</thead>
+                                ),
+                                tbody: ({children}) => (
+                                  <tbody className="divide-y divide-slate-700/50">{children}</tbody>
+                                ),
+                                tr: ({children}) => (
+                                  <tr className="hover:bg-slate-700/20 transition-colors">{children}</tr>
+                                ),
+                                th: ({children}) => (
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                    {children}
+                                  </th>
+                                ),
+                                td: ({children}) => (
+                                  <td className="px-4 py-3 text-sm text-slate-200">{children}</td>
+                                ),
                                 }}
                               >
                                 {message.content}
                               </ReactMarkdown>
                               {message.isStreaming && (
-                                <span className="inline-block w-2 h-4 bg-green-500 animate-pulse ml-1"></span>
+                                <div className="flex items-center gap-2 mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                  <span className="text-green-400 text-sm font-medium">Analyzing...</span>
+                                </div>
                               )}
                             </div>
                           </div>
