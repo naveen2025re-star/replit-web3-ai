@@ -168,51 +168,33 @@ export default function AuditorPage() {
                 // Start streaming analysis
                 const eventSource = new EventSource(`/api/audit/analyze/${sessionId}`);
                 
+                // Create assistant message immediately for streaming
+                const assistantMessage: ChatMessage = {
+                  id: (Date.now() + 1).toString(),
+                  type: "assistant",
+                  content: "",
+                  timestamp: new Date(),
+                  isStreaming: true
+                };
+                
+                setMessages(prev => {
+                  const userMsg = prev.find(m => m.type === 'user');
+                  return userMsg ? [userMsg, assistantMessage] : [assistantMessage];
+                });
+                
                 eventSource.onmessage = (event) => {
                   try {
                     const data = JSON.parse(event.data);
                     
-                    if (data.type === 'partial') {
-                      // Add AI message or update existing one
-                      setMessages(prev => {
-                        const userMsg = prev.find(m => m.type === 'user');
-                        const existingAiMsg = prev.find(m => m.type === 'assistant');
-                        
-                        if (existingAiMsg) {
-                          // Update existing AI message
-                          return prev.map(msg => 
-                            msg.type === 'assistant' 
-                              ? { ...msg, content: data.content }
-                              : msg
-                          );
-                        } else {
-                          // Add new AI message
-                          const aiMessage: ChatMessage = {
-                            id: (Date.now() + 1).toString(),
-                            type: "assistant",
-                            content: data.content,
-                            timestamp: new Date()
-                          };
-                          return userMsg ? [userMsg, aiMessage] : [aiMessage];
-                        }
-                      });
-                    } else if (data.type === 'complete') {
+                    if (data.status === "completed") {
                       eventSource.close();
                       setAnalysisState("completed");
-                      
-                      // Final update with complete response
-                      setMessages(prev => {
-                        const userMsg = prev.find(m => m.type === 'user');
-                        const aiMessage: ChatMessage = {
-                          id: (Date.now() + 1).toString(),
-                          type: "assistant",
-                          content: data.content,
-                          timestamp: new Date()
-                        };
-                        return userMsg ? [userMsg, aiMessage] : [aiMessage];
-                      });
-                      
-                      // Invalidate cache to refresh audit history
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, isStreaming: false }
+                          : msg
+                      ));
+                      // Invalidate audit history to refresh
                       queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
                       queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
                       
@@ -220,19 +202,52 @@ export default function AuditorPage() {
                         title: "Analysis complete",
                         description: "Your GitHub code analysis is ready!",
                       });
-                    } else if (data.type === 'error') {
-                      eventSource.close();
-                      setAnalysisState("initial");
-                      toast({
-                        title: "Analysis failed",
-                        description: data.content || "An error occurred during analysis",
-                        variant: "destructive",
-                      });
+                      return;
+                    }
+                    
+                    if (data.body) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: msg.content + data.body }
+                          : msg
+                      ));
                     }
                   } catch (error) {
                     console.error('Error parsing SSE data:', error);
                   }
                 };
+
+                eventSource.addEventListener('content', (event) => {
+                  try {
+                    const data = JSON.parse(event.data);
+                    if (data.body) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: msg.content + data.body }
+                          : msg
+                      ));
+                    }
+                  } catch (error) {
+                    console.error('Error parsing content event:', error);
+                  }
+                });
+
+                eventSource.addEventListener('complete', (event) => {
+                  eventSource.close();
+                  setAnalysisState("completed");
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessage.id 
+                      ? { ...msg, isStreaming: false }
+                      : msg
+                  ));
+                  queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+                  
+                  toast({
+                    title: "Analysis complete",
+                    description: "Your GitHub code analysis is ready!",
+                  });
+                });
                 
                 eventSource.onerror = () => {
                   eventSource.close();
