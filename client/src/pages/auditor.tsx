@@ -164,7 +164,7 @@ export default function AuditorPage() {
                   description: "Analyzing your GitHub code with AI...",
                 });
                 
-                setAnalysisState("analyzing");
+                setAnalysisState("streaming");
                 
                 // Start streaming analysis
                 const eventSource = new EventSource(`/api/audit/analyze/${sessionId}`);
