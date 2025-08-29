@@ -138,25 +138,113 @@ export default function AuditorPage() {
                 timestamp: new Date(sessionData.createdAt)
               };
               
-              // Create AI response if available
-              const messages: ChatMessage[] = [userMessage];
+              // Set messages first
+              setMessages([userMessage]);
+              setInputValue(""); // Clear input
+              
+              // Check if analysis already exists
               if (sessionData.result && (sessionData.result.rawResponse || sessionData.result.formattedReport)) {
+                // Analysis already exists, show it
                 const aiMessage: ChatMessage = {
                   id: (Date.now() + 1).toString(),
                   type: "assistant",
                   content: sessionData.result.rawResponse || sessionData.result.formattedReport,
                   timestamp: new Date(sessionData.result.createdAt || sessionData.completedAt)
                 };
-                messages.push(aiMessage);
+                setMessages([userMessage, aiMessage]);
+                
+                toast({
+                  title: "Analysis loaded",
+                  description: "Your GitHub analysis has been loaded successfully.",
+                });
+              } else {
+                // No analysis result yet, start the AI analysis automatically
+                toast({
+                  title: "Starting AI analysis",
+                  description: "Analyzing your GitHub code with AI...",
+                });
+                
+                setAnalysisState("analyzing");
+                
+                // Start streaming analysis
+                const eventSource = new EventSource(`/api/audit/analyze/${sessionId}`);
+                
+                eventSource.onmessage = (event) => {
+                  try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'partial') {
+                      // Add AI message or update existing one
+                      setMessages(prev => {
+                        const userMsg = prev.find(m => m.type === 'user');
+                        const existingAiMsg = prev.find(m => m.type === 'assistant');
+                        
+                        if (existingAiMsg) {
+                          // Update existing AI message
+                          return prev.map(msg => 
+                            msg.type === 'assistant' 
+                              ? { ...msg, content: data.content }
+                              : msg
+                          );
+                        } else {
+                          // Add new AI message
+                          const aiMessage: ChatMessage = {
+                            id: (Date.now() + 1).toString(),
+                            type: "assistant",
+                            content: data.content,
+                            timestamp: new Date()
+                          };
+                          return userMsg ? [userMsg, aiMessage] : [aiMessage];
+                        }
+                      });
+                    } else if (data.type === 'complete') {
+                      eventSource.close();
+                      setAnalysisState("completed");
+                      
+                      // Final update with complete response
+                      setMessages(prev => {
+                        const userMsg = prev.find(m => m.type === 'user');
+                        const aiMessage: ChatMessage = {
+                          id: (Date.now() + 1).toString(),
+                          type: "assistant",
+                          content: data.content,
+                          timestamp: new Date()
+                        };
+                        return userMsg ? [userMsg, aiMessage] : [aiMessage];
+                      });
+                      
+                      // Invalidate cache to refresh audit history
+                      queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+                      
+                      toast({
+                        title: "Analysis complete",
+                        description: "Your GitHub code analysis is ready!",
+                      });
+                    } else if (data.type === 'error') {
+                      eventSource.close();
+                      setAnalysisState("initial");
+                      toast({
+                        title: "Analysis failed",
+                        description: data.content || "An error occurred during analysis",
+                        variant: "destructive",
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Error parsing SSE data:', error);
+                  }
+                };
+                
+                eventSource.onerror = () => {
+                  eventSource.close();
+                  setAnalysisState("initial");
+                  toast({
+                    title: "Connection error",
+                    description: "Lost connection to analysis service",
+                    variant: "destructive",
+                  });
+                };
               }
-              
-              setMessages(messages);
-              setInputValue(""); // Clear input
-              
-              toast({
-                title: "Analysis loaded",
-                description: "Your GitHub analysis has been loaded successfully.",
-              });
             }
             
             // Clear the URL parameter after loading
@@ -176,7 +264,7 @@ export default function AuditorPage() {
     };
     
     handleSessionFromUrl();
-  }, [isAuthenticated, user?.id, currentSessionId, toast]);
+  }, [isAuthenticated, user?.id, currentSessionId, toast, queryClient]);
 
   // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
