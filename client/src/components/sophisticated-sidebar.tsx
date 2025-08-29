@@ -67,22 +67,20 @@ export function SophisticatedSidebar({
   const [newTitle, setNewTitle] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
-  const [displayName, setDisplayName] = useState('');
+  const [localDisplayName, setLocalDisplayName] = useState('');
   const queryClient = useQueryClient();
   const { disconnect } = useWeb3Auth();
 
-  // Update display name when user data changes or dialog opens
+  // Initialize local display name from user data
+  const currentDisplayName = user?.displayName || '';
+  
+  // Update local display name when modal opens
   useEffect(() => {
-    if (showProfileSettings && user) {
-      console.log('Setting display name from user:', user.displayName);
-      setDisplayName(user.displayName || '');
+    if (showProfileSettings) {
+      console.log('Opening profile modal, current user displayName:', user?.displayName);
+      setLocalDisplayName(user?.displayName || '');
     }
   }, [showProfileSettings, user?.displayName]);
-  
-  // Debug: Log user data changes
-  useEffect(() => {
-    console.log('User data changed:', user);
-  }, [user]);
 
   return (
     <>
@@ -325,7 +323,7 @@ export function SophisticatedSidebar({
                     size="sm"
                     onClick={() => {
                       console.log('Opening profile settings, user:', user);
-                      setDisplayName(user?.displayName || '');
+                      setLocalDisplayName(user?.displayName || '');
                       setShowProfileSettings(true);
                     }}
                     className="text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg"
@@ -348,8 +346,8 @@ export function SophisticatedSidebar({
                       </Label>
                       <Input
                         id="displayName"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
+                        value={localDisplayName}
+                        onChange={(e) => setLocalDisplayName(e.target.value)}
                         className="bg-slate-800 border-slate-600 text-white mt-2"
                         placeholder="Enter your preferred display name..."
                         maxLength={50}
@@ -357,6 +355,11 @@ export function SophisticatedSidebar({
                       <p className="text-xs text-slate-400 mt-1">
                         Leave empty to use your wallet address or GitHub username
                       </p>
+                      {user?.displayName && (
+                        <p className="text-xs text-blue-400 mt-1">
+                          Current: "{user.displayName}"
+                        </p>
+                      )}
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button 
@@ -364,7 +367,7 @@ export function SophisticatedSidebar({
                         onClick={() => {
                           setShowProfileSettings(false);
                           // Reset to current user displayName when cancelling
-                          setDisplayName(user?.displayName || '');
+                          setLocalDisplayName(user?.displayName || '');
                         }}
                         className="border-slate-600 text-slate-300 hover:bg-slate-800"
                       >
@@ -383,7 +386,7 @@ export function SophisticatedSidebar({
                                 'Content-Type': 'application/json',
                               },
                               body: JSON.stringify({
-                                displayName: displayName.trim() || null
+                                displayName: localDisplayName.trim() || null
                               })
                             });
 
