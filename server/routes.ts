@@ -220,6 +220,45 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       res.status(500).json({ message: "Failed to get user" });
     }
   });
+
+  // Update user profile
+  app.patch("/api/auth/user/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      const { displayName } = req.body;
+
+      // Get the user first
+      const user = await storage.getUserByWallet(address.toLowerCase());
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Validate displayName
+      if (displayName !== undefined && displayName !== null) {
+        if (typeof displayName !== 'string') {
+          return res.status(400).json({ message: "Display name must be a string" });
+        }
+        if (displayName.length > 50) {
+          return res.status(400).json({ message: "Display name must be 50 characters or less" });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(user.id, { displayName });
+      res.json({
+        id: updatedUser.id,
+        walletAddress: updatedUser.walletAddress,
+        username: updatedUser.username,
+        displayName: updatedUser.displayName,
+        ensName: updatedUser.ensName,
+        githubUsername: updatedUser.githubUsername,
+        profileImageUrl: updatedUser.profileImageUrl,
+        createdAt: updatedUser.createdAt
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
   
   // Create new audit session
   app.post("/api/audit/sessions", async (req, res) => {

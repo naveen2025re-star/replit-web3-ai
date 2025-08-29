@@ -9,6 +9,7 @@ export const users = pgTable("users", {
   walletAddress: text("wallet_address").unique(),
   ensName: text("ens_name"),
   username: text("username"),
+  displayName: text("display_name"), // User-friendly display name that users can set
   email: text("email"),
   githubId: text("github_id").unique(),
   githubUsername: text("github_username"),

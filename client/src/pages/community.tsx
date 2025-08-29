@@ -91,24 +91,30 @@ export default function Community() {
   const formatUserDisplayName = (user: any) => {
     if (!user) return 'Anonymous';
     
-    // If user has a proper username (not an ID-like string), use it
-    if (user.username && !user.username.match(/^user_[a-f0-9_]+$/)) {
-      return user.username;
+    // Priority 1: User-set display name
+    if (user.displayName && user.displayName.trim()) {
+      return user.displayName.trim();
     }
     
-    // If user has GitHub username, use it
-    if (user.githubUsername) {
-      return user.githubUsername;
+    // Priority 2: ENS name (looks most professional)
+    if (user.ensName && user.ensName.trim()) {
+      return user.ensName.trim();
     }
     
-    // If user has ENS name, use it
-    if (user.ensName) {
-      return user.ensName;
+    // Priority 3: GitHub username
+    if (user.githubUsername && user.githubUsername.trim()) {
+      return user.githubUsername.trim();
     }
     
-    // Fallback to shortened wallet address
-    if (user.walletAddress) {
-      return user.walletAddress.slice(0, 6) + '...' + user.walletAddress.slice(-4);
+    // Priority 4: Regular username (but filter out auto-generated ones)
+    if (user.username && user.username.trim() && !user.username.match(/^user_[a-f0-9_]+$/)) {
+      return user.username.trim();
+    }
+    
+    // Priority 5: Shortened wallet address
+    if (user.walletAddress && user.walletAddress.trim()) {
+      const addr = user.walletAddress.trim();
+      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
     }
     
     return 'Anonymous';

@@ -20,7 +20,8 @@ import {
   Edit3,
   Trash2,
   Eye,
-  Coins
+  Coins,
+  LogOut
 } from "lucide-react";
 import { Link } from "wouter";
 import CreditDisplay from "@/components/CreditDisplay";
@@ -63,6 +64,8 @@ export function SophisticatedSidebar({
   const [editingAudit, setEditingAudit] = useState<{id: string, title: string} | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [displayName, setDisplayName] = useState('');
 
   return (
     <>
@@ -285,25 +288,127 @@ export function SophisticatedSidebar({
         <div className="p-5 border-t border-slate-700/30 bg-slate-900/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-lg">
-              {user.walletAddress?.slice(0, 2).toUpperCase()}
+              {(user.displayName || user.ensName || user.githubUsername || user.walletAddress)?.slice(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-slate-200 text-sm font-medium truncate">
-                {user.walletAddress?.slice(0, 8)}...{user.walletAddress?.slice(-6)}
+                {user.displayName || user.ensName || user.githubUsername || 
+                 (user.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'Anonymous')}
               </div>
               <div className="text-xs text-green-400 flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 Connected
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={onShowSettings}
-              className="text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Dialog open={showProfileSettings} onOpenChange={setShowProfileSettings}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setDisplayName(user?.displayName || '');
+                      setShowProfileSettings(true);
+                    }}
+                    className="text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg"
+                    title="Profile Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-900 border-slate-700 text-white">
+                  <DialogHeader>
+                    <DialogTitle>Profile Settings</DialogTitle>
+                    <DialogDescription>
+                      Customize how your name appears to other users in the community.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label htmlFor="displayName" className="text-sm font-medium text-slate-300">
+                        Display Name (Optional)
+                      </Label>
+                      <Input
+                        id="displayName"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        className="bg-slate-800 border-slate-600 text-white mt-2"
+                        placeholder="Enter your preferred display name..."
+                        maxLength={50}
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Leave empty to use your wallet address or GitHub username
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowProfileSettings(false)}
+                        className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            if (!user?.walletAddress) {
+                              throw new Error('No wallet address found');
+                            }
+
+                            const response = await fetch(`/api/auth/user/${user.walletAddress}`, {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                displayName: displayName.trim() || null
+                              })
+                            });
+
+                            if (!response.ok) {
+                              throw new Error('Failed to update profile');
+                            }
+
+                            // Show success feedback
+                            const successMsg = document.createElement('div');
+                            successMsg.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                            successMsg.textContent = 'Profile updated successfully!';
+                            document.body.appendChild(successMsg);
+                            setTimeout(() => document.body.removeChild(successMsg), 3000);
+                            
+                            setShowProfileSettings(false);
+                            
+                            // Refresh the page to update the user data everywhere
+                            window.location.reload();
+                          } catch (error) {
+                            console.error('Failed to save profile:', error);
+                            
+                            // Show error feedback
+                            const errorMsg = document.createElement('div');
+                            errorMsg.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                            errorMsg.textContent = 'Failed to update profile. Please try again.';
+                            document.body.appendChild(errorMsg);
+                            setTimeout(() => document.body.removeChild(errorMsg), 3000);
+                          }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Save Changes
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => window.location.href = '/api/logout'}
+                className="text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
