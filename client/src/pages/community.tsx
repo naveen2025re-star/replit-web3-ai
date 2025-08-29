@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from "@/components/ui/button";
@@ -104,10 +104,10 @@ export default function Community() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900 p-4 sm:p-0">
       {/* Header */}
       <div className="border-b border-gray-800 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
@@ -122,12 +122,15 @@ export default function Community() {
               <div className="h-6 w-px bg-gray-600" />
               <div className="flex items-center gap-3">
                 <Shield className="h-6 w-6 text-blue-400" />
-                <h1 className="text-2xl font-bold text-white">Community Audits</h1>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">Community Audits</h1>
+                  <p className="text-sm text-gray-400 hidden sm:block">Explore public smart contract security analysis</p>
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <Badge variant="outline" className="border-green-400 text-green-300 bg-green-900/20">
+            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-4">
+              <Badge variant="outline" className="border-green-400 text-green-300 bg-green-900/20 text-xs sm:text-sm">
                 <TrendingUp className="h-3 w-3 mr-1" />
                 {auditsData?.total || 0} Public Scans
               </Badge>
@@ -144,10 +147,10 @@ export default function Community() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Search and Filters */}
         <div className="mb-8">
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -164,9 +167,9 @@ export default function Community() {
               </div>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[140px] bg-gray-800/50 border-gray-600 text-white">
+                <SelectTrigger className="w-full sm:w-[140px] bg-gray-800/50 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,7 +182,7 @@ export default function Community() {
               <Button
                 variant="outline"
                 onClick={clearFilters}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto"
                 data-testid="button-clear-filters"
               >
                 <Filter className="h-4 w-4 mr-2" />
@@ -241,13 +244,26 @@ export default function Community() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 9 }).map((_, i) => (
               <Card key={i} className="bg-gray-800/50 border-gray-700 animate-pulse">
-                <CardHeader>
-                  <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="h-5 bg-gray-700 rounded w-3/4 mb-2"></div>
+                      <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                    <div className="h-4 w-4 bg-gray-700 rounded"></div>
+                  </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <div className="h-3 bg-gray-700 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-gray-700 rounded w-2/3"></div>
+                  <div className="h-3 bg-gray-700 rounded w-2/3 mb-4"></div>
+                  <div className="flex gap-2 mb-4">
+                    <div className="h-6 bg-gray-700 rounded w-16"></div>
+                    <div className="h-6 bg-gray-700 rounded w-20"></div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-700 rounded w-16"></div>
+                    <div className="h-4 bg-gray-700 rounded w-20"></div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -262,17 +278,18 @@ export default function Community() {
               return (
                 <Card 
                   key={audit.id} 
-                  className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors cursor-pointer group"
+                  className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 hover:border-gray-600 transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-xl"
                   onClick={() => setSelectedAudit(audit.id)}
                   data-testid={`audit-card-${audit.id}`}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-white text-base line-clamp-2 group-hover:text-blue-300 transition-colors">
+                        <CardTitle className="text-white text-base font-semibold line-clamp-2 group-hover:text-blue-300 transition-colors mb-1">
                           {audit.publicTitle || `${audit.contractLanguage} Contract Audit`}
                         </CardTitle>
-                        <CardDescription className="text-gray-400 text-sm mt-1">
+                        <CardDescription className="text-gray-400 text-sm flex items-center gap-2">
+                          <User className="h-3 w-3" />
                           by {audit.user?.username || audit.user?.walletAddress?.slice(0, 8) + '...' || 'Anonymous'}
                         </CardDescription>
                       </div>
@@ -282,25 +299,25 @@ export default function Community() {
                   
                   <CardContent className="pt-0">
                     {audit.publicDescription && (
-                      <p className="text-gray-300 text-sm mb-3 line-clamp-2">
+                      <p className="text-gray-300 text-sm mb-4 line-clamp-3 leading-relaxed">
                         {audit.publicDescription}
                       </p>
                     )}
                     
                     {/* Tags */}
                     {audit.tags && audit.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
+                      <div className="flex flex-wrap gap-1.5 mb-4">
                         {audit.tags.slice(0, 3).map((tag: string, index: number) => (
                           <Badge 
                             key={index} 
                             variant="outline" 
-                            className="text-xs px-2 py-1 border-gray-600 text-gray-300"
+                            className="text-xs px-2 py-1 border-purple-500/30 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
                           >
                             {tag}
                           </Badge>
                         ))}
                         {audit.tags.length > 3 && (
-                          <Badge variant="outline" className="text-xs px-2 py-1 border-gray-600 text-gray-400">
+                          <Badge variant="outline" className="text-xs px-2 py-1 border-gray-600 text-gray-400 bg-gray-800/30">
                             +{audit.tags.length - 3}
                           </Badge>
                         )}
@@ -333,17 +350,20 @@ export default function Community() {
                     
                     {/* Security Score */}
                     {audit.result?.securityScore && (
-                      <div className="mt-3 pt-3 border-t border-gray-700">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400">Security Score</span>
-                          <span className="text-white font-medium">{audit.result.securityScore}/100</span>
+                      <div className="mt-4 pt-4 border-t border-gray-700">
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <div className="flex items-center gap-1">
+                            <Shield className="h-3 w-3 text-blue-400" />
+                            <span className="text-gray-400">Security Score</span>
+                          </div>
+                          <span className="text-white font-semibold text-base">{audit.result.securityScore}/100</span>
                         </div>
-                        <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
+                        <div className="w-full bg-gray-700 rounded-full h-2.5 shadow-inner">
                           <div 
-                            className={`h-2 rounded-full ${
-                              audit.result.securityScore >= 90 ? 'bg-green-500' :
-                              audit.result.securityScore >= 70 ? 'bg-yellow-500' :
-                              audit.result.securityScore >= 50 ? 'bg-orange-500' : 'bg-red-500'
+                            className={`h-2.5 rounded-full transition-all duration-500 ${
+                              audit.result.securityScore >= 90 ? 'bg-gradient-to-r from-green-500 to-green-400' :
+                              audit.result.securityScore >= 70 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400' :
+                              audit.result.securityScore >= 50 ? 'bg-gradient-to-r from-orange-500 to-orange-400' : 'bg-gradient-to-r from-red-500 to-red-400'
                             }`}
                             style={{ width: `${audit.result.securityScore}%` }}
                           ></div>
@@ -356,22 +376,40 @@ export default function Community() {
             })}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <Shield className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-300 mb-2">No Public Audits Found</h3>
-            <p className="text-gray-400 mb-6">
-              {searchTerm || selectedTags.length > 0 
-                ? "Try adjusting your search or filters"
-                : "Be the first to share your audit with the community!"
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="p-4 bg-slate-800/30 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <Shield className="h-12 w-12 text-gray-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-200 mb-3">
+                {searchTerm || selectedTags.length > 0 ? "No Audits Match Your Filters" : "No Public Audits Yet"}
+              </h3>
+              <p className="text-gray-400 mb-8 leading-relaxed">
+                {searchTerm || selectedTags.length > 0 
+                  ? "Try adjusting your search terms or removing some filters to see more results."
+                  : "Be the first to share your smart contract audit with the community! Help others learn from your security analysis."
               }
-            </p>
-            <Button 
-              onClick={() => setLocation("/auditor")}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              Start Your First Audit
-            </Button>
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {(searchTerm || selectedTags.length > 0) && (
+                  <Button 
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    Clear All Filters
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => setLocation("/auditor")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  {searchTerm || selectedTags.length > 0 ? "Start New Audit" : "Create First Audit"}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -431,76 +469,125 @@ export default function Community() {
 
       {/* Audit Details Dialog */}
       <Dialog open={!!selectedAudit} onOpenChange={() => setSelectedAudit(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-400" />
-              {auditDetails?.publicTitle || 'Community Audit Details'}
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto bg-slate-900 border-slate-700 text-white shadow-2xl">
+          <DialogHeader className="sticky top-0 bg-slate-900 pb-4 border-b border-slate-700">
+            <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Shield className="h-6 w-6 text-blue-400" />
+              </div>
+              <div>
+                <div>{auditDetails?.publicTitle || 'Community Audit Details'}</div>
+                <div className="text-sm font-normal text-gray-400 mt-1">
+                  Security Analysis Report
+                </div>
+              </div>
             </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Detailed security analysis and findings for this smart contract audit
+            </DialogDescription>
           </DialogHeader>
           
           {auditDetails && (
-            <div className="space-y-6 py-4">
-              {/* Audit Info */}
-              <div className="grid grid-cols-2 gap-6 text-sm">
-                <div>
-                  <h4 className="font-medium text-slate-300 mb-2">Audit Information</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Status:</span>
-                      <Badge className={auditDetails.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}>
-                        {auditDetails.status}
-                      </Badge>
+            <div className="space-y-8 py-6">
+              {/* Quick Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500/10 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-400" />
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Language:</span>
-                      <span className="text-white">{auditDetails.contractLanguage}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Visibility:</span>
-                      <Badge className="bg-blue-500/20 text-blue-400">
-                        <Eye className="h-3 w-3 mr-1" />
-                        Public
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Created:</span>
-                      <span className="text-white">{new Date(auditDetails.createdAt).toLocaleString()}</span>
+                    <div>
+                      <div className="text-sm text-slate-400">Status</div>
+                      <div className="font-semibold text-white capitalize">{auditDetails.status}</div>
                     </div>
                   </div>
                 </div>
                 
-                {auditDetails.result && (
-                  <div>
-                    <h4 className="font-medium text-slate-300 mb-2">Security Analysis</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Security Score:</span>
-                        <span className="text-white">{auditDetails.result.securityScore || 'N/A'}</span>
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Code className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-slate-400">Language</div>
+                      <div className="font-semibold text-white">{auditDetails.contractLanguage}</div>
+                    </div>
+                  </div>
+                </div>
+                
+                {auditDetails.result?.securityScore && (
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500/10 rounded-lg">
+                        <Shield className="h-5 w-5 text-purple-400" />
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Vulnerabilities:</span>
-                        <span className="text-white">{auditDetails.result.vulnerabilityCount || 0}</span>
+                      <div>
+                        <div className="text-sm text-slate-400">Security Score</div>
+                        <div className="font-semibold text-white text-lg">{auditDetails.result.securityScore}/100</div>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
+              
+              {/* Audit Metadata */}
+              <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
+                <h4 className="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Audit Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Auditor:</span>
+                      <span className="text-white font-medium">
+                        {auditDetails.user?.username || auditDetails.user?.walletAddress?.slice(0, 8) + '...' || 'Anonymous'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Visibility:</span>
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                        <Eye className="h-3 w-3 mr-1" />
+                        Public
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Created:</span>
+                      <span className="text-white">{new Date(auditDetails.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Time:</span>
+                      <span className="text-white">{new Date(auditDetails.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Contract Code */}
               {auditDetails.contractCode && (
-                <div>
-                  <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Smart Contract Code
-                  </h4>
-                  <div className="bg-slate-950 rounded-lg p-4 overflow-x-auto border border-slate-800">
-                    <div className="mb-3">
-                      <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                        User Input
+                <div className="bg-slate-800/30 rounded-lg border border-slate-700">
+                  <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                    <h4 className="font-semibold text-slate-200 flex items-center gap-2">
+                      <div className="p-1.5 bg-blue-500/10 rounded">
+                        <FileText className="h-4 w-4 text-blue-400" />
                       </div>
-                      <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">
+                      Smart Contract Code
+                    </h4>
+                    <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
+                      {auditDetails.contractLanguage}
+                    </Badge>
+                  </div>
+                  <div className="p-4">
+                    <div className="bg-slate-950 rounded-lg p-4 overflow-x-auto border border-slate-800 max-h-96">
+                      <div className="text-xs text-slate-500 mb-3 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                        Source Code
+                        <span className="text-slate-600">•</span>
+                        <span>{auditDetails.contractCode.split('\\n').length} lines</span>
+                      </div>
+                      <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">
                         <code>{auditDetails.contractCode}</code>
                       </pre>
                     </div>
@@ -510,17 +597,36 @@ export default function Community() {
 
               {/* AI Response */}
               {(auditDetails.result?.rawResponse || auditDetails.result?.formattedReport) && (
-                <div>
-                  <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
-                    Security Analysis Report
-                  </h4>
-                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
-                    <div className="text-xs text-slate-500 mb-3 flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                      AI Assistant Response
-                    </div>
-                    <div className="prose prose-slate prose-invert max-w-none prose-headings:text-slate-200 prose-headings:font-semibold prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-4 prose-li:text-slate-300 prose-strong:text-white prose-code:text-blue-300 prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700">
+                <div className="bg-slate-800/30 rounded-lg border border-slate-700">
+                  <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                    <h4 className="font-semibold text-slate-200 flex items-center gap-2">
+                      <div className="p-1.5 bg-green-500/10 rounded">
+                        <Shield className="h-4 w-4 text-green-400" />
+                      </div>
+                      Security Analysis Report
+                    </h4>
+                    {auditDetails.result?.securityScore && (
+                      <Badge className={`${
+                        auditDetails.result.securityScore >= 90 ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                        auditDetails.result.securityScore >= 70 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                        auditDetails.result.securityScore >= 50 ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 
+                        'bg-red-500/20 text-red-400 border-red-500/30'
+                      }`}>
+                        {auditDetails.result.securityScore >= 90 ? 'Low Risk' :
+                         auditDetails.result.securityScore >= 70 ? 'Medium Risk' :
+                         auditDetails.result.securityScore >= 50 ? 'High Risk' : 'Critical Risk'}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+                      <div className="text-xs text-slate-500 mb-4 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                        AI Security Analysis
+                        <span className="text-slate-600">•</span>
+                        <span>Generated by SmartAudit AI</span>
+                      </div>
+                      <div className="prose prose-slate prose-invert max-w-none prose-headings:text-slate-200 prose-headings:font-semibold prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-4 prose-li:text-slate-300 prose-strong:text-white prose-code:text-blue-300 prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700">
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -538,6 +644,7 @@ export default function Community() {
                       >
                         {auditDetails.result.rawResponse || auditDetails.result.formattedReport}
                       </ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 </div>
