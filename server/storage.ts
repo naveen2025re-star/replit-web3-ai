@@ -358,7 +358,7 @@ export class DatabaseStorage implements IStorage {
     tags?: string;
     search?: string;
   }): Promise<{
-    audits: (AuditSession & { user: Pick<User, 'username' | 'walletAddress'> | null; result: Pick<AuditResult, 'vulnerabilityCount' | 'securityScore'> | null })[];
+    audits: (AuditSession & { user: Pick<User, 'username' | 'walletAddress' | 'displayName' | 'ensName' | 'githubUsername'> | null; result: Pick<AuditResult, 'vulnerabilityCount' | 'securityScore'> | null })[];
     total: number;
   }> {
     let baseQuery = db
@@ -381,6 +381,9 @@ export class DatabaseStorage implements IStorage {
         user: {
           username: users.username,
           walletAddress: users.walletAddress,
+          displayName: users.displayName,
+          ensName: users.ensName,
+          githubUsername: users.githubUsername,
         },
         result: {
           vulnerabilityCount: auditResults.vulnerabilityCount,
