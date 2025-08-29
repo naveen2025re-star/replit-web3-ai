@@ -27,7 +27,6 @@ import {
 import { Link } from "wouter";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import CreditDisplay from "@/components/CreditDisplay";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 interface AuditSession {
   id: string;
@@ -319,7 +318,6 @@ export function SophisticatedSidebar({
               </div>
             </div>
             <div className="flex gap-1">
-              <ThemeSwitcher />
               <Dialog open={showProfileSettings} onOpenChange={setShowProfileSettings}>
                 <DialogTrigger asChild>
                   <Button 

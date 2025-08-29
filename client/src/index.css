@@ -50,11 +50,6 @@
   --shadow-2xl: 0px 2px 0px 0px hsl(224, 71%, 4% / 0.00);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-  
-  /* Chameleon Theme Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--primary), var(--accent));
-  --gradient-hero: linear-gradient(135deg, var(--background), var(--secondary));
-  --gradient-sidebar: linear-gradient(180deg, var(--sidebar), var(--background));
 }
 
 .dark {
@@ -99,62 +94,16 @@
 @layer base {
   * {
     @apply border-border;
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
 
   html {
-    background: var(--gradient-hero, linear-gradient(135deg, #0f172a 0%, #1e293b 100%));
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    background: var(--gradient-hero, linear-gradient(135deg, #0f172a 0%, #1e293b 100%));
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   }
-}
-
-/* Theme-specific styles for Chameleon */
-.theme-security {
-  --glow-primary: 0 0 20px hsl(217, 91%, 60% / 0.3);
-  --glow-accent: 0 0 15px hsl(224, 71%, 4% / 0.5);
-}
-
-.theme-nature {
-  --glow-primary: 0 0 20px hsl(142, 71%, 45% / 0.3);
-  --glow-accent: 0 0 15px hsl(88, 50%, 35% / 0.5);
-}
-
-.theme-ocean {
-  --glow-primary: 0 0 20px hsl(195, 85%, 55% / 0.3);
-  --glow-accent: 0 0 15px hsl(195, 75%, 35% / 0.5);
-}
-
-.theme-sunset {
-  --glow-primary: 0 0 20px hsl(25, 95%, 58% / 0.3);
-  --glow-accent: 0 0 15px hsl(280, 60%, 45% / 0.5);
-}
-
-.theme-cyber {
-  --glow-primary: 0 0 20px hsl(120, 100%, 50% / 0.4);
-  --glow-accent: 0 0 15px hsl(300, 100%, 50% / 0.4);
-}
-
-.theme-minimal {
-  --glow-primary: 0 0 20px hsl(210, 100%, 45% / 0.2);
-  --glow-accent: 0 0 15px hsl(210, 100%, 35% / 0.3);
-}
-
-/* Chameleon effects */
-.chameleon-glow {
-  box-shadow: var(--glow-primary);
-}
-
-.chameleon-gradient {
-  background: var(--gradient-primary);
-}
-
-.chameleon-border {
-  border: 1px solid;
-  border-image: var(--gradient-primary) 1;
 }
 
 @keyframes slideUp {
