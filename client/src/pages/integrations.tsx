@@ -289,12 +289,14 @@ export default function IntegrationsPage() {
   const handleRepositoryScan = () => {
     if (!selectedRepository) {
       toast({
-        title: "No Repository Selected",
+        title: "No Repository Selected", 
         description: "Please select a repository to scan",
         variant: "destructive",
       });
       return;
     }
+    setScanResults(null);
+    setSelectedFiles([]);
     githubScanMutation.mutate(selectedRepository);
   };
 
@@ -323,6 +325,16 @@ export default function IntegrationsPage() {
       });
       return;
     }
+    
+    if (!selectedRepository) {
+      toast({
+        title: "No Repository Selected",
+        description: "Please select a repository first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     aiAnalysisMutation.mutate({
       repositoryFullName: selectedRepository,
       selectedFiles

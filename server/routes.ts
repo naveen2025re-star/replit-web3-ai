@@ -1276,18 +1276,15 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
   app.post("/api/integrations/github/analyze", isAuthenticated, async (req, res) => {
     try {
-      console.log("GitHub analyze request body:", JSON.stringify(req.body, null, 2));
       const { repositoryFullName, selectedFiles, branch = 'main' } = req.body;
       
-      if (!repositoryFullName) {
-        console.log("Missing repositoryFullName in request");
+      if (!repositoryFullName || repositoryFullName.trim() === '') {
         return res.status(400).json({ 
           message: "Missing required field: repositoryFullName" 
         });
       }
 
       if (!selectedFiles || selectedFiles.length === 0) {
-        console.log("Missing or empty selectedFiles in request");
         return res.status(400).json({ 
           message: "No files selected for analysis" 
         });
