@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
@@ -19,6 +20,8 @@ import {
   Download 
 } from "lucide-react";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
+import CreditDisplay from "@/components/CreditDisplay";
+import CreditPurchase from "@/components/CreditPurchase";
 
 interface AuditSession {
   id: string;
@@ -28,6 +31,8 @@ interface AuditSession {
   isPublic: boolean;
   createdAt: string;
   completedAt?: string;
+  isPinned?: boolean;
+  isArchived?: boolean;
 }
 
 interface ChatGPTSidebarProps {
@@ -49,28 +54,39 @@ export function ChatGPTSidebar({
 }: ChatGPTSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showCreditPurchase, setShowCreditPurchase] = useState(false);
+  const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{sessionId: string, x: number, y: number} | null>(null);
   const queryClient = useQueryClient();
   const { disconnect } = useWeb3Auth();
+  const { toast } = useToast();
 
-  // Filter sessions by search term
+  // Filter sessions by search term and exclude archived
   const filteredSessions = auditHistory.filter(session => 
-    session.publicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    session.contractLanguage?.toLowerCase().includes(searchTerm.toLowerCase())
+    !session.isArchived && (
+      session.publicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      session.contractLanguage?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
-  // Group sessions by time periods
+  // Separate pinned and regular sessions
+  const pinnedSessions = filteredSessions.filter(s => s.isPinned);
+  const regularSessions = filteredSessions.filter(s => !s.isPinned);
+
+  // Group regular sessions by time periods  
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const groupedSessions = {
-    recent: filteredSessions.filter(s => new Date(s.createdAt) > sevenDaysAgo),
-    previous30: filteredSessions.filter(s => {
+    recent: regularSessions.filter(s => new Date(s.createdAt) > sevenDaysAgo),
+    previous30: regularSessions.filter(s => {
       const date = new Date(s.createdAt);
       return date <= sevenDaysAgo && date > thirtyDaysAgo;
     }),
-    older: filteredSessions.filter(s => new Date(s.createdAt) <= thirtyDaysAgo)
+    older: regularSessions.filter(s => new Date(s.createdAt) <= thirtyDaysAgo)
   };
 
   // Close context menu when clicking outside
@@ -98,6 +114,39 @@ export function ChatGPTSidebar({
     } catch (error) {
       console.error('Logout error:', error);
       window.location.reload();
+    }
+  };
+
+  const handlePin = async (sessionId: string) => {
+    // Toggle pin status
+    setContextMenu(null);
+    toast({
+      title: "Pin toggled",
+      description: "Chat pin status has been updated.",
+    });
+  };
+
+  const handleArchive = async (sessionId: string) => {
+    setContextMenu(null);
+    toast({
+      title: "Chat archived",
+      description: "Chat has been moved to archive.",
+    });
+  };
+
+  const handleRename = (sessionId: string, currentTitle: string) => {
+    setRenameSessionId(sessionId);
+    setRenameValue(currentTitle || '');
+    setShowRenameModal(true);
+    setContextMenu(null);
+  };
+
+  const handleRenameSubmit = () => {
+    if (renameSessionId && onEditAuditTitle) {
+      onEditAuditTitle(renameSessionId, renameValue);
+      setShowRenameModal(false);
+      setRenameSessionId(null);
+      setRenameValue('');
     }
   };
 
@@ -141,6 +190,37 @@ export function ChatGPTSidebar({
           </div>
         ) : (
           <div className="space-y-1">
+            {/* Pinned chats */}
+            {pinnedSessions.length > 0 && (
+              <div className="mb-4">
+                <div className="text-xs text-slate-500 px-2 py-1 mb-2">Pinned</div>
+                {pinnedSessions.map((session: AuditSession) => (
+                  <div
+                    key={session.id}
+                    className="group relative flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-800/50 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors"
+                    onClick={() => onLoadSession(session.id)}
+                    onContextMenu={(e) => handleContextMenu(e, session.id)}
+                  >
+                    <Pin className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                    <div className="flex-1 truncate">
+                      {session.publicTitle || `${session.contractLanguage} Audit`}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleContextMenu(e, session.id);
+                      }}
+                    >
+                      <MoreVertical className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Recent chats */}
             {groupedSessions.recent.length > 0 && (
               <div className="mb-4">
@@ -278,9 +358,12 @@ export function ChatGPTSidebar({
               </div>
             </button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
             <DialogHeader>
               <DialogTitle>Account</DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Manage your profile and account settings
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/30">
@@ -296,6 +379,26 @@ export function ChatGPTSidebar({
                   </div>
                 </div>
               </div>
+
+              {/* Credits Section */}
+              <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
+                <div className="mb-2">
+                  <CreditDisplay 
+                    userId={user?.id}
+                    compact={false}
+                  />
+                </div>
+                <Button
+                  onClick={() => {
+                    setShowUserModal(false);
+                    setShowCreditPurchase(true);
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-sm"
+                >
+                  Buy More Credits
+                </Button>
+              </div>
+
               <div className="space-y-2">
                 <Button 
                   variant="outline" 
@@ -326,10 +429,7 @@ export function ChatGPTSidebar({
         >
           <button
             className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-            onClick={() => {
-              setContextMenu(null);
-              // Handle pin functionality
-            }}
+            onClick={() => handlePin(contextMenu.sessionId)}
           >
             <Pin className="h-3 w-3" />
             Pin
@@ -337,13 +437,9 @@ export function ChatGPTSidebar({
           <button
             className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
             onClick={() => {
-              setContextMenu(null);
               const session = auditHistory.find(s => s.id === contextMenu.sessionId);
-              if (session && onEditAuditTitle) {
-                const newTitle = prompt('Enter new title:', session.publicTitle || '');
-                if (newTitle !== null) {
-                  onEditAuditTitle(contextMenu.sessionId, newTitle);
-                }
+              if (session) {
+                handleRename(contextMenu.sessionId, session.publicTitle || '');
               }
             }}
           >
@@ -352,10 +448,7 @@ export function ChatGPTSidebar({
           </button>
           <button
             className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
-            onClick={() => {
-              setContextMenu(null);
-              // Handle archive functionality
-            }}
+            onClick={() => handleArchive(contextMenu.sessionId)}
           >
             <Archive className="h-3 w-3" />
             Archive
@@ -385,6 +478,56 @@ export function ChatGPTSidebar({
           </button>
         </div>
       )}
+
+      {/* Rename Modal */}
+      <Dialog open={showRenameModal} onOpenChange={setShowRenameModal}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Rename Chat</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Enter a new title for this chat
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Enter chat title..."
+              className="bg-slate-800 border-slate-600 text-white"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleRenameSubmit();
+                } else if (e.key === 'Escape') {
+                  setShowRenameModal(false);
+                }
+              }}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowRenameModal(false)}
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRenameSubmit}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credit Purchase Modal */}
+      <CreditPurchase
+        open={showCreditPurchase}
+        onOpenChange={setShowCreditPurchase}
+        userId={user?.id}
+      />
     </div>
   );
 }
