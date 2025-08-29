@@ -96,8 +96,13 @@
     @apply border-border;
   }
 
+  html {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   }
 }
 
@@ -167,6 +172,55 @@
 
 .markdown-content ul {
   @apply list-disc list-inside text-muted-foreground mb-3;
+}
+
+/* App Loading Screen */
+.app-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(59, 130, 246, 0.1);
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-content {
+  text-align: center;
+  color: white;
+}
+
+.loading-title {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.loading-subtitle {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .markdown-content li {

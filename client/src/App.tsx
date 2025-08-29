@@ -12,9 +12,38 @@ import Community from "@/pages/community";
 import AuditHistoryPage from "@/pages/audit-history";
 import IntegrationsPage from "@/pages/integrations";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
+import { useState, useEffect } from "react";
+
+// Loading screen component
+function LoadingScreen() {
+  return (
+    <div className="app-loading">
+      <div className="loading-content">
+        <div className="loading-spinner"></div>
+        <div className="loading-title">SmartAudit AI</div>
+        <div className="loading-subtitle">Initializing secure audit environment...</div>
+      </div>
+    </div>
+  );
+}
 
 function Router() {
-  const { isAuthenticated, user } = useWeb3Auth();
+  const { isAuthenticated, user, isAuthenticating } = useWeb3Auth();
+  const [appLoading, setAppLoading] = useState(true);
+
+  // Show loading screen for initial app load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppLoading(false);
+    }, 1000); // Minimum loading time for smooth UX
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading screen during authentication check or initial app load
+  if (appLoading || isAuthenticating) {
+    return <LoadingScreen />;
+  }
 
   return (
     <Switch>

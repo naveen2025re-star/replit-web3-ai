@@ -178,6 +178,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   walletAddress: true,
   ensName: true,
   username: true,
+  displayName: true,
   email: true,
   githubId: true,
   githubUsername: true,

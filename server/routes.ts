@@ -259,6 +259,31 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       res.status(500).json({ message: "Failed to update user profile" });
     }
   });
+
+  // Logout route - clear session and redirect to home
+  app.get("/api/logout", (req: any, res) => {
+    try {
+      // If session exists, destroy it
+      if (req.session && req.session.destroy) {
+        req.session.destroy((err: any) => {
+          if (err) {
+            console.error("Error destroying session:", err);
+          }
+          // Clear the session cookie
+          res.clearCookie('connect.sid');
+          // Redirect to home page
+          res.redirect('/');
+        });
+      } else {
+        // No session to destroy, just redirect
+        res.clearCookie('connect.sid');
+        res.redirect('/');
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.redirect('/');
+    }
+  });
   
   // Create new audit session
   app.post("/api/audit/sessions", async (req, res) => {
