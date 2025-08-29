@@ -1018,9 +1018,9 @@ Focus on payment security and marketplace vulnerabilities.`)}
               </div>
             </div>
           ) : (
-            <div className="space-y-6 max-w-4xl mx-auto">
+            <div className="space-y-6 max-w-6xl mx-auto">
               {messages.map((message) => (
-                <div key={message.id} className="flex gap-4">
+                <div key={message.id} className="flex gap-6">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
                     {message.type === "user" ? (
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -1045,82 +1045,42 @@ Focus on payment security and marketplace vulnerabilities.`)}
                     
                     <div className="overflow-hidden">
                       {message.type === "user" ? (
-                        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-100 overflow-x-auto break-words">
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+                          <pre className="whitespace-pre-wrap text-sm text-slate-100 overflow-x-auto break-words leading-relaxed">
                             {message.content}
                           </pre>
                         </div>
                       ) : (
-                        <div className="bg-gradient-to-br from-slate-900/50 to-slate-800/30 rounded-xl border border-slate-700/50 p-6 shadow-xl">
-                          <div className="prose prose-invert prose-sm max-w-none overflow-hidden">
+                        <div className="bg-slate-900/30 rounded-lg border border-slate-700/30 p-5">
+                          <div className="prose prose-invert max-w-none overflow-hidden">
                             <div className="whitespace-pre-wrap leading-relaxed break-words">
-                              {/* Smart Analysis Summary */}
-                              {!message.isStreaming && message.content && (
-                                <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Shield className="h-4 w-4 text-blue-400" />
-                                    <span className="text-sm font-semibold text-blue-300">Quick Analysis Summary</span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-2 text-xs">
-                                    {message.content.toLowerCase().includes('critical') && (
-                                      <span className="px-2 py-1 bg-red-500/20 text-red-300 rounded border border-red-500/30">
-                                        Critical Issues Found
-                                      </span>
-                                    )}
-                                    {message.content.toLowerCase().includes('vulnerability') && (
-                                      <span className="px-2 py-1 bg-orange-500/20 text-orange-300 rounded border border-orange-500/30">
-                                        Security Vulnerabilities
-                                      </span>
-                                    )}
-                                    {message.content.toLowerCase().includes('gas') && (
-                                      <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded border border-green-500/30">
-                                        Gas Optimization
-                                      </span>
-                                    )}
-                                    {message.content.toLowerCase().includes('recommendation') && (
-                                      <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30">
-                                        Recommendations
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
 
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]}
                                 components={{
-                                // Enhanced styling for better readability and visual hierarchy
+                                // Clean, professional styling without over-designed elements
                                 h1: ({children}) => (
-                                  <div className="border-l-4 border-red-500 bg-red-500/10 rounded-lg p-4 mb-6 shadow-lg">
-                                    <h1 className="text-2xl font-bold text-white mb-0 flex items-center">
-                                      <AlertTriangle className="h-6 w-6 text-red-400 mr-3" />
-                                      {children}
-                                    </h1>
-                                  </div>
+                                  <h1 className="text-xl font-bold text-white mb-4 pb-2 border-b border-slate-700/50 flex items-center">
+                                    <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+                                    {children}
+                                  </h1>
                                 ),
                                 h2: ({children}) => (
-                                  <div className="border-l-4 border-yellow-500 bg-yellow-500/10 rounded-lg p-4 mb-4 shadow-md">
-                                    <h2 className="text-xl font-semibold text-white mb-0 flex items-center">
-                                      <Shield className="h-5 w-5 text-yellow-400 mr-2" />
-                                      {children}
-                                    </h2>
-                                  </div>
+                                  <h2 className="text-lg font-semibold text-white mb-3 mt-6 flex items-center">
+                                    <Shield className="h-4 w-4 text-orange-400 mr-2" />
+                                    {children}
+                                  </h2>
                                 ),
                                 h3: ({children}) => (
-                                  <div className="border-l-4 border-blue-500 bg-blue-500/10 rounded-lg p-3 mb-3 shadow-sm">
-                                    <h3 className="text-lg font-medium text-white mb-0 flex items-center">
-                                      <AlertCircle className="h-4 w-4 text-blue-400 mr-2" />
-                                      {children}
-                                    </h3>
-                                  </div>
+                                  <h3 className="text-base font-medium text-slate-200 mb-2 mt-4 flex items-center">
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                                    {children}
+                                  </h3>
                                 ),
                                 h4: ({children}) => (
-                                  <div className="border-l-3 border-purple-500 bg-purple-500/10 rounded-lg p-2 mb-2">
-                                    <h4 className="text-base font-medium text-white mb-0 flex items-center">
-                                      <Info className="h-4 w-4 text-purple-400 mr-2" />
-                                      {children}
-                                    </h4>
-                                  </div>
+                                  <h4 className="text-sm font-medium text-slate-300 mb-2 mt-3">
+                                    {children}
+                                  </h4>
                                 ),
                                 p: ({children}) => (
                                   <p className="text-slate-200 mb-4 leading-relaxed break-words text-base">{children}</p>
@@ -1140,15 +1100,7 @@ Focus on payment security and marketplace vulnerabilities.`)}
                                 code: ({children, className}) => {
                                   if (className?.includes('language-')) {
                                     return (
-                                      <div className="bg-slate-950 border border-slate-700 rounded-lg p-4 mb-4 shadow-inner">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <span className="text-xs text-slate-400 font-mono">{className?.replace('language-', '') || 'code'}</span>
-                                          <div className="flex gap-1">
-                                            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                                            <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                          </div>
-                                        </div>
+                                      <div className="bg-slate-950 rounded-md p-3 mb-3 border border-slate-800">
                                         <pre className="text-sm font-mono text-slate-300 overflow-x-auto">
                                           <code className={className}>{children}</code>
                                         </pre>
@@ -1156,53 +1108,50 @@ Focus on payment security and marketplace vulnerabilities.`)}
                                     );
                                   }
                                   return (
-                                    <code className="bg-slate-800 border border-slate-600 px-2 py-1 rounded text-sm font-mono text-cyan-300 break-all">
+                                    <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono text-blue-300">
                                       {children}
                                     </code>
                                   );
                                 },
                                 pre: ({children}) => (
-                                  <div className="bg-slate-950 border border-slate-700 rounded-lg p-4 mb-4 shadow-inner">
+                                  <div className="bg-slate-950 rounded-md p-3 mb-3 border border-slate-800">
                                     <pre className="text-sm font-mono text-slate-300 overflow-x-auto">{children}</pre>
                                   </div>
                                 ),
                                 blockquote: ({children}) => (
-                                  <div className="border-l-4 border-green-500 bg-green-500/10 rounded-lg p-4 mb-4 shadow-sm">
-                                    <div className="flex items-start">
-                                      <Lightbulb className="h-5 w-5 text-green-400 mr-3 mt-1 flex-shrink-0" />
-                                      <blockquote className="text-green-100 mb-0 italic">{children}</blockquote>
-                                    </div>
+                                  <div className="border-l-2 border-slate-600 pl-4 py-2 my-3 bg-slate-800/20">
+                                    <blockquote className="text-slate-300 italic">{children}</blockquote>
                                   </div>
                                 ),
                                 strong: ({children}) => (
-                                  <strong className="font-semibold text-white bg-slate-800/50 px-1 rounded">{children}</strong>
+                                  <strong className="font-semibold text-white">{children}</strong>
                                 ),
                                 em: ({children}) => (
                                   <em className="italic text-slate-300">{children}</em>
                                 ),
                                 table: ({children}) => (
                                   <div className="overflow-x-auto mb-4">
-                                    <table className="min-w-full bg-slate-800/30 border border-slate-700 rounded-lg">
+                                    <table className="min-w-full border border-slate-700/50 rounded-md">
                                       {children}
                                     </table>
                                   </div>
                                 ),
                                 thead: ({children}) => (
-                                  <thead className="bg-slate-700/50">{children}</thead>
+                                  <thead className="bg-slate-800/50">{children}</thead>
                                 ),
                                 tbody: ({children}) => (
-                                  <tbody className="divide-y divide-slate-700/50">{children}</tbody>
+                                  <tbody className="divide-y divide-slate-700/30">{children}</tbody>
                                 ),
                                 tr: ({children}) => (
-                                  <tr className="hover:bg-slate-700/20 transition-colors">{children}</tr>
+                                  <tr>{children}</tr>
                                 ),
                                 th: ({children}) => (
-                                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-slate-300 border-b border-slate-700/50">
                                     {children}
                                   </th>
                                 ),
                                 td: ({children}) => (
-                                  <td className="px-4 py-3 text-sm text-slate-200">{children}</td>
+                                  <td className="px-3 py-2 text-sm text-slate-200">{children}</td>
                                 ),
                                 }}
                               >
