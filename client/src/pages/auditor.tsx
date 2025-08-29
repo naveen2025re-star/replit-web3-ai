@@ -101,6 +101,83 @@ export default function AuditorPage() {
     }
   }, [isConnected, isAuthenticated, setLocation]);
 
+  // Handle session URL parameter for direct links from GitHub integration
+  useEffect(() => {
+    const handleSessionFromUrl = async () => {
+      if (isAuthenticated && user?.id) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
+        
+        if (sessionId && sessionId !== currentSessionId) {
+          console.log('Loading session from URL:', sessionId);
+          
+          try {
+            // Load session directly using the same logic as loadAuditSession
+            toast({
+              title: "Loading GitHub analysis",
+              description: "Retrieving your blockchain file analysis...",
+            });
+
+            setMessages([]);
+            setCurrentSessionId(sessionId);
+            
+            // Fetch the audit session details
+            const response = await fetch(`/api/audit/session/${sessionId}`);
+            if (!response.ok) {
+              throw new Error('Failed to load audit session');
+            }
+            
+            const sessionData = await response.json();
+            
+            // Create user message with the original contract code
+            if (sessionData.contractCode) {
+              const userMessage: ChatMessage = {
+                id: Date.now().toString(),
+                type: "user",
+                content: sessionData.contractCode,
+                timestamp: new Date(sessionData.createdAt)
+              };
+              
+              // Create AI response if available
+              const messages: ChatMessage[] = [userMessage];
+              if (sessionData.result && (sessionData.result.rawResponse || sessionData.result.formattedReport)) {
+                const aiMessage: ChatMessage = {
+                  id: (Date.now() + 1).toString(),
+                  type: "assistant",
+                  content: sessionData.result.rawResponse || sessionData.result.formattedReport,
+                  timestamp: new Date(sessionData.result.createdAt || sessionData.completedAt)
+                };
+                messages.push(aiMessage);
+              }
+              
+              setMessages(messages);
+              setInputValue(""); // Clear input
+              
+              toast({
+                title: "Analysis loaded",
+                description: "Your GitHub analysis has been loaded successfully.",
+              });
+            }
+            
+            // Clear the URL parameter after loading
+            window.history.replaceState({}, '', '/auditor');
+          } catch (error) {
+            console.error('Error loading session from URL:', error);
+            toast({
+              title: "Error",
+              description: "Failed to load the analysis session. Please try again.",
+              variant: "destructive",
+            });
+            // Clear the URL parameter even on error
+            window.history.replaceState({}, '', '/auditor');
+          }
+        }
+      }
+    };
+    
+    handleSessionFromUrl();
+  }, [isAuthenticated, user?.id, currentSessionId, toast]);
+
   // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
     queryKey: ['/api/audit/user-sessions', user?.id],

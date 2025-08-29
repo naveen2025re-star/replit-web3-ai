@@ -1339,13 +1339,27 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         });
       }
 
+      // Determine the primary language from the selected files
+      const languageCounts = selectedFiles.reduce((acc: Record<string, number>, filePath: string) => {
+        const extension = filePath.toLowerCase().split('.').pop();
+        const langInfo = detectBlockchainLanguage(`file.${extension}`);
+        if (langInfo) {
+          acc[langInfo.language] = (acc[langInfo.language] || 0) + 1;
+        }
+        return acc;
+      }, {});
+      
+      const primaryLanguage = Object.keys(languageCounts).length > 0 
+        ? Object.entries(languageCounts).sort(([,a], [,b]) => b - a)[0][0].toLowerCase()
+        : "solidity";
+
       // Check credit requirements for authenticated users
       const factors: CreditCalculationFactors = {
         codeLength: combinedContractCode.length,
         complexity: Math.min(10, Math.max(1, Math.ceil(combinedContractCode.length / 1000))),
         hasMultipleFiles: selectedFiles.length > 1,
         analysisType: "security",
-        language: "solidity"
+        language: primaryLanguage
       };
 
       const creditCheck = await CreditService.checkCreditsAndCalculateCost(userId, factors);
@@ -1379,7 +1393,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const auditSession = await storage.createAuditSession({
         sessionKey,
         contractCode: combinedContractCode,
-        contractLanguage: "solidity",
+        contractLanguage: primaryLanguage,
         userId,
         isPublic: false,
         tags: ["github", "repository", repositoryFullName.split('/')[1]]

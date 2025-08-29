@@ -239,9 +239,9 @@ export default function IntegrationsPage() {
         title: "Analysis Started",
         description: `Starting AI analysis of ${selectedFiles.length} files. Redirecting to audit page...`,
       });
-      // Redirect to the audit page with the session ID
+      // Redirect to the auditor page with the session ID
       setTimeout(() => {
-        window.location.href = `/audit?session=${data.sessionId}`;
+        window.location.href = `/auditor?session=${data.sessionId}`;
       }, 2000);
     },
     onError: (error: any) => {
