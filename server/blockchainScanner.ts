@@ -102,7 +102,7 @@ export class BlockchainScanner {
     { address: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", network: "optimism", type: "Stablecoin" },
   ];
 
-  private static async fetchContractFromExplorer(
+  public static async fetchContractFromExplorer(
     contractAddress: string,
     network: string
   ): Promise<VerifiedContract | null> {
@@ -138,6 +138,13 @@ export class BlockchainScanner {
       }
 
       const contractData = data.result[0];
+      
+      // Debug: Log the actual source code structure
+      console.log(`=== DEBUG: Source code structure for ${contractAddress} ===`);
+      console.log(`SourceCode type: ${typeof contractData.SourceCode}`);
+      console.log(`SourceCode length: ${contractData.SourceCode?.length || 0}`);
+      console.log(`SourceCode starts with: ${contractData.SourceCode?.substring(0, 100)}...`);
+      console.log(`Contract name: ${contractData.ContractName}`);
       
       // Clean up source code if it's in JSON format
       let sourceCode = contractData.SourceCode;
@@ -197,7 +204,7 @@ export class BlockchainScanner {
     }
   }
 
-  private static async createAuditSession(
+  public static async createAuditSession(
     contract: VerifiedContract
   ): Promise<string | null> {
     try {
@@ -340,7 +347,7 @@ export class BlockchainScanner {
         .where(
           and(
             eq(liveScannedContracts.scanStatus, "completed"),
-            lte(todayStart, liveScannedContracts.scannedAt)
+            gte(liveScannedContracts.scannedAt, todayStart)
           )
         );
 
