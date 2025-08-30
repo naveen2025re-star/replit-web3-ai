@@ -131,7 +131,10 @@ export function ChatGPTSidebar({
     try {
       const response = await fetch('/api/user/display-name', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || ''
+        },
         body: JSON.stringify({ displayName: displayNameValue.trim() })
       });
 
@@ -485,21 +488,21 @@ export function ChatGPTSidebar({
               </div>
             </button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+          <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Account</DialogTitle>
               <DialogDescription className="text-slate-400">
                 Manage your profile and account settings
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-6 py-4">
+            <div className="space-y-4 py-2">
               {/* User Profile Section */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-700/30 border border-slate-600/50">
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-xl">
+              <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-600/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg font-bold">
                     {(user?.displayName || user?.ensName || user?.githubUsername || user?.walletAddress)?.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-2">
                     {/* Display Name Section */}
                     <div>
                       <label className="text-xs text-slate-400 uppercase tracking-wide font-medium">Display Name</label>
@@ -556,63 +559,56 @@ export function ChatGPTSidebar({
                     {/* Wallet Address */}
                     <div>
                       <label className="text-xs text-slate-400 uppercase tracking-wide font-medium">Wallet</label>
-                      <div className="text-sm text-slate-300 mt-1 font-mono">
-                        {user?.walletAddress ? `${user.walletAddress.slice(0, 8)}...${user.walletAddress.slice(-6)}` : 'Not connected'}
+                      <div className="text-xs text-slate-300 mt-1 font-mono">
+                        {user?.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'Not connected'}
                       </div>
-                    </div>
-
-                    {/* Connection Status */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-400 font-medium">Connected & Secure</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Credits Section */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-600/10 border border-blue-500/20">
-                <div className="flex items-center gap-2 mb-3">
-                  <CreditCard className="h-4 w-4 text-blue-400" />
-                  <span className="text-sm font-medium text-blue-300">Credit Balance</span>
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-300">Credits</span>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowUserModal(false);
+                      setShowCreditPurchase(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
+                  >
+                    Buy More
+                  </Button>
                 </div>
-                <div className="mb-4">
-                  <CreditDisplay 
-                    userId={user?.id}
-                    compact={false}
-                  />
-                </div>
-                <Button
-                  onClick={() => {
-                    setShowUserModal(false);
-                    setShowCreditPurchase(true);
-                  }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm font-medium py-2.5 shadow-lg"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Buy More Credits
-                </Button>
+                <CreditDisplay 
+                  userId={user?.id}
+                  compact={true}
+                />
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Button 
                   variant="outline" 
+                  size="sm"
                   onClick={() => {
                     setShowUserModal(false);
                     window.location.href = '/settings';
                   }}
-                  className="w-full justify-start border-slate-600 bg-slate-800/30 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                  className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-800 h-9"
                 >
-                  <Settings className="h-4 w-4 mr-3" />
-                  <span>Settings & Preferences</span>
+                  <Settings className="h-4 w-4 mr-2" />
+                  <span>Settings</span>
                 </Button>
                 <Button 
                   variant="outline"
+                  size="sm"
                   onClick={handleLogout}
-                  className="w-full justify-start border-red-600/50 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 hover:border-red-500/50 transition-colors"
+                  className="w-full justify-start border-red-600/50 text-red-300 hover:bg-red-500/20 hover:text-red-200 h-9"
                 >
-                  <LogOut className="h-4 w-4 mr-3" />
+                  <LogOut className="h-4 w-4 mr-2" />
                   <span>Log out</span>
                 </Button>
               </div>
