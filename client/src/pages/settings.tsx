@@ -432,15 +432,11 @@ export default function SettingsPage() {
                 
                 <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
                   <h3 className="text-lg font-semibold text-white mb-2">Payment Method</h3>
-                  <p className="text-slate-400 mb-4">Secure payments via Stripe and PayPal</p>
+                  <p className="text-slate-400 mb-4">Secure payments via PayPal</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5 text-slate-400" />
-                      <span className="text-slate-300">Credit/Debit Cards</span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <DollarSign className="h-5 w-5 text-slate-400" />
-                      <span className="text-slate-300">PayPal</span>
+                      <span className="text-slate-300">PayPal Payment</span>
                     </div>
                   </div>
                 </div>

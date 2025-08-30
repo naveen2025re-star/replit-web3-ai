@@ -27,12 +27,13 @@ interface CreditPackage {
 }
 
 interface CreditPurchaseProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   userId?: string;
+  onClose?: () => void;
 }
 
-export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchaseProps) {
+export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: CreditPurchaseProps) {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -69,7 +70,8 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
           title: "Contact Sales",
           description: data.message,
         });
-        onOpenChange(false);
+        if (onOpenChange) onOpenChange(false);
+        if (onClose) onClose();
       } else if (data.requiresPayment) {
         setPaymentData(data);
       } else {
@@ -78,7 +80,8 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
           description: `Successfully added ${data.creditsAdded} credits to your account.`,
         });
         queryClient.invalidateQueries({ queryKey: ['/api/credits/balance'] });
-        onOpenChange(false);
+        if (onOpenChange) onOpenChange(false);
+        if (onClose) onClose();
       }
     },
     onError: (error: any) => {
@@ -117,7 +120,8 @@ export function CreditPurchase({ open, onOpenChange, userId }: CreditPurchasePro
       queryClient.invalidateQueries({ queryKey: ['/api/credits/balance'] });
       setPaymentData(null);
       setSelectedPackage(null);
-      onOpenChange(false);
+      if (onOpenChange) onOpenChange(false);
+      if (onClose) onClose();
     },
     onError: (error: any) => {
       toast({

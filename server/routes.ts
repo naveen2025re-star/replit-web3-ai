@@ -263,7 +263,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // Update user display name (simplified endpoint)
   app.patch("/api/user/display-name", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req as any).user.claims.sub;
       const { displayName } = z.object({
         displayName: z.string().max(50, "Display name must be 50 characters or less").optional()
       }).parse(req.body);
@@ -892,6 +892,30 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     } catch (error) {
       console.error("Get credit packages failed:", error);
       res.status(500).json({ message: "Failed to fetch credit packages" });
+    }
+  });
+
+  // Get user credit transactions/history
+  app.get("/api/credits/transactions/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Get transactions from database
+      const transactions = await db
+        .select()
+        .from(creditTransactions)
+        .where(eq(creditTransactions.userId, userId))
+        .orderBy(desc(creditTransactions.createdAt))
+        .limit(50);
+
+      res.json(transactions);
+    } catch (error) {
+      console.error("Get credit transactions failed:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
     }
   });
 
