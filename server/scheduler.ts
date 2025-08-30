@@ -13,12 +13,18 @@ export class Scheduler {
       clearInterval(existingInterval);
     }
 
-    // Run cleanup, sync statuses, then scanning
+    // Run cleanup, sync statuses, then scanning with error handling
     setTimeout(async () => {
-      await this.cleanupOldSessions();
-      await this.syncLiveScanStatuses();
-      await this.runLiveScan();
-    }, 5000); // Wait 5 seconds after server start
+      try {
+        console.log("[SCHEDULER] Starting delayed initialization...");
+        await this.cleanupOldSessions();
+        await this.syncLiveScanStatuses();
+        await this.runLiveScan();
+      } catch (error) {
+        console.error('[SCHEDULER] Initial startup tasks failed:', error);
+        // Continue without failing the entire app
+      }
+    }, 15000); // Wait 15 seconds for database to be ready
 
     // Schedule scanning every 8 hours + daily cleanup at midnight
     const scanInterval = setInterval(() => {
