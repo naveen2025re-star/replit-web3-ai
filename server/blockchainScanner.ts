@@ -139,13 +139,6 @@ export class BlockchainScanner {
 
       const contractData = data.result[0];
       
-      // Debug: Log the actual source code structure
-      console.log(`=== DEBUG: Source code structure for ${contractAddress} ===`);
-      console.log(`SourceCode type: ${typeof contractData.SourceCode}`);
-      console.log(`SourceCode length: ${contractData.SourceCode?.length || 0}`);
-      console.log(`SourceCode starts with: ${contractData.SourceCode?.substring(0, 100)}...`);
-      console.log(`Contract name: ${contractData.ContractName}`);
-      
       // Clean up source code if it's in JSON format
       let sourceCode = contractData.SourceCode;
       
