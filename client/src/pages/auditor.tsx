@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useLocation } from "wouter";
 import { 
   Send, 
@@ -1102,119 +1101,13 @@ Focus on payment security and marketplace vulnerabilities.`)}
                         </div>
                       ) : (
                         <div className="bg-slate-900/30 rounded-lg border border-slate-700/30 p-5">
-                          <div className="prose prose-invert max-w-none overflow-hidden">
-                            <div className="whitespace-pre-wrap leading-relaxed break-words">
-
-                              <ReactMarkdown 
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                // Clean, professional styling without over-designed elements
-                                h1: ({children}) => (
-                                  <h1 className="text-xl font-bold text-white mb-4 pb-2 border-b border-slate-700/50 flex items-center">
-                                    <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
-                                    {children}
-                                  </h1>
-                                ),
-                                h2: ({children}) => (
-                                  <h2 className="text-lg font-semibold text-white mb-3 mt-6 flex items-center">
-                                    <Shield className="h-4 w-4 text-orange-400 mr-2" />
-                                    {children}
-                                  </h2>
-                                ),
-                                h3: ({children}) => (
-                                  <h3 className="text-base font-medium text-slate-200 mb-2 mt-4 flex items-center">
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                                    {children}
-                                  </h3>
-                                ),
-                                h4: ({children}) => (
-                                  <h4 className="text-sm font-medium text-slate-300 mb-2 mt-3">
-                                    {children}
-                                  </h4>
-                                ),
-                                p: ({children}) => (
-                                  <p className="text-slate-200 mb-4 leading-relaxed break-words text-base">{children}</p>
-                                ),
-                                ul: ({children}) => (
-                                  <ul className="list-none mb-4 space-y-2 text-slate-200">{children}</ul>
-                                ),
-                                ol: ({children}) => (
-                                  <ol className="list-decimal list-inside mb-4 space-y-2 text-slate-200 ml-4">{children}</ol>
-                                ),
-                                li: ({children}) => (
-                                  <li className="text-slate-200 mb-1 flex items-start">
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                                    <div className="flex-1">{children}</div>
-                                  </li>
-                                ),
-                                code: ({children, className}) => {
-                                  if (className?.includes('language-')) {
-                                    return (
-                                      <div className="bg-slate-950 rounded-md p-3 mb-3 border border-slate-800">
-                                        <pre className="text-sm font-mono text-slate-300 overflow-x-auto">
-                                          <code className={className}>{children}</code>
-                                        </pre>
-                                      </div>
-                                    );
-                                  }
-                                  return (
-                                    <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono text-blue-300">
-                                      {children}
-                                    </code>
-                                  );
-                                },
-                                pre: ({children}) => (
-                                  <div className="bg-slate-950 rounded-md p-3 mb-3 border border-slate-800">
-                                    <pre className="text-sm font-mono text-slate-300 overflow-x-auto">{children}</pre>
-                                  </div>
-                                ),
-                                blockquote: ({children}) => (
-                                  <div className="border-l-2 border-slate-600 pl-4 py-2 my-3 bg-slate-800/20">
-                                    <blockquote className="text-slate-300 italic">{children}</blockquote>
-                                  </div>
-                                ),
-                                strong: ({children}) => (
-                                  <strong className="font-semibold text-white">{children}</strong>
-                                ),
-                                em: ({children}) => (
-                                  <em className="italic text-slate-300">{children}</em>
-                                ),
-                                table: ({children}) => (
-                                  <div className="overflow-x-auto mb-4">
-                                    <table className="min-w-full border border-slate-700/50 rounded-md">
-                                      {children}
-                                    </table>
-                                  </div>
-                                ),
-                                thead: ({children}) => (
-                                  <thead className="bg-slate-800/50">{children}</thead>
-                                ),
-                                tbody: ({children}) => (
-                                  <tbody className="divide-y divide-slate-700/30">{children}</tbody>
-                                ),
-                                tr: ({children}) => (
-                                  <tr>{children}</tr>
-                                ),
-                                th: ({children}) => (
-                                  <th className="px-3 py-2 text-left text-xs font-medium text-slate-300 border-b border-slate-700/50">
-                                    {children}
-                                  </th>
-                                ),
-                                td: ({children}) => (
-                                  <td className="px-3 py-2 text-sm text-slate-200">{children}</td>
-                                ),
-                                }}
-                              >
-                                {message.content}
-                              </ReactMarkdown>
-                              {message.isStreaming && (
-                                <div className="flex items-center gap-2 mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                  <span className="text-green-400 text-sm font-medium">Analyzing...</span>
-                                </div>
-                              )}
+                          <MarkdownRenderer content={message.content} />
+                          {message.isStreaming && (
+                            <div className="flex items-center gap-2 mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              <span className="text-green-400 text-sm font-medium">Analyzing...</span>
                             </div>
-                          </div>
+                          )}
                           
                           {!message.isStreaming && message.content && (
                             <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-700/50">
