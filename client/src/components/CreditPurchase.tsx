@@ -43,17 +43,6 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
     enabled: open,
   });
 
-  // Check if user has already claimed free credits
-  const { data: hasClaimedFree } = useQuery({
-    queryKey: ['/api/credits/check-free-claim', userId],
-    queryFn: async () => {
-      if (!userId) return false;
-      const response = await fetch(`/api/credits/check-free-claim?userId=${userId}`);
-      const data = await response.json();
-      return data.hasClaimed || false;
-    },
-    enabled: open && !!userId,
-  });
 
   const [paymentData, setPaymentData] = useState<any>(null);
 
@@ -85,16 +74,6 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
       }
     },
     onError: (error: any) => {
-      // Handle already claimed free credits error
-      if (error.message?.includes('already claimed')) {
-        toast({
-          title: "Free Credits Already Claimed",
-          description: "You've already received your free credits! Upgrade to Pro or Pro+ for more credits.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       toast({
         title: "Purchase Failed",
         description: error.message || "Failed to process purchase. Please try again.",
@@ -315,43 +294,45 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                       Cancel
                     </Button>
                   </div>
-                ) : (
-                  <Button
-                    className={`w-full h-12 text-base font-bold transition-all duration-300 transform hover:scale-105 ${
-                      pkg.popular
-                        ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 text-white shadow-xl shadow-emerald-500/25'
-                        : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white shadow-lg hover:shadow-xl border-slate-600/50'
-                    }`}
-                    disabled={purchaseMutation.isPending || (pkg.price === 0 && hasClaimedFree)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePurchase(pkg.id);
-                    }}
-                    data-testid={`button-purchase-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    {purchaseMutation.isPending && selectedPackage === pkg.id ? (
+                ) : pkg.price === 0 ? (
+                    <div className="w-full h-12 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/30 rounded-lg flex items-center justify-center text-green-400 font-bold text-base">
                       <div className="flex items-center gap-2">
-                        <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
-                        Processing...
+                        <Check className="h-5 w-5" />
+                        Included on Signup
                       </div>
-                    ) : pkg.name === 'Enterprise' ? (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5" />
-                        Contact Sales
-                      </div>
-                    ) : pkg.price === 0 ? (
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-5 w-5" />
-                        {hasClaimedFree ? 'Already Claimed' : 'Get Free Credits'}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-5 w-5" />
-                        Purchase with PayPal
-                      </div>
-                    )}
-                  </Button>
-                )}
+                    </div>
+                  ) : (
+                    <Button
+                      className={`w-full h-12 text-base font-bold transition-all duration-300 transform hover:scale-105 ${
+                        pkg.popular
+                          ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 text-white shadow-xl shadow-emerald-500/25'
+                          : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white shadow-lg hover:shadow-xl border-slate-600/50'
+                      }`}
+                      disabled={purchaseMutation.isPending}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePurchase(pkg.id);
+                      }}
+                      data-testid={`button-purchase-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {purchaseMutation.isPending && selectedPackage === pkg.id ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
+                          Processing...
+                        </div>
+                      ) : pkg.name === 'Enterprise' ? (
+                        <div className="flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          Contact Sales
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Coins className="h-5 w-5" />
+                          Purchase with PayPal
+                        </div>
+                      )}
+                    </Button>
+                  )}
               </CardContent>
             </Card>
           ))}
