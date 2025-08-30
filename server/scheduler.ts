@@ -1,7 +1,7 @@
 import { BlockchainScanner } from "./blockchainScanner";
 import { db } from "./db";
 import { auditSessions, liveScannedContracts } from "@shared/schema";
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 
 export class Scheduler {
   private static intervals: Map<string, NodeJS.Timeout> = new Map();
@@ -13,9 +13,10 @@ export class Scheduler {
       clearInterval(existingInterval);
     }
 
-    // Run cleanup first, then scanning
+    // Run cleanup, sync statuses, then scanning
     setTimeout(async () => {
       await this.cleanupOldSessions();
+      await this.syncLiveScanStatuses();
       await this.runLiveScan();
     }, 5000); // Wait 5 seconds after server start
 
@@ -24,9 +25,10 @@ export class Scheduler {
       this.runLiveScan();
     }, 8 * 60 * 60 * 1000); // 8 hours for more frequent scanning
     
-    // Daily cleanup at midnight
-    const cleanupInterval = setInterval(() => {
-      this.cleanupOldSessions();
+    // Daily cleanup and sync at midnight
+    const cleanupInterval = setInterval(async () => {
+      await this.cleanupOldSessions();
+      await this.syncLiveScanStatuses();
     }, 24 * 60 * 60 * 1000); // 24 hours
 
     this.intervals.set("live-scanning", scanInterval);
@@ -46,6 +48,43 @@ export class Scheduler {
       }
     } catch (error) {
       console.error("[SCHEDULER] Live scan failed:", error);
+    }
+  }
+
+  // Smart status sync to prevent UI inconsistencies
+  private static async syncLiveScanStatuses(): Promise<void> {
+    try {
+      console.log("[SMART SYNC] Syncing live scan statuses...");
+      
+      const result = await db.execute(sql`
+        UPDATE live_scanned_contracts 
+        SET scan_status = (
+          SELECT 
+            CASE 
+              WHEN s.status = 'completed' THEN 'completed'
+              WHEN s.status = 'failed' THEN 'failed'
+              ELSE 'scanning'
+            END
+          FROM audit_sessions s 
+          WHERE s.id = live_scanned_contracts.audit_session_id
+        )
+        WHERE scan_status != (
+          SELECT 
+            CASE 
+              WHEN s.status = 'completed' THEN 'completed'
+              WHEN s.status = 'failed' THEN 'failed'
+              ELSE 'scanning'
+            END
+          FROM audit_sessions s 
+          WHERE s.id = live_scanned_contracts.audit_session_id
+        )
+      `);
+      
+      if (result.rowCount && result.rowCount > 0) {
+        console.log(`[SMART SYNC] Fixed ${result.rowCount} status mismatches`);
+      }
+    } catch (error) {
+      console.error("[SMART SYNC] Error syncing statuses:", error);
     }
   }
 
