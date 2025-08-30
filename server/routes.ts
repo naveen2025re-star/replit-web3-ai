@@ -2113,6 +2113,15 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // PayPal return URLs for proper redirect handling
+  app.get("/payment/success", (req, res) => {
+    res.redirect("/?payment=success");
+  });
+
+  app.get("/payment/cancel", (req, res) => {
+    res.redirect("/?payment=cancelled");
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

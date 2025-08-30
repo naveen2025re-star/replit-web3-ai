@@ -94,16 +94,27 @@ export async function createPaypalOrder(req: Request, res: Response) {
     const collect = {
       body: {
         intent: intent,
+        application_context: {
+          brand_name: "Smart Contract Auditor",
+          locale: "en-US",
+          landing_page: "BILLING",
+          shipping_preference: "NO_SHIPPING",
+          user_action: "PAY_NOW",
+          return_url: `${req.protocol}://${req.get('host')}/payment/success`,
+          cancel_url: `${req.protocol}://${req.get('host')}/payment/cancel`
+        },
         purchaseUnits: [
           {
+            referenceId: "default",
             amount: {
               currencyCode: currency,
               value: amount,
             },
+            description: `Smart Contract Audit Credits - ${amount} ${currency}`
           },
         ],
       },
-      prefer: "return=minimal",
+      prefer: "return=representation",
     };
 
     const { body, ...httpResponse } =
@@ -141,9 +152,14 @@ export async function capturePaypalOrder(req: Request, res: Response) {
 }
 
 export async function loadPaypalDefault(req: Request, res: Response) {
-  const clientToken = await getClientToken();
-  res.json({
-    clientToken,
-  });
+  try {
+    const clientToken = await getClientToken();
+    res.json({
+      clientToken,
+    });
+  } catch (error) {
+    console.error("Failed to get client token:", error);
+    res.status(500).json({ error: "Failed to initialize PayPal" });
+  }
 }
 // <END_EXACT_CODE>
