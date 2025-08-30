@@ -122,6 +122,22 @@ export const creditPackages = pgTable("credit_packages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Enterprise contact requests
+export const enterpriseContacts = pgTable("enterprise_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  companyName: text("company_name").notNull(),
+  contactName: text("contact_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  teamSize: text("team_size"),
+  monthlyAudits: text("monthly_audits"),
+  requirements: text("requirements"),
+  status: text("status").notNull().default("pending"), // pending, contacted, demo_scheduled, closed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   auditSessions: many(auditSessions),
@@ -222,6 +238,16 @@ export const updateAuditVisibilitySchema = createInsertSchema(auditSessions).pic
   publicDescription: true,
   tags: true,
 });
+
+export const insertEnterpriseContactSchema = createInsertSchema(enterpriseContacts).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEnterpriseContact = z.infer<typeof insertEnterpriseContactSchema>;
+export type EnterpriseContact = typeof enterpriseContacts.$inferSelect;
 
 export const insertAuditResultSchema = createInsertSchema(auditResults).pick({
   sessionId: true,

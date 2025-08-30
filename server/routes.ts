@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions } from "@shared/schema";
+import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema } from "@shared/schema";
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { z } from "zod";
 import * as crypto from "crypto";
@@ -1944,6 +1944,27 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     } catch (error) {
       console.error("Credit purchase completion failed:", error);
       res.status(500).json({ message: "Failed to complete purchase" });
+    }
+  });
+
+  // Submit enterprise contact form
+  app.post("/api/enterprise/contact", async (req, res) => {
+    try {
+      const contactData = insertEnterpriseContactSchema.parse(req.body);
+      
+      // Insert contact request into database
+      const [contact] = await db.insert(enterpriseContacts)
+        .values(contactData)
+        .returning();
+      
+      res.json({ 
+        success: true, 
+        message: "Thank you for your interest! Our enterprise team will contact you within 24 hours.",
+        contactId: contact.id
+      });
+    } catch (error) {
+      console.error("Enterprise contact submission failed:", error);
+      res.status(500).json({ message: "Failed to submit contact form" });
     }
   });
 

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PayPalButton from "./PayPalButton";
+import { EnterpriseContactModal } from "./EnterpriseContactModal";
 
 interface CreditPackage {
   id: string;
@@ -35,6 +36,7 @@ interface CreditPurchaseProps {
 
 export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: CreditPurchaseProps) {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -345,7 +347,21 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                       Cancel
                     </Button>
                   </div>
-                ) : pkg.price === 0 ? (
+                ) : pkg.name === 'Enterprise' ? (
+                    <Button
+                      className="w-full h-12 text-base font-bold transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-blue-500 via-purple-600 to-blue-700 hover:from-blue-400 hover:via-purple-500 hover:to-blue-600 text-white shadow-xl shadow-blue-500/25"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowEnterpriseModal(true);
+                      }}
+                      data-testid="button-contact-enterprise"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        Contact Sales
+                      </div>
+                    </Button>
+                  ) : pkg.price === 0 ? (
                     <div className="w-full h-12 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/30 rounded-lg flex items-center justify-center text-green-400 font-bold text-base">
                       <div className="flex items-center gap-2">
                         <Check className="h-5 w-5" />
@@ -370,11 +386,6 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                         <div className="flex items-center gap-2">
                           <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
                           Processing...
-                        </div>
-                      ) : pkg.name === 'Enterprise' ? (
-                        <div className="flex items-center gap-2">
-                          <Users className="h-5 w-5" />
-                          Contact Sales
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
@@ -406,6 +417,12 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
             </div>
           </div>
         </div>
+
+        <EnterpriseContactModal
+          open={showEnterpriseModal}
+          onOpenChange={setShowEnterpriseModal}
+          userId={userId}
+        />
       </DialogContent>
     </Dialog>
   );
