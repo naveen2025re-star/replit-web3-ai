@@ -367,8 +367,8 @@ export class BlockchainScanner {
             Math.floor(Math.random() * highValueContracts.length)
           ];
           console.log(`[SMART SELECTION] Re-analyzing high-value contract: ${highValueContract.type}`);
-          // Use the high value contract as our selection
-          contractToScan = highValueContract;
+          // Process this high value contract and return
+          return await this.processSelectedContract(highValueContract);
         } else {
           return false;
         }
@@ -376,12 +376,12 @@ export class BlockchainScanner {
       
       // Smart prioritization: prefer DeFi, Token, and Bridge contracts  
       const priorityTypes = ["DeFi", "Token", "Stablecoin", "Bridge", "DEX"];
-      let contractToScan;
       
       const priorityContracts = unscannedContracts.filter(contract => 
         priorityTypes.some(type => contract.type.includes(type))
       );
       
+      let contractToScan;
       if (priorityContracts.length > 0) {
         contractToScan = priorityContracts[
           Math.floor(Math.random() * priorityContracts.length)
@@ -393,6 +393,16 @@ export class BlockchainScanner {
         ];
         console.log(`[SMART SELECTION] Selected random contract: ${contractToScan.type}`);
       }
+      
+      return await this.processSelectedContract(contractToScan);
+    } catch (error) {
+      console.error("Error in scanRandomContract:", error);
+      return false;
+    }
+  }
+  
+  private static async processSelectedContract(contractToScan: any): Promise<boolean> {
+    try {
 
       console.log(`Selected new contract for scanning: ${contractToScan.address} (${contractToScan.type})`);
 
@@ -403,7 +413,7 @@ export class BlockchainScanner {
       );
 
       if (!contractData) {
-        console.log(`Could not fetch contract data for ${randomContract.address}`);
+        console.log(`Could not fetch contract data for ${contractToScan.address}`);
         return false;
       }
 
