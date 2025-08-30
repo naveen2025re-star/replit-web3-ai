@@ -456,6 +456,7 @@ export function ChatGPTSidebar({
         <div className="space-y-1">
           <Button 
             variant="ghost" 
+            onClick={() => window.location.href = '/settings'}
             className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800/50 h-9"
           >
             <Settings className="h-4 w-4 mr-2" />
@@ -590,18 +591,6 @@ export function ChatGPTSidebar({
 
               {/* Action Buttons */}
               <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setShowUserModal(false);
-                    window.location.href = '/settings';
-                  }}
-                  className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-800 h-9"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  <span>Settings</span>
-                </Button>
                 <Button 
                   variant="outline"
                   size="sm"
