@@ -3,6 +3,9 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { Scheduler } from "./scheduler";
 
+// Force development environment for PayPal sandbox
+process.env.NODE_ENV = 'development';
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

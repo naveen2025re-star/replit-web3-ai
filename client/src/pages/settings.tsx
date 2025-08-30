@@ -40,9 +40,16 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   
   const [activeSection, setActiveSection] = useState('profile');
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [displayName, setDisplayName] = useState('');
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Initialize display name when user data loads
+  React.useEffect(() => {
+    if (user?.displayName) {
+      setDisplayName(user.displayName);
+    }
+  }, [user?.displayName]);
   
   // Notification preferences
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -57,15 +64,34 @@ export default function SettingsPage() {
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
   
   // Credit balance data
-  const { data: creditData } = useQuery({
-    queryKey: ['/api/credits/balance'],
-    enabled: !!user?.id
+  const { data: creditData, isLoading: creditsLoading, error: creditsError } = useQuery({
+    queryKey: ['/api/credits/balance', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      const response = await fetch(`/api/credits/balance?userId=${user.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch credits');
+      }
+      return response.json();
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000,
+    retry: 3
   });
 
   // Credit history data from transactions
   const { data: creditTransactions = [] } = useQuery({
     queryKey: ['/api/credits/transactions', user?.id],
-    enabled: !!user?.id
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const response = await fetch(`/api/credits/transactions/${user.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch transactions');
+      }
+      return response.json();
+    },
+    enabled: !!user?.id,
+    refetchInterval: 60000
   });
 
   // Live scans data
@@ -232,7 +258,7 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <div className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-md text-white">
-                      {displayName || user.displayName || user.ensName || user.githubUsername || 'Not set'}
+                      {displayName || user?.displayName || user?.ensName || user?.githubUsername || 'Not set'}
                     </div>
                     <Button
                       size="sm"
@@ -303,11 +329,23 @@ export default function SettingsPage() {
           </div>
         </div>
         
-        <div className="text-4xl font-bold text-teal-400 mb-2">
-          {(creditData as any)?.balance || 1812}
-        </div>
+        {creditsLoading ? (
+          <div className="text-2xl font-bold text-slate-400 mb-2">Loading...</div>
+        ) : creditsError ? (
+          <div className="text-2xl font-bold text-red-400 mb-2">Error loading credits</div>
+        ) : (
+          <div className="text-4xl font-bold text-teal-400 mb-2">
+            {(creditData as any)?.balance || 0}
+          </div>
+        )}
         <div className="text-sm text-slate-400">
-          Total earned: {(creditData as any)?.totalEarned || 2000} • Total used: {(creditData as any)?.totalUsed || 188}
+          {creditsLoading ? (
+            'Loading credit statistics...'
+          ) : creditsError ? (
+            'Failed to load credit information'
+          ) : (
+            <>Total earned: {(creditData as any)?.totalEarned || 0} • Total used: {(creditData as any)?.totalUsed || 0}</>
+          )}
         </div>
       </div>
       
@@ -324,17 +362,23 @@ export default function SettingsPage() {
           </div>
           
           {/* Table Rows */}
-          {creditHistory.map((entry: any, index: number) => (
-            <div key={index} className="grid grid-cols-3 gap-4 py-3 text-sm border-b border-slate-800/50 last:border-b-0">
-              <div className="text-slate-300">{entry.date}</div>
-              <div className={`font-medium ${
-                entry.amount > 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {entry.amount > 0 ? '+' : ''}{entry.amount}
-              </div>
-              <div className="text-slate-400">{entry.type}</div>
+          {creditHistory.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              {creditsLoading ? 'Loading transactions...' : 'No credit transactions yet'}
             </div>
-          ))}
+          ) : (
+            creditHistory.map((entry: any, index: number) => (
+              <div key={index} className="grid grid-cols-3 gap-4 py-3 text-sm border-b border-slate-800/50 last:border-b-0">
+                <div className="text-slate-300">{new Date(entry.date).toLocaleDateString()}</div>
+                <div className={`font-medium ${
+                  entry.amount > 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {entry.amount > 0 ? '+' : ''}{entry.amount}
+                </div>
+                <div className="text-slate-400">{entry.type}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
