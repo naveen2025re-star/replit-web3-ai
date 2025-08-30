@@ -389,12 +389,16 @@ export default function AuditorPage() {
         throw new Error(result.message || "Failed to fetch contract");
       }
 
-      // Set the fetched content in the input
-      setInputValue(`Analyze this verified smart contract: ${result.contractData.name}
+      // Count the number of files in the source code
+      const fileCount = (result.contractData.sourceCode.match(/\/\/ File: /g) || []).length;
+      const hasMultipleFiles = fileCount > 1;
+      
+      // Set the fetched content in the input with smart formatting
+      setInputValue(`Analyze this verified smart contract${hasMultipleFiles ? ' project' : ''}: ${result.contractData.name}
 
 Contract Address: ${result.contractData.address}
 Network: ${result.contractData.network}
-Compiler: ${result.contractData.compiler}
+Compiler: ${result.contractData.compiler}${hasMultipleFiles ? `\nFiles: ${fileCount} source files` : ''}
 
 \`\`\`solidity
 ${result.contractData.sourceCode}
@@ -411,7 +415,7 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
       
       toast({
         title: "Contract fetched successfully",
-        description: `${result.contractData.name} loaded from ${result.contractData.network}. Ready for analysis.`,
+        description: `${result.contractData.name} loaded from ${result.contractData.network}${hasMultipleFiles ? ` (${fileCount} files)` : ''}. Ready for analysis.`,
       });
     } catch (error) {
       console.error("Contract fetch error:", error);

@@ -145,9 +145,12 @@ export class BlockchainScanner {
         try {
           const parsed = JSON.parse(sourceCode.slice(1, -1));
           if (parsed.sources) {
-            // Extract main contract source
-            const mainSource = Object.values(parsed.sources)[0] as any;
-            sourceCode = mainSource?.content || sourceCode;
+            // Extract ALL source files and combine them
+            const sourceFiles = Object.entries(parsed.sources) as [string, any][];
+            const combinedSource = sourceFiles.map(([filename, source]) => {
+              return `// File: ${filename}\n${source.content || source}\n`;
+            }).join('\n\n');
+            sourceCode = combinedSource;
           }
         } catch {
           // Keep original if parsing fails
