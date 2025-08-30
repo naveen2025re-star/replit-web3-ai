@@ -149,7 +149,14 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (!newOpen) {
+        setPaymentData(null);
+        setSelectedPackage(null);
+      }
+      if (onOpenChange) onOpenChange(newOpen);
+      if (!newOpen && onClose) onClose();
+    }}>
       <DialogContent className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700/50 max-w-5xl max-h-[95vh] overflow-y-auto shadow-2xl backdrop-blur-sm" data-testid="dialog-credit-purchase">
         <DialogHeader className="pb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-purple-500/10 rounded-t-lg -z-10" />
@@ -201,55 +208,99 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Base Credits</span>
-                    <span className="font-medium">{formatNumber(pkg.credits)}</span>
-                  </div>
-                  
-                  {pkg.bonusCredits > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-green-600">Bonus Credits</span>
-                      <span className="font-medium text-green-600">
-                        +{formatNumber(pkg.bonusCredits)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="border-t pt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Total Credits</span>
-                      <span className="text-lg font-bold text-primary">
-                        {formatNumber(pkg.totalCredits)}
-                      </span>
+                {pkg.name === 'Enterprise' ? (
+                  // Enterprise package layout
+                  <div className="space-y-3 text-center">
+                    <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-blue-500/20">
+                      <p className="text-sm text-blue-400 font-medium mb-2">Custom Enterprise Solution</p>
+                      <p className="text-xs text-slate-300">Tailored pricing based on your organization's needs</p>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  // Regular package layout
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Base Credits</span>
+                      <span className="font-medium">{formatNumber(pkg.credits)}</span>
+                    </div>
+                    
+                    {pkg.bonusCredits > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-600">Bonus Credits</span>
+                        <span className="font-medium text-green-600">
+                          +{formatNumber(pkg.bonusCredits)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="border-t pt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Total Credits</span>
+                        <span className="text-lg font-bold text-primary">
+                          {formatNumber(pkg.totalCredits)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-3 w-3 text-green-600" />
-                    <span>Credits never expire</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-3 w-3 text-green-600" />
-                    <span>Used only for successful audits</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-3 w-3 text-green-600" />
-                    <span>5-500 credits per audit</span>
-                  </div>
-                  {pkg.name === 'Free' && (
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-3 w-3 text-amber-600" />
-                      <span className="text-amber-600">Public audits only</span>
-                    </div>
-                  )}
-                  {(pkg.name === 'Pro' || pkg.name === 'Pro+') && (
-                    <div className="flex items-center gap-2">
-                      <Check className="h-3 w-3 text-green-600" />
-                      <span className="text-green-600">Public & private audits</span>
-                    </div>
+                  {pkg.name === 'Enterprise' ? (
+                    // Enterprise features
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-blue-400" />
+                        <span className="text-blue-400">Single Sign-On (SSO) support</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-blue-400" />
+                        <span className="text-blue-400">Credits on demand</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-blue-400" />
+                        <span className="text-blue-400">Private scans & reports</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-blue-400" />
+                        <span className="text-blue-400">Priority support & SLA</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-blue-400" />
+                        <span className="text-blue-400">Pay per use model</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-blue-400" />
+                        <span className="text-blue-400">Custom integrations</span>
+                      </div>
+                    </>
+                  ) : (
+                    // Regular package features
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-green-600" />
+                        <span>Credits never expire</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-green-600" />
+                        <span>Used only for successful audits</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-green-600" />
+                        <span>5-500 credits per audit</span>
+                      </div>
+                      {pkg.name === 'Free' && (
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-3 w-3 text-amber-600" />
+                          <span className="text-amber-600">Public audits only</span>
+                        </div>
+                      )}
+                      {(pkg.name === 'Pro' || pkg.name === 'Pro+') && (
+                        <div className="flex items-center gap-2">
+                          <Check className="h-3 w-3 text-green-600" />
+                          <span className="text-green-600">Public & private audits</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
