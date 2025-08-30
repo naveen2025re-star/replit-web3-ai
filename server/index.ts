@@ -69,7 +69,6 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
-    // Start live scanning scheduler
-    Scheduler.startDailyLiveScanning();
+    // Live scanning disabled - replaced with manual contract fetching
   });
 })();

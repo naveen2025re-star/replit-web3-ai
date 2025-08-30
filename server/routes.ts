@@ -813,6 +813,44 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Manual contract fetching by address
+  app.post("/api/fetch-contract", isAuthenticated, async (req, res) => {
+    try {
+      const { contractAddress, network } = z.object({
+        contractAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid contract address"),
+        network: z.string().optional().default("ethereum")
+      }).parse(req.body);
+
+      // Fetch contract data from blockchain explorer
+      const contractData = await BlockchainScanner.fetchContractFromExplorer(contractAddress, network);
+      
+      if (!contractData) {
+        return res.status(404).json({ message: "Contract not found or not verified" });
+      }
+
+      // Create audit session with the fetched contract
+      const sessionId = await BlockchainScanner.createAuditSession(contractData);
+      
+      if (!sessionId) {
+        return res.status(500).json({ message: "Failed to create audit session" });
+      }
+
+      res.json({ 
+        message: "Contract fetched successfully",
+        sessionId,
+        contractData: {
+          name: contractData.name,
+          address: contractData.address,
+          network: contractData.network,
+          compiler: contractData.compiler
+        }
+      });
+    } catch (error) {
+      console.error("Contract fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch contract" });
+    }
+  });
+
   // Recovery endpoint to fix stuck analyses
   app.post("/api/live-scans/recover", async (req, res) => {
     try {

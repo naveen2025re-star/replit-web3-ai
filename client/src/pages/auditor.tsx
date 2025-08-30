@@ -36,6 +36,7 @@ import CreditDisplay from "@/components/CreditDisplay";
 import CreditPurchase from "@/components/CreditPurchase";
 import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { FileUploader } from "@/components/ui/file-uploader";
+import { ContractFetcher } from "@/components/ContractFetcher";
 import { ChatGPTSidebar } from "@/components/chatgpt-sidebar";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { createAuditSession } from "@/lib/shipable-api";
@@ -91,6 +92,7 @@ export default function AuditorPage() {
   });
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles | null>(null);
   const [showFileUploader, setShowFileUploader] = useState(false);
+  const [showContractFetcher, setShowContractFetcher] = useState(false);
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -369,6 +371,53 @@ export default function AuditorPage() {
       description: `${fileInfo.fileCount} file(s) loaded (${(fileInfo.totalSize / 1024).toFixed(1)}KB). Ready for analysis.`,
     });
   }, [toast]);
+
+  const handleContractFetch = useCallback(async (contractAddress: string, network: string = "ethereum") => {
+    try {
+      const response = await fetch("/api/fetch-contract", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || "",
+        },
+        body: JSON.stringify({ contractAddress, network }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to fetch contract");
+      }
+
+      // Set the fetched content in the input
+      setInputValue(`Analyze this verified smart contract: ${result.contractData.name}
+
+Contract Address: ${result.contractData.address}
+Network: ${result.contractData.network}
+Compiler: ${result.contractData.compiler}
+
+The contract source code has been fetched and will be analyzed. Please provide a comprehensive security audit focusing on vulnerabilities, gas optimization, and best practices.`);
+      
+      setShowContractFetcher(false);
+      
+      // Focus on the input area
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+      
+      toast({
+        title: "Contract fetched successfully",
+        description: `${result.contractData.name} loaded from ${result.contractData.network}. Ready for analysis.`,
+      });
+    } catch (error) {
+      console.error("Contract fetch error:", error);
+      toast({
+        title: "Failed to fetch contract",
+        description: error instanceof Error ? error.message : "Please check the address and try again.",
+        variant: "destructive",
+      });
+    }
+  }, [user?.id, toast]);
 
   const handleSendMessage = useCallback(async () => {
     // Better input validation
@@ -1275,6 +1324,18 @@ Focus on payment security and marketplace vulnerabilities.`)}
                 </Button>
                 
                 <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowContractFetcher(true)}
+                  disabled={analysisState === "loading" || analysisState === "streaming"}
+                  className="text-slate-400 hover:text-white hover:bg-slate-700"
+                  aria-label="Fetch verified contract"
+                  data-testid="button-contract-fetch"
+                >
+                  <Globe className="h-4 w-4" />
+                </Button>
+                
+                <Button
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || analysisState === "loading" || analysisState === "streaming"}
                   size="sm"
@@ -1318,6 +1379,22 @@ Focus on payment security and marketplace vulnerabilities.`)}
             <DialogTitle>Upload Contract Files</DialogTitle>
           </DialogHeader>
           <FileUploader onFilesProcessed={handleFilesProcessed} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Fetcher Dialog */}
+      <Dialog open={showContractFetcher} onOpenChange={setShowContractFetcher}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-blue-500" />
+              Fetch Verified Contract
+            </DialogTitle>
+            <DialogDescription>
+              Enter a verified smart contract address to automatically fetch and analyze it
+            </DialogDescription>
+          </DialogHeader>
+          <ContractFetcher onContractFetch={handleContractFetch} />
         </DialogContent>
       </Dialog>
 
