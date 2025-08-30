@@ -33,28 +33,41 @@ export default function PayPalButtonWorking({
       paypalRef.current.innerHTML = "";
     }
 
-    const loadPayPalScript = () => {
-      // Remove existing PayPal script if any
-      const existingScript = document.querySelector('script[src*="paypal.com/sdk"]');
-      if (existingScript) {
-        existingScript.remove();
-      }
+    const loadPayPalScript = async () => {
+      try {
+        // Remove existing PayPal script if any
+        const existingScript = document.querySelector('script[src*="paypal.com/sdk"]');
+        if (existingScript) {
+          existingScript.remove();
+        }
 
-      const script = document.createElement("script");
-      script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.VITE_PAYPAL_CLIENT_ID || "test"}&currency=${currency}&intent=${intent.toLowerCase()}&components=buttons`;
-      script.async = true;
-      script.onload = () => {
-        renderPayPalButton();
-      };
-      script.onerror = () => {
-        console.error("Failed to load PayPal SDK");
+        // Get client ID from server
+        const clientIdResponse = await fetch('/api/paypal/client-id');
+        const { clientId } = await clientIdResponse.json();
+        
+        const script = document.createElement("script");
+        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}&intent=${intent.toLowerCase()}&components=buttons`;
+        script.async = true;
+        script.onload = () => {
+          renderPayPalButton();
+        };
+        script.onerror = () => {
+          console.error("Failed to load PayPal SDK");
+          toast({
+            title: "Error",
+            description: "Failed to load PayPal. Please refresh the page.",
+            variant: "destructive",
+          });
+        };
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error("Failed to get PayPal client ID:", error);
         toast({
           title: "Error",
-          description: "Failed to load PayPal. Please refresh the page.",
+          description: "Failed to initialize PayPal. Please refresh the page.",
           variant: "destructive",
         });
-      };
-      document.head.appendChild(script);
+      }
     };
 
     const renderPayPalButton = () => {
@@ -187,7 +200,14 @@ export default function PayPalButtonWorking({
     if (window.paypal) {
       renderPayPalButton();
     } else {
-      loadPayPalScript();
+      loadPayPalScript().catch(error => {
+        console.error('Failed to load PayPal script:', error);
+        toast({
+          title: "Error",
+          description: "Failed to initialize PayPal. Please refresh the page.",
+          variant: "destructive",
+        });
+      });
     }
 
     // Cleanup
