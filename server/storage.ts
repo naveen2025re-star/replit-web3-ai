@@ -30,6 +30,7 @@ export interface IStorage {
   getUserByGithubId(githubId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
+  updateUserDisplayName(id: string, displayName: string): Promise<User | undefined>;
   
   // GitHub repository operations
   createGithubRepository(repo: InsertGithubRepository): Promise<GithubRepository>;
@@ -121,6 +122,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async updateUserDisplayName(id: string, displayName: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        displayName: displayName,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   // GitHub repository operations

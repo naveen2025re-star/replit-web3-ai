@@ -11,6 +11,7 @@ import Landing from "@/pages/landing";
 import Community from "@/pages/community";
 import AuditHistoryPage from "@/pages/audit-history";
 import IntegrationsPage from "@/pages/integrations";
+import SettingsPage from "@/pages/settings";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { useState, useEffect } from "react";
 
@@ -59,6 +60,9 @@ function Router() {
       <Route path="/community" component={Community} />
       <Route path="/integrations">
         {isAuthenticated && user ? <IntegrationsPage /> : <AuthPage />}
+      </Route>
+      <Route path="/settings">
+        {isAuthenticated && user ? <SettingsPage /> : <AuthPage />}
       </Route>
       <Route path="/" component={Landing} />
       <Route component={NotFound} />

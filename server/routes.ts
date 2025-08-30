@@ -260,6 +260,39 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Update user display name (simplified endpoint)
+  app.patch("/api/user/display-name", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { displayName } = z.object({
+        displayName: z.string().max(50, "Display name must be 50 characters or less").optional()
+      }).parse(req.body);
+
+      if (!displayName || displayName.trim() === '') {
+        return res.status(400).json({ message: "Display name cannot be empty" });
+      }
+
+      const updatedUser = await storage.updateUserDisplayName(userId, displayName.trim());
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        id: updatedUser.id,
+        displayName: updatedUser.displayName,
+        username: updatedUser.username,
+        walletAddress: updatedUser.walletAddress,
+        ensName: updatedUser.ensName,
+        githubUsername: updatedUser.githubUsername,
+        profileImageUrl: updatedUser.profileImageUrl
+      });
+    } catch (error) {
+      console.error("Error updating display name:", error);
+      res.status(500).json({ message: "Failed to update display name" });
+    }
+  });
+
   // Logout route - clear session and redirect to home
   app.get("/api/logout", (req: any, res) => {
     try {

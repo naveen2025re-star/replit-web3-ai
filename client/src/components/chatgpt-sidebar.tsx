@@ -17,7 +17,11 @@ import {
   Edit3, 
   Trash2, 
   Share, 
-  Download 
+  Download,
+  Check,
+  X,
+  User,
+  CreditCard
 } from "lucide-react";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import CreditDisplay from "@/components/CreditDisplay";
@@ -59,6 +63,8 @@ export function ChatGPTSidebar({
   const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [editingDisplayName, setEditingDisplayName] = useState(false);
+  const [displayNameValue, setDisplayNameValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{sessionId: string, x: number, y: number} | null>(null);
   const queryClient = useQueryClient();
   const { disconnect } = useWeb3Auth();
@@ -118,6 +124,34 @@ export function ChatGPTSidebar({
     } catch (error) {
       console.error('Logout error:', error);
       window.location.reload();
+    }
+  };
+
+  const handleUpdateDisplayName = async () => {
+    try {
+      const response = await fetch('/api/user/display-name', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: displayNameValue.trim() })
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+        setEditingDisplayName(false);
+        toast({
+          title: "Display name updated",
+          description: "Your display name has been updated successfully.",
+        });
+      } else {
+        throw new Error('Failed to update display name');
+      }
+    } catch (error) {
+      console.error('Error updating display name:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update display name.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -458,24 +492,91 @@ export function ChatGPTSidebar({
                 Manage your profile and account settings
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/30">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                  {(user?.displayName || user?.ensName || user?.githubUsername || user?.walletAddress)?.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <div className="font-medium">
-                    {user?.displayName || user?.ensName || user?.githubUsername || 'Anonymous'}
+            <div className="space-y-6 py-4">
+              {/* User Profile Section */}
+              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-700/30 border border-slate-600/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-xl">
+                    {(user?.displayName || user?.ensName || user?.githubUsername || user?.walletAddress)?.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="text-sm text-slate-400">
-                    {user?.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'No wallet connected'}
+                  <div className="flex-1 space-y-3">
+                    {/* Display Name Section */}
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase tracking-wide font-medium">Display Name</label>
+                      {editingDisplayName ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="text"
+                            value={displayNameValue}
+                            onChange={(e) => setDisplayNameValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateDisplayName()}
+                            className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            placeholder="Enter display name"
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            onClick={handleUpdateDisplayName}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3"
+                          >
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingDisplayName(false);
+                              setDisplayNameValue('');
+                            }}
+                            className="border-slate-600 text-slate-300 hover:bg-slate-800 px-3"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="text-white font-medium">
+                            {user?.displayName || user?.ensName || user?.githubUsername || 'Anonymous'}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setDisplayNameValue(user?.displayName || '');
+                              setEditingDisplayName(true);
+                            }}
+                            className="text-slate-400 hover:text-white hover:bg-slate-800/50 h-7 w-7 p-0"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Wallet Address */}
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase tracking-wide font-medium">Wallet</label>
+                      <div className="text-sm text-slate-300 mt-1 font-mono">
+                        {user?.walletAddress ? `${user.walletAddress.slice(0, 8)}...${user.walletAddress.slice(-6)}` : 'Not connected'}
+                      </div>
+                    </div>
+
+                    {/* Connection Status */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-400 font-medium">Connected & Secure</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Credits Section */}
-              <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-                <div className="mb-2">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-600/10 border border-blue-500/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm font-medium text-blue-300">Credit Balance</span>
+                </div>
+                <div className="mb-4">
                   <CreditDisplay 
                     userId={user?.id}
                     compact={false}
@@ -486,27 +587,33 @@ export function ChatGPTSidebar({
                     setShowUserModal(false);
                     setShowCreditPurchase(true);
                   }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-sm"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm font-medium py-2.5 shadow-lg"
                 >
+                  <Plus className="h-4 w-4 mr-2" />
                   Buy More Credits
                 </Button>
               </div>
 
-              <div className="space-y-2">
+              {/* Action Buttons */}
+              <div className="space-y-3">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-800"
+                  onClick={() => {
+                    setShowUserModal(false);
+                    window.location.href = '/settings';
+                  }}
+                  className="w-full justify-start border-slate-600 bg-slate-800/30 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
                 >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
+                  <Settings className="h-4 w-4 mr-3" />
+                  <span>Settings & Preferences</span>
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={handleLogout}
-                  className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-red-400"
+                  className="w-full justify-start border-red-600/50 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 hover:border-red-500/50 transition-colors"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Log out
+                  <LogOut className="h-4 w-4 mr-3" />
+                  <span>Log out</span>
                 </Button>
               </div>
             </div>
