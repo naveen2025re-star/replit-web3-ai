@@ -100,8 +100,6 @@ export async function createPaypalOrder(req: Request, res: Response) {
           landing_page: "BILLING",
           shipping_preference: "NO_SHIPPING",
           user_action: "PAY_NOW",
-          return_url: `${req.protocol}://${req.get('host')}/payment/success`,
-          cancel_url: `${req.protocol}://${req.get('host')}/payment/cancel`
         },
         purchaseUnits: [
           {
