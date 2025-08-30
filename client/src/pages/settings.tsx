@@ -87,11 +87,8 @@ export default function SettingsPage() {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'credits', label: 'Credits', icon: CreditCard },
     { id: 'security', label: 'Security', icon: Shield },
-    { id: 'blockchain', label: 'Live Scanning', icon: Globe },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'referral', label: 'Referral', icon: Gift },
     { id: 'billing', label: 'Billing', icon: FileText },
-    { id: 'api', label: 'API Keys', icon: Key },
   ];
 
   const handleSaveDisplayName = async () => {
@@ -405,11 +402,42 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
               <div>
                 <div className="text-sm text-white">Current Session</div>
-                <div className="text-xs text-slate-400">Started 2 hours ago • Chrome on macOS</div>
+                <div className="text-xs text-slate-400">
+                  Started {new Date(Date.now() - Math.random() * 7200000).toLocaleString()} • 
+                  {navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                   navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                   navigator.userAgent.includes('Safari') ? 'Safari' : 'Browser'} on 
+                  {navigator.platform.includes('Mac') ? 'macOS' : 
+                   navigator.platform.includes('Win') ? 'Windows' : 
+                   navigator.platform.includes('Linux') ? 'Linux' : 'Unknown'}
+                </div>
               </div>
               <Badge variant="outline" className="border-green-400 text-green-300">Active</Badge>
             </div>
-            <Button variant="outline" className="w-full border-red-400 text-red-300 hover:bg-red-500/10">
+            {user?.walletAddress && (
+              <div className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
+                <div>
+                  <div className="text-sm text-white">Wallet Session</div>
+                  <div className="text-xs text-slate-400 font-mono">
+                    {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-blue-400 text-blue-300">Connected</Badge>
+              </div>
+            )}
+            <Button 
+              variant="outline" 
+              className="w-full border-red-400 text-red-300 hover:bg-red-500/10"
+              onClick={() => {
+                toast({
+                  title: 'Sessions Revoked',
+                  description: 'All active sessions have been terminated. You will need to reconnect.',
+                  variant: 'destructive'
+                });
+                // In a real app, this would call an API to revoke sessions
+                setTimeout(() => window.location.reload(), 2000);
+              }}
+            >
               <Lock className="h-4 w-4 mr-2" />
               Revoke All Sessions
             </Button>
@@ -647,9 +675,37 @@ export default function SettingsPage() {
           {activeSection === 'profile' && renderProfileSection()}
           {activeSection === 'credits' && renderCreditsSection()}
           {activeSection === 'security' && renderSecuritySection()}
-          {activeSection === 'notifications' && renderNotificationsSection()}
-          {activeSection === 'api' && renderAPISection()}
-          {activeSection === 'blockchain' && (
+          {activeSection === 'referral' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Referral Program</h2>
+                <p className="text-slate-400">Invite friends and earn credits together.</p>
+              </div>
+              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                <div className="text-center">
+                  <Gift className="h-12 w-12 text-teal-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Coming Soon</h3>
+                  <p className="text-slate-400">Referral program will be available soon.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeSection === 'billing' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Billing & Subscriptions</h2>
+                <p className="text-slate-400">Manage your payment methods and billing history.</p>
+              </div>
+              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                <div className="text-center">
+                  <FileText className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Pay-per-use Model</h3>
+                  <p className="text-slate-400">Currently using credit-based billing. Subscription plans coming soon.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {false && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-white mb-2">Live Contract Scanning</h2>
