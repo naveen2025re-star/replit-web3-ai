@@ -70,10 +70,8 @@ export default function SettingsPage() {
 
   const sidebarItems = [
     { id: 'profile', label: 'Profile', icon: User },
-    { id: 'security', label: 'Security', icon: Shield },
     { id: 'credits', label: 'Credits', icon: CreditCard },
     { id: 'referral', label: 'Referral', icon: Gift },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
     { id: 'billing', label: 'Billing', icon: FileText },
   ];
 
@@ -101,6 +99,8 @@ export default function SettingsPage() {
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
         setIsEditingDisplayName(false);
+        // Update the local state to reflect the change immediately
+        setDisplayName(displayName.trim());
         toast({
           title: 'Success',
           description: 'Display name updated successfully.',
@@ -164,7 +164,7 @@ export default function SettingsPage() {
       
       <div className="space-y-6">
         {/* Profile Info */}
-        <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold">
               {(user.displayName || user.ensName || user.githubUsername || user.walletAddress)?.slice(0, 2).toUpperCase()}
@@ -233,50 +233,25 @@ export default function SettingsPage() {
           </div>
         </div>
         
-        {/* Email addresses */}
-        <div className="space-y-3">
-          <Label className="text-white text-sm font-medium">Email addresses</Label>
-          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">N</span>
-                </div>
-                <span className="text-white">{user.email || 'noven2025re...'}  </span>
-                <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded">Primary</span>
-              </div>
-              <Button size="sm" variant="link" className="text-teal-400 hover:text-teal-300">
-                + Add email address
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Connected accounts */}
-        <div className="space-y-3">
-          <Label className="text-white text-sm font-medium">Connected accounts</Label>
-          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 flex items-center justify-center">
-                  <span className="text-lg">🔍</span>
-                </div>
-                <span className="text-white">Google • noven2025re...</span>
-              </div>
-              <Button size="sm" variant="link" className="text-teal-400 hover:text-teal-300">
-                + Connect account
-              </Button>
-            </div>
-          </div>
-        </div>
-        
         {/* Web3 wallets */}
         <div className="space-y-3">
           <Label className="text-white text-sm font-medium">Web3 wallets</Label>
-          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
-            <Button size="sm" variant="link" className="text-teal-400 hover:text-teal-300">
-              + Connect wallet
-            </Button>
+          <div className="bg-slate-800/20 rounded-lg p-4 border border-slate-700/50">
+            {user.walletAddress ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-white font-mono text-sm">
+                    {`${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`}
+                  </span>
+                  <span className="text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded">Connected</span>
+                </div>
+              </div>
+            ) : (
+              <Button size="sm" variant="link" className="text-blue-400 hover:text-blue-300">
+                + Connect wallet
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -291,7 +266,7 @@ export default function SettingsPage() {
       </div>
       
       {/* Current Credit */}
-      <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+      <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-teal-400" />
@@ -317,7 +292,7 @@ export default function SettingsPage() {
       </div>
       
       {/* Credit History */}
-      <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+      <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
         <h3 className="text-lg font-semibold text-white mb-4">Credit History</h3>
         
         <div className="space-y-2">
@@ -345,62 +320,11 @@ export default function SettingsPage() {
     </div>
   );
 
-  const renderSecuritySection = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Security</h2>
-        <p className="text-slate-400">Manage your security settings.</p>
-      </div>
-      
-      <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
-        <h3 className="text-lg font-semibold text-white mb-4">Two-Factor Authentication</h3>
-        <p className="text-slate-400 mb-4">Add an extra layer of security to your account.</p>
-        <Button className="bg-blue-600 hover:bg-blue-700">Enable 2FA</Button>
-      </div>
-    </div>
-  );
-
-  const renderSettingsSection = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Settings</h2>
-        <p className="text-slate-400">Customize your experience.</p>
-      </div>
-      
-      <div className="space-y-4">
-        <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-white font-medium">Email Notifications</div>
-              <div className="text-sm text-slate-400">Receive notifications via email</div>
-            </div>
-            <Switch
-              checked={emailNotifications}
-              onCheckedChange={setEmailNotifications}
-            />
-          </div>
-        </div>
-        
-        <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-white font-medium">Public Profile</div>
-              <div className="text-sm text-slate-400">Allow others to view your profile</div>
-            </div>
-            <Switch
-              checked={publicProfile}
-              onCheckedChange={setPublicProfile}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-slate-950 flex" style={{ backgroundColor: '#020617' }}>
       {/* Sidebar */}
-      <div className="w-64 bg-slate-900/50 border-r border-slate-800 flex flex-col">
+      <div className="w-64 bg-slate-900/40 border-r border-slate-800/60 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-slate-800">
           <Link href="/auditor">
@@ -444,7 +368,6 @@ export default function SettingsPage() {
               <div className="text-sm text-white truncate">
                 {user.displayName || user.ensName || user.githubUsername || 'Anonymous'}
               </div>
-              <div className="text-xs text-slate-400">Secured by clerk</div>
             </div>
           </div>
         </div>
@@ -453,15 +376,10 @@ export default function SettingsPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Top Header */}
-        <div className="bg-slate-900/30 border-b border-slate-800 p-4">
+        <div className="bg-slate-900/20 border-b border-slate-800/60 p-4">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold text-white">Account</h1>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-slate-400">
-                <TrendingUp className="h-4 w-4" />
-                <span>Scan Status</span>
-                <span className="text-white font-medium">0/0</span>
-              </div>
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <CreditCard className="h-4 w-4" />
                 <span>Current Credit:</span>
@@ -475,15 +393,13 @@ export default function SettingsPage() {
         <div className="flex-1 p-6 overflow-y-auto">
           {activeSection === 'profile' && renderProfileSection()}
           {activeSection === 'credits' && renderCreditsSection()}
-          {activeSection === 'security' && renderSecuritySection()}
-          {activeSection === 'settings' && renderSettingsSection()}
           {activeSection === 'referral' && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-white mb-2">Referral Program</h2>
                 <p className="text-slate-400">Invite friends and earn credits.</p>
               </div>
-              <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700 text-center">
+              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50 text-center">
                 <h3 className="text-lg font-semibold text-white mb-2">Coming Soon</h3>
                 <p className="text-slate-400">Refer friends and get bonus credits!</p>
               </div>
@@ -495,7 +411,7 @@ export default function SettingsPage() {
                 <h2 className="text-2xl font-bold text-white mb-2">Billing</h2>
                 <p className="text-slate-400">Manage your billing and subscription.</p>
               </div>
-              <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
                 <h3 className="text-lg font-semibold text-white mb-2">Pay-as-you-go</h3>
                 <p className="text-slate-400 mb-4">You're currently on our flexible credit system.</p>
                 <Button className="bg-blue-600 hover:bg-blue-700">Purchase Credits</Button>
