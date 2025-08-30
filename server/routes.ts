@@ -2122,6 +2122,11 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     res.redirect("/?payment=cancelled");
   });
 
+  // PayPal client ID endpoint for frontend
+  app.get("/api/paypal/client-id", (req, res) => {
+    res.json({ clientId: process.env.PAYPAL_CLIENT_ID });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

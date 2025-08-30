@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import PayPalButton from "./PayPalButton";
+import PayPalButtonWorking from "./PayPalButtonWorking";
 import { EnterpriseContactModal } from "./EnterpriseContactModal";
 
 interface CreditPackage {
@@ -311,7 +311,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                     <p className="text-sm text-center text-muted-foreground mb-4">
                       Complete your purchase with PayPal
                     </p>
-                    <PayPalButton
+                    <PayPalButtonWorking
                       amount={paymentData.amount}
                       currency={paymentData.currency}
                       intent="CAPTURE"
