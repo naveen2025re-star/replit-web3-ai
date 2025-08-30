@@ -842,7 +842,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
           name: contractData.name,
           address: contractData.address,
           network: contractData.network,
-          compiler: contractData.compiler
+          compiler: contractData.compiler,
+          sourceCode: contractData.sourceCode
         }
       });
     } catch (error) {

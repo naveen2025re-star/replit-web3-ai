@@ -396,7 +396,11 @@ Contract Address: ${result.contractData.address}
 Network: ${result.contractData.network}
 Compiler: ${result.contractData.compiler}
 
-The contract source code has been fetched and will be analyzed. Please provide a comprehensive security audit focusing on vulnerabilities, gas optimization, and best practices.`);
+\`\`\`solidity
+${result.contractData.sourceCode}
+\`\`\`
+
+Please provide a comprehensive security audit focusing on vulnerabilities, gas optimization, and best practices.`);
       
       setShowContractFetcher(false);
       
