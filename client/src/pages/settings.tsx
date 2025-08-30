@@ -2,32 +2,40 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useWeb3Auth } from '@/hooks/useWeb3Auth';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { 
   User, 
   Bell, 
   Shield, 
   Palette, 
-  Database, 
+  CreditCard, 
+  FileText, 
+  Settings as SettingsIcon,
   ArrowLeft, 
   Check, 
   X,
   Edit3,
   Save,
-  Settings as SettingsIcon
+  Eye,
+  Lock,
+  DollarSign,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  Gift
 } from 'lucide-react';
 import { Link } from 'wouter';
+import CreditDisplay from '@/components/CreditDisplay';
 
 export default function SettingsPage() {
   const { user } = useWeb3Auth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  const [activeSection, setActiveSection] = useState('profile');
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -41,9 +49,29 @@ export default function SettingsPage() {
   const [publicProfile, setPublicProfile] = useState(false);
   const [showAuditHistory, setShowAuditHistory] = useState(true);
   
-  // Theme preferences
-  const [theme, setTheme] = useState('dark');
-  const [language, setLanguage] = useState('en');
+  // Credit balance data
+  const { data: creditData } = useQuery({
+    queryKey: ['/api/credits/balance'],
+    enabled: !!user?.id
+  });
+
+  // Mock credit history data (replace with real API)
+  const creditHistory = [
+    { date: '2025-08-23 08:30', amount: -102, type: 'Spend', description: 'Smart contract analysis - security' },
+    { date: '2025-08-01 17:38', amount: -246, type: 'Spend', description: 'Smart contract analysis - security' },
+    { date: '2025-08-01 17:27', amount: -287, type: 'Spend', description: 'Smart contract analysis - security' },
+    { date: '2025-08-01 17:25', amount: -137, type: 'Spend', description: 'Smart contract analysis - security' },
+    { date: '2025-08-01 17:15', amount: +500, type: 'Promo Code', description: 'Welcome bonus credits' },
+  ];
+
+  const sidebarItems = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'credits', label: 'Credits', icon: CreditCard },
+    { id: 'referral', label: 'Referral', icon: Gift },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon },
+    { id: 'billing', label: 'Billing', icon: FileText },
+  ];
 
   const handleSaveDisplayName = async () => {
     if (!displayName.trim()) {
@@ -123,312 +151,354 @@ export default function SettingsPage() {
     );
   }
 
+  const renderProfileSection = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Profile details</h2>
+        <p className="text-slate-400">Manage your account info.</p>
+      </div>
+      
+      <div className="space-y-6">
+        {/* Profile Info */}
+        <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold">
+              {(user.displayName || user.ensName || user.githubUsername || user.walletAddress)?.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="space-y-1">
+              <div className="text-lg font-semibold text-white">
+                {user.displayName || user.ensName || user.githubUsername || 'Anonymous'}
+              </div>
+              <Button size="sm" variant="outline" className="text-xs border-slate-600 text-slate-300">
+                Update profile
+              </Button>
+            </div>
+          </div>
+          
+          {/* Display Name */}
+          <div className="space-y-3">
+            <Label className="text-white text-sm font-medium">Profile</Label>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                {isEditingDisplayName ? (
+                  <>
+                    <Input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Enter your display name"
+                      className="flex-1 bg-slate-800 border-slate-600 text-white"
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveDisplayName()}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveDisplayName}
+                      disabled={isSaving}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {isSaving ? <Save className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingDisplayName(false);
+                        setDisplayName(user?.displayName || '');
+                      }}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-md text-white">
+                      {user.displayName || user.ensName || user.githubUsername || 'Not set'}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsEditingDisplayName(true)}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Email addresses */}
+        <div className="space-y-3">
+          <Label className="text-white text-sm font-medium">Email addresses</Label>
+          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">N</span>
+                </div>
+                <span className="text-white">{user.email || 'noven2025re...'}  </span>
+                <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded">Primary</span>
+              </div>
+              <Button size="sm" variant="link" className="text-teal-400 hover:text-teal-300">
+                + Add email address
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Connected accounts */}
+        <div className="space-y-3">
+          <Label className="text-white text-sm font-medium">Connected accounts</Label>
+          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <span className="text-lg">🔍</span>
+                </div>
+                <span className="text-white">Google • noven2025re...</span>
+              </div>
+              <Button size="sm" variant="link" className="text-teal-400 hover:text-teal-300">
+                + Connect account
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Web3 wallets */}
+        <div className="space-y-3">
+          <Label className="text-white text-sm font-medium">Web3 wallets</Label>
+          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700">
+            <Button size="sm" variant="link" className="text-teal-400 hover:text-teal-300">
+              + Connect wallet
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCreditsSection = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Credits</h2>
+        <p className="text-slate-400">Manage your account info.</p>
+      </div>
+      
+      {/* Current Credit */}
+      <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-teal-400" />
+            Current Credit
+          </h3>
+          <div className="flex gap-2">
+            <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+              Buy more credits
+            </Button>
+            <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+              <Gift className="h-4 w-4 mr-1" />
+              Redeem Credits
+            </Button>
+          </div>
+        </div>
+        
+        <div className="text-4xl font-bold text-teal-400 mb-2">
+          {(creditData as any)?.balance || 0}
+        </div>
+        <div className="text-sm text-slate-400">
+          Total earned: {(creditData as any)?.totalEarned || 0} • Total used: {(creditData as any)?.totalUsed || 0}
+        </div>
+      </div>
+      
+      {/* Credit History */}
+      <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+        <h3 className="text-lg font-semibold text-white mb-4">Credit History</h3>
+        
+        <div className="space-y-2">
+          {/* Table Header */}
+          <div className="grid grid-cols-3 gap-4 text-xs text-slate-400 uppercase tracking-wide font-medium pb-3 border-b border-slate-700">
+            <div>Date</div>
+            <div>Amount</div>
+            <div>Type</div>
+          </div>
+          
+          {/* Table Rows */}
+          {creditHistory.map((entry, index) => (
+            <div key={index} className="grid grid-cols-3 gap-4 py-3 text-sm border-b border-slate-800/50 last:border-b-0">
+              <div className="text-slate-300">{entry.date}</div>
+              <div className={`font-medium ${
+                entry.amount > 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {entry.amount > 0 ? '+' : ''}{entry.amount}
+              </div>
+              <div className="text-slate-400">{entry.type}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSecuritySection = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Security</h2>
+        <p className="text-slate-400">Manage your security settings.</p>
+      </div>
+      
+      <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+        <h3 className="text-lg font-semibold text-white mb-4">Two-Factor Authentication</h3>
+        <p className="text-slate-400 mb-4">Add an extra layer of security to your account.</p>
+        <Button className="bg-blue-600 hover:bg-blue-700">Enable 2FA</Button>
+      </div>
+    </div>
+  );
+
+  const renderSettingsSection = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Settings</h2>
+        <p className="text-slate-400">Customize your experience.</p>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-white font-medium">Email Notifications</div>
+              <div className="text-sm text-slate-400">Receive notifications via email</div>
+            </div>
+            <Switch
+              checked={emailNotifications}
+              onCheckedChange={setEmailNotifications}
+            />
+          </div>
+        </div>
+        
+        <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-white font-medium">Public Profile</div>
+              <div className="text-sm text-slate-400">Allow others to view your profile</div>
+            </div>
+            <Switch
+              checked={publicProfile}
+              onCheckedChange={setPublicProfile}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-950">
-      <div className="container max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-slate-950 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-slate-900/50 border-r border-slate-800 flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="p-4 border-b border-slate-800">
           <Link href="/auditor">
-            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+            <Button variant="ghost" size="sm" className="w-full justify-start text-slate-300 hover:bg-slate-800">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Auditor
             </Button>
           </Link>
+        </div>
+        
+        {/* Navigation */}
+        <div className="flex-1 p-4">
+          <div className="space-y-1">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    activeSection === item.id
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-300'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* User Info */}
+        <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <SettingsIcon className="h-5 w-5 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              {(user.displayName || user.ensName || user.githubUsername || user.walletAddress)?.slice(0, 2).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Settings</h1>
-              <p className="text-slate-400">Manage your account and preferences</p>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-white truncate">
+                {user.displayName || user.ensName || user.githubUsername || 'Anonymous'}
+              </div>
+              <div className="text-xs text-slate-400">Secured by clerk</div>
             </div>
           </div>
         </div>
-
-        {/* Settings Tabs */}
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 border border-slate-700">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-slate-700">
-              <User className="h-4 w-4 mr-2" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-slate-700">
-              <Bell className="h-4 w-4 mr-2" />
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="privacy" className="data-[state=active]:bg-slate-700">
-              <Shield className="h-4 w-4 mr-2" />
-              Privacy
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="data-[state=active]:bg-slate-700">
-              <Palette className="h-4 w-4 mr-2" />
-              Appearance
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
-            <Card className="bg-slate-900/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Profile Information
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Update your profile details and public information.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Avatar Section */}
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-xl">
-                    {(user.displayName || user.ensName || user.githubUsername || user.walletAddress)?.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-white">Profile Avatar</h3>
-                    <p className="text-sm text-slate-400">Your avatar is automatically generated from your display name or wallet address.</p>
-                  </div>
-                </div>
-
-                {/* Display Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="displayName" className="text-white">Display Name</Label>
-                  <div className="flex items-center gap-3">
-                    {isEditingDisplayName ? (
-                      <>
-                        <Input
-                          id="displayName"
-                          value={displayName}
-                          onChange={(e) => setDisplayName(e.target.value)}
-                          placeholder="Enter your display name"
-                          className="flex-1 bg-slate-800 border-slate-600 text-white"
-                          onKeyDown={(e) => e.key === 'Enter' && handleSaveDisplayName()}
-                        />
-                        <Button
-                          size="sm"
-                          onClick={handleSaveDisplayName}
-                          disabled={isSaving}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          {isSaving ? <Save className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setIsEditingDisplayName(false);
-                            setDisplayName(user?.displayName || '');
-                          }}
-                          className="border-slate-600 text-slate-300 hover:bg-slate-800"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-md text-white">
-                          {user.displayName || user.ensName || user.githubUsername || 'Not set'}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setIsEditingDisplayName(true)}
-                          className="border-slate-600 text-slate-300 hover:bg-slate-800"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Wallet Address */}
-                <div className="space-y-2">
-                  <Label className="text-white">Wallet Address</Label>
-                  <div className="px-3 py-2 bg-slate-800/30 border border-slate-700 rounded-md text-slate-300 font-mono text-sm">
-                    {user.walletAddress || 'Not connected'}
-                  </div>
-                </div>
-
-                {/* Account Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-700">
-                  <div className="text-center p-3 bg-slate-800/30 rounded-lg">
-                    <div className="text-xl font-bold text-blue-400">{user.credits || 0}</div>
-                    <div className="text-sm text-slate-400">Credits Remaining</div>
-                  </div>
-                  <div className="text-center p-3 bg-slate-800/30 rounded-lg">
-                    <div className="text-xl font-bold text-green-400">{user.totalCreditsUsed || 0}</div>
-                    <div className="text-sm text-slate-400">Credits Used</div>
-                  </div>
-                  <div className="text-center p-3 bg-slate-800/30 rounded-lg">
-                    <div className="text-xl font-bold text-purple-400">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
-                    </div>
-                    <div className="text-sm text-slate-400">Member Since</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
-            <Card className="bg-slate-900/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Notification Preferences
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Choose how you want to be notified about audit updates and system events.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-medium">Email Notifications</div>
-                      <div className="text-sm text-slate-400">Receive general notifications via email</div>
-                    </div>
-                    <Switch
-                      checked={emailNotifications}
-                      onCheckedChange={setEmailNotifications}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-medium">Audit Completion Alerts</div>
-                      <div className="text-sm text-slate-400">Get notified when your audits are completed</div>
-                    </div>
-                    <Switch
-                      checked={auditCompleteNotifications}
-                      onCheckedChange={setAuditCompleteNotifications}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-medium">Marketing Emails</div>
-                      <div className="text-sm text-slate-400">Receive updates about new features and promotions</div>
-                    </div>
-                    <Switch
-                      checked={marketingEmails}
-                      onCheckedChange={setMarketingEmails}
-                    />
-                  </div>
-                </div>
-                
-                <Button onClick={handleSaveNotificationPreferences} className="w-full">
-                  Save Notification Preferences
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Privacy Tab */}
-          <TabsContent value="privacy" className="space-y-6">
-            <Card className="bg-slate-900/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Privacy Settings
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Control your privacy and data sharing preferences.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-medium">Public Profile</div>
-                      <div className="text-sm text-slate-400">Allow others to view your profile information</div>
-                    </div>
-                    <Switch
-                      checked={publicProfile}
-                      onCheckedChange={setPublicProfile}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-medium">Show Audit History</div>
-                      <div className="text-sm text-slate-400">Display your public audits in community section</div>
-                    </div>
-                    <Switch
-                      checked={showAuditHistory}
-                      onCheckedChange={setShowAuditHistory}
-                    />
-                  </div>
-                </div>
-                
-                <Button onClick={handleSavePrivacyPreferences} className="w-full">
-                  Save Privacy Settings
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Appearance Tab */}
-          <TabsContent value="appearance" className="space-y-6">
-            <Card className="bg-slate-900/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  Appearance Settings
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Customize the look and feel of your dashboard.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-white">Theme</Label>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <Button
-                        variant={theme === 'dark' ? 'default' : 'outline'}
-                        onClick={() => setTheme('dark')}
-                        className="justify-start"
-                      >
-                        🌙 Dark Mode
-                      </Button>
-                      <Button
-                        variant={theme === 'light' ? 'default' : 'outline'}
-                        onClick={() => setTheme('light')}
-                        className="justify-start"
-                        disabled
-                      >
-                        ☀️ Light Mode (Coming Soon)
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-white">Language</Label>
-                    <div className="mt-2">
-                      <select
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-white"
-                      >
-                        <option value="en">English</option>
-                        <option value="es" disabled>Spanish (Coming Soon)</option>
-                        <option value="fr" disabled>French (Coming Soon)</option>
-                        <option value="de" disabled>German (Coming Soon)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                
-                <Button onClick={handleSaveThemePreferences} className="w-full">
-                  Save Appearance Settings
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+      </div>
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Header */}
+        <div className="bg-slate-900/30 border-b border-slate-800 p-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-white">Account</h1>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <TrendingUp className="h-4 w-4" />
+                <span>Scan Status</span>
+                <span className="text-white font-medium">0/0</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <CreditCard className="h-4 w-4" />
+                <span>Current Credit:</span>
+                <span className="text-white font-medium">{(creditData as any)?.balance || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Content Area */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          {activeSection === 'profile' && renderProfileSection()}
+          {activeSection === 'credits' && renderCreditsSection()}
+          {activeSection === 'security' && renderSecuritySection()}
+          {activeSection === 'settings' && renderSettingsSection()}
+          {activeSection === 'referral' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Referral Program</h2>
+                <p className="text-slate-400">Invite friends and earn credits.</p>
+              </div>
+              <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700 text-center">
+                <h3 className="text-lg font-semibold text-white mb-2">Coming Soon</h3>
+                <p className="text-slate-400">Refer friends and get bonus credits!</p>
+              </div>
+            </div>
+          )}
+          {activeSection === 'billing' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Billing</h2>
+                <p className="text-slate-400">Manage your billing and subscription.</p>
+              </div>
+              <div className="bg-slate-800/30 rounded-lg p-6 border border-slate-700">
+                <h3 className="text-lg font-semibold text-white mb-2">Pay-as-you-go</h3>
+                <p className="text-slate-400 mb-4">You're currently on our flexible credit system.</p>
+                <Button className="bg-blue-600 hover:bg-blue-700">Purchase Credits</Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
