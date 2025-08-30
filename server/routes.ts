@@ -490,15 +490,28 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       }
 
       let fullResponse = "";
+      let lastActivity = Date.now();
+      const TIMEOUT_MS = 300000; // 5 minutes timeout
+      
       const reader = analysisResponse.body?.getReader();
       const decoder = new TextDecoder();
 
       if (reader) {
         try {
           while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+            // Check for timeout
+            if (Date.now() - lastActivity > TIMEOUT_MS) {
+              console.log(`[STREAM] Timeout reached for session ${sessionId}`);
+              break;
+            }
 
+            const { done, value } = await reader.read();
+            if (done) {
+              console.log(`[STREAM] Stream ended naturally for session ${sessionId}`);
+              break;
+            }
+
+            lastActivity = Date.now(); // Reset timeout on activity
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
 
@@ -526,6 +539,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
                     console.log(`[STREAM] Status: ${jsonData.status}`);
                     res.write(`event: status\n`);
                     res.write(`data: ${JSON.stringify(jsonData)}\n\n`);
+                    
+                    // Check if analysis is complete based on status
+                    if (jsonData.status === 'complete' || jsonData.status === 'completed') {
+                      console.log(`[STREAM] Analysis marked complete by status`);
+                      break;
+                    }
                   }
                 } catch (e) {
                   console.log(`[STREAM] Invalid JSON in line: ${line}`);
@@ -537,6 +556,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
           reader.releaseLock();
         }
       }
+      
+      console.log(`[ANALYSIS] Stream processing completed for session ${sessionId}`);
 
       // Analysis complete
       await storage.updateAuditSessionStatus(sessionId, "completed", new Date());
@@ -789,6 +810,44 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     } catch (error) {
       console.error("Failed to trigger live scan:", error);
       res.status(500).json({ message: "Failed to trigger live scan" });
+    }
+  });
+
+  // Recovery endpoint to fix stuck analyses
+  app.post("/api/live-scans/recover", async (req, res) => {
+    try {
+      // Find sessions stuck in analyzing state for more than 10 minutes
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      
+      const stuckSessions = await db
+        .select()
+        .from(auditSessions)
+        .where(
+          and(
+            eq(auditSessions.contractSource, "live-scan"),
+            eq(auditSessions.status, "analyzing"),
+            lte(auditSessions.createdAt, tenMinutesAgo)
+          )
+        );
+
+      console.log(`Found ${stuckSessions.length} stuck analyzing sessions`);
+
+      let recovered = 0;
+      for (const session of stuckSessions) {
+        console.log(`Recovering stuck session: ${session.id}`);
+        
+        // Mark as failed if no response for 10+ minutes
+        await storage.updateAuditSessionStatus(session.id, "failed");
+        recovered++;
+      }
+
+      res.json({ 
+        message: `Recovered ${recovered} stuck sessions`,
+        recovered 
+      });
+    } catch (error) {
+      console.error("Error recovering stuck sessions:", error);
+      res.status(500).json({ message: "Failed to recover stuck sessions" });
     }
   });
 
