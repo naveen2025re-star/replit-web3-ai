@@ -36,9 +36,9 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             </h3>
           ),
           p: ({children}) => <p className="text-gray-300 mb-4 leading-relaxed">{children}</p>,
-          ul: ({children}) => <ul className="list-disc list-inside text-gray-300 mb-4 space-y-2 ml-4">{children}</ul>,
-          ol: ({children}) => <ol className="list-decimal list-inside text-gray-300 mb-4 space-y-2 ml-4">{children}</ol>,
-          li: ({children}) => <li className="mb-1">{children}</li>,
+          ul: ({children}) => <ul className="list-disc list-outside text-gray-300 mb-4 space-y-1 ml-6">{children}</ul>,
+          ol: ({children}) => <ol className="list-decimal list-outside text-gray-300 mb-4 space-y-3 ml-6">{children}</ol>,
+          li: ({children}) => <li className="mb-2 leading-relaxed">{children}</li>,
           strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
           code: ({children, className}) => {
             if (className?.includes('language-')) {
@@ -50,7 +50,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                 </Card>
               );
             }
-            return <code className="text-blue-300 bg-slate-800 px-2 py-1 rounded text-sm font-mono">{children}</code>;
+            return <code className="text-blue-300 bg-slate-800/80 px-2 py-0.5 rounded text-sm font-mono border border-slate-700/50">{children}</code>;
           },
           pre: ({children}) => (
             <Card className="bg-slate-900 border-slate-700 p-4 mb-4">
