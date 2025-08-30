@@ -141,18 +141,42 @@ export class BlockchainScanner {
       
       // Clean up source code if it's in JSON format
       let sourceCode = contractData.SourceCode;
+      
+      // Handle different JSON formats that Etherscan returns
       if (sourceCode.startsWith('{')) {
         try {
-          const parsed = JSON.parse(sourceCode.slice(1, -1));
+          // First try parsing as wrapped JSON (most common format)
+          let parsed;
+          if (sourceCode.startsWith('{{') && sourceCode.endsWith('}}')) {
+            parsed = JSON.parse(sourceCode.slice(1, -1));
+          } else {
+            parsed = JSON.parse(sourceCode);
+          }
+          
           if (parsed.sources) {
             // Extract ALL source files and combine them
             const sourceFiles = Object.entries(parsed.sources) as [string, any][];
+            console.log(`Found ${sourceFiles.length} source files in contract`);
+            
             const combinedSource = sourceFiles.map(([filename, source]) => {
-              return `// File: ${filename}\n${source.content || source}\n`;
+              const content = source.content || source;
+              return `// File: ${filename}\n${content}`;
             }).join('\n\n');
+            
             sourceCode = combinedSource;
+          } else if (parsed.language && parsed.language === 'Solidity') {
+            // Handle standard JSON input format
+            console.log('Detected standard JSON input format');
+            if (parsed.sources) {
+              const sourceFiles = Object.entries(parsed.sources) as [string, any][];
+              const combinedSource = sourceFiles.map(([filename, source]) => {
+                return `// File: ${filename}\n${source.content}`;
+              }).join('\n\n');
+              sourceCode = combinedSource;
+            }
           }
-        } catch {
+        } catch (error) {
+          console.log('JSON parsing failed, keeping original source code:', error);
           // Keep original if parsing fails
         }
       }
