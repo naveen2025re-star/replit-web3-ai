@@ -48,6 +48,8 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [auditCompleteNotifications, setAuditCompleteNotifications] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
+  const [securityAlerts, setSecurityAlerts] = useState(true);
+  const [weeklyReports, setWeeklyReports] = useState(false);
   
   // Privacy preferences
   const [publicProfile, setPublicProfile] = useState(false);
@@ -84,9 +86,12 @@ export default function SettingsPage() {
   const sidebarItems = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'credits', label: 'Credits', icon: CreditCard },
+    { id: 'security', label: 'Security', icon: Shield },
     { id: 'blockchain', label: 'Live Scanning', icon: Globe },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'referral', label: 'Referral', icon: Gift },
     { id: 'billing', label: 'Billing', icon: FileText },
+    { id: 'api', label: 'API Keys', icon: Key },
   ];
 
   const handleSaveDisplayName = async () => {
@@ -338,9 +343,239 @@ export default function SettingsPage() {
     </div>
   );
 
+  const renderSecuritySection = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Security Settings</h2>
+        <p className="text-slate-400">Manage your account security and privacy settings.</p>
+      </div>
+      
+      <div className="space-y-6">
+        {/* Security Overview */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <div className="flex items-center gap-3 mb-4">
+            <Shield className="h-6 w-6 text-green-400" />
+            <h3 className="text-lg font-semibold text-white">Security Status</h3>
+            <Badge className="bg-green-500/20 text-green-300 border-green-400">Secure</Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="text-sm text-slate-300">Wallet Connected</span>
+              </div>
+              <Check className="h-4 w-4 text-green-400" />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="text-sm text-slate-300">Two-Factor Auth</span>
+              </div>
+              <Check className="h-4 w-4 text-green-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Privacy Settings */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4">Privacy & Visibility</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Public Profile</Label>
+                <p className="text-sm text-slate-400">Allow others to see your profile and audit history</p>
+              </div>
+              <Switch checked={publicProfile} onCheckedChange={setPublicProfile} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Show Audit History</Label>
+                <p className="text-sm text-slate-400">Display your audit history on your public profile</p>
+              </div>
+              <Switch checked={showAuditHistory} onCheckedChange={setShowAuditHistory} />
+            </div>
+          </div>
+        </div>
+
+        {/* Session Management */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4">Session Management</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
+              <div>
+                <div className="text-sm text-white">Current Session</div>
+                <div className="text-xs text-slate-400">Started 2 hours ago • Chrome on macOS</div>
+              </div>
+              <Badge variant="outline" className="border-green-400 text-green-300">Active</Badge>
+            </div>
+            <Button variant="outline" className="w-full border-red-400 text-red-300 hover:bg-red-500/10">
+              <Lock className="h-4 w-4 mr-2" />
+              Revoke All Sessions
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderNotificationsSection = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Notification Preferences</h2>
+        <p className="text-slate-400">Choose what notifications you want to receive.</p>
+      </div>
+      
+      <div className="space-y-6">
+        {/* Email Notifications */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <div className="flex items-center gap-3 mb-4">
+            <Bell className="h-5 w-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">Email Notifications</h3>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Audit Completion</Label>
+                <p className="text-sm text-slate-400">Get notified when your audit analysis is complete</p>
+              </div>
+              <Switch checked={auditCompleteNotifications} onCheckedChange={setAuditCompleteNotifications} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Security Alerts</Label>
+                <p className="text-sm text-slate-400">Important security notifications and alerts</p>
+              </div>
+              <Switch checked={securityAlerts} onCheckedChange={setSecurityAlerts} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Weekly Reports</Label>
+                <p className="text-sm text-slate-400">Weekly summary of your audit activity</p>
+              </div>
+              <Switch checked={weeklyReports} onCheckedChange={setWeeklyReports} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Marketing Emails</Label>
+                <p className="text-sm text-slate-400">Product updates and promotional emails</p>
+              </div>
+              <Switch checked={marketingEmails} onCheckedChange={setMarketingEmails} />
+            </div>
+          </div>
+        </div>
+
+        {/* Push Notifications */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4">Browser Notifications</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Real-time Alerts</Label>
+                <p className="text-sm text-slate-400">Get instant notifications in your browser</p>
+              </div>
+              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                Enable
+              </Button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-white">Sound Notifications</Label>
+                <p className="text-sm text-slate-400">Play sound when receiving notifications</p>
+              </div>
+              <Switch />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAPISection = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">API Access</h2>
+        <p className="text-slate-400">Manage your API keys and integration settings.</p>
+      </div>
+      
+      <div className="space-y-6">
+        {/* API Keys */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Key className="h-5 w-5 text-yellow-400" />
+              <h3 className="text-lg font-semibold text-white">API Keys</h3>
+            </div>
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+              <Key className="h-4 w-4 mr-2" />
+              Generate New Key
+            </Button>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
+              <div>
+                <div className="text-sm text-white font-mono">sk_live_****************************************</div>
+                <div className="text-xs text-slate-400">Created on Dec 25, 2024 • Last used 2 hours ago</div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline" className="border-red-400 text-red-300">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* API Usage */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4">Usage Statistics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-slate-900/30 rounded-lg">
+              <div className="text-2xl font-bold text-blue-400">1,247</div>
+              <div className="text-sm text-slate-400">API Calls Today</div>
+            </div>
+            <div className="text-center p-4 bg-slate-900/30 rounded-lg">
+              <div className="text-2xl font-bold text-green-400">99.9%</div>
+              <div className="text-sm text-slate-400">Uptime</div>
+            </div>
+            <div className="text-center p-4 bg-slate-900/30 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-400">145ms</div>
+              <div className="text-sm text-slate-400">Avg Response</div>
+            </div>
+          </div>
+        </div>
+
+        {/* API Documentation */}
+        <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4">Developer Resources</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button variant="outline" className="justify-start border-slate-600 text-slate-300 h-auto p-4">
+              <FileText className="h-5 w-5 mr-3" />
+              <div className="text-left">
+                <div className="font-medium">API Documentation</div>
+                <div className="text-xs text-slate-400">Complete integration guide</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start border-slate-600 text-slate-300 h-auto p-4">
+              <Shield className="h-5 w-5 mr-3" />
+              <div className="text-left">
+                <div className="font-medium">Security Guide</div>
+                <div className="text-xs text-slate-400">Best practices for API security</div>
+              </div>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
 
   return (
-    <div className="min-h-screen bg-slate-950 flex" style={{ backgroundColor: '#020617' }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex" style={{ backgroundColor: '#020617', minHeight: '100vh' }}>
       {/* Sidebar */}
       <div className="w-64 bg-slate-900/40 border-r border-slate-800/60 flex flex-col">
         {/* Header */}
@@ -408,9 +643,12 @@ export default function SettingsPage() {
         </div>
         
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-br from-slate-950/50 via-slate-900/30 to-slate-950/50">
           {activeSection === 'profile' && renderProfileSection()}
           {activeSection === 'credits' && renderCreditsSection()}
+          {activeSection === 'security' && renderSecuritySection()}
+          {activeSection === 'notifications' && renderNotificationsSection()}
+          {activeSection === 'api' && renderAPISection()}
           {activeSection === 'blockchain' && (
             <div className="space-y-6">
               <div>
