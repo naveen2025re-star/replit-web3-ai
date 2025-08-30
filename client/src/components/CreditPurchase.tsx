@@ -171,31 +171,34 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-credit-purchase">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Coins className="h-6 w-6" />
-            Purchase Credits
+      <DialogContent className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700/50 max-w-5xl max-h-[95vh] overflow-y-auto shadow-2xl backdrop-blur-sm" data-testid="dialog-credit-purchase">
+        <DialogHeader className="pb-8 relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-purple-500/10 rounded-t-lg -z-10" />
+          <DialogTitle className="text-3xl font-bold text-white flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+              <Coins className="h-6 w-6 text-white" />
+            </div>
+            Choose Your Credits
           </DialogTitle>
-          <DialogDescription>
-            Choose a credit package to continue auditing smart contracts. Credits never expire and are used only when you run successful audits.
+          <DialogDescription className="text-slate-300 text-lg mt-2">
+            Select the perfect credit package for your smart contract auditing needs. Credits never expire and unlock powerful security analysis.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {packages.map((pkg) => (
             <Card 
               key={pkg.id} 
-              className={`relative cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                pkg.popular ? 'ring-2 ring-primary shadow-lg' : ''
-              } ${selectedPackage === pkg.id ? 'ring-2 ring-primary' : ''}`}
+              className={`relative cursor-pointer transition-all duration-300 transform hover:scale-105 bg-gradient-to-br from-slate-800/50 to-slate-700/50 border-slate-600/30 backdrop-blur-sm ${
+                pkg.popular ? 'ring-2 ring-emerald-500/50 shadow-xl shadow-emerald-500/20' : 'hover:shadow-xl hover:shadow-slate-900/50'
+              } ${selectedPackage === pkg.id ? 'ring-2 ring-emerald-500/70 scale-105' : ''}`}
               onClick={() => setSelectedPackage(pkg.id)}
               data-testid={`card-package-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
             >
               {pkg.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                    <Star className="h-3 w-3 mr-1" />
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                  <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 shadow-lg shadow-emerald-500/25">
+                    <Star className="h-4 w-4 mr-2 fill-current" />
                     Most Popular
                   </Badge>
                 </div>
@@ -207,7 +210,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                 </div>
                 <CardTitle className="text-lg">{pkg.name}</CardTitle>
                 <div className="space-y-1">
-                  <p className="text-3xl font-bold text-primary">
+                  <p className="text-3xl font-bold text-emerald-400">
                     {pkg.name === 'Enterprise' ? 'Contact Us' : pkg.price === 0 ? 'Free' : formatPrice(pkg.price)}
                   </p>
                   {pkg.savings > 0 && (
@@ -314,8 +317,11 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                   </div>
                 ) : (
                   <Button
-                    className="w-full"
-                    variant={pkg.popular ? "default" : "outline"}
+                    className={`w-full h-12 text-base font-bold transition-all duration-300 transform hover:scale-105 ${
+                      pkg.popular
+                        ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 text-white shadow-xl shadow-emerald-500/25'
+                        : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white shadow-lg hover:shadow-xl border-slate-600/50'
+                    }`}
                     disabled={purchaseMutation.isPending || (pkg.price === 0 && hasClaimedFree)}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -324,25 +330,25 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                     data-testid={`button-purchase-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     {purchaseMutation.isPending && selectedPackage === pkg.id ? (
-                      <>
-                        <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
                         Processing...
-                      </>
+                      </div>
                     ) : pkg.name === 'Enterprise' ? (
-                      <>
-                        <Users className="h-4 w-4 mr-2" />
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5" />
                         Contact Sales
-                      </>
+                      </div>
                     ) : pkg.price === 0 ? (
-                      <>
-                        <Coins className="h-4 w-4 mr-2" />
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-5 w-5" />
                         {hasClaimedFree ? 'Already Claimed' : 'Get Free Credits'}
-                      </>
+                      </div>
                     ) : (
-                      <>
-                        <Coins className="h-4 w-4 mr-2" />
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-5 w-5" />
                         Purchase with PayPal
-                      </>
+                      </div>
                     )}
                   </Button>
                 )}

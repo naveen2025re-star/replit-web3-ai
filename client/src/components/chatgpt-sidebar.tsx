@@ -57,14 +57,11 @@ export function ChatGPTSidebar({
   onDeleteAudit
 }: ChatGPTSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showUserModal, setShowUserModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
   const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [editingDisplayName, setEditingDisplayName] = useState(false);
-  const [displayNameValue, setDisplayNameValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{sessionId: string, x: number, y: number} | null>(null);
   const queryClient = useQueryClient();
   const { disconnect } = useWeb3Auth();
@@ -127,36 +124,6 @@ export function ChatGPTSidebar({
     }
   };
 
-  const handleUpdateDisplayName = async () => {
-    try {
-      const response = await fetch('/api/user/display-name', {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-user-id': user?.id || ''
-        },
-        body: JSON.stringify({ displayName: displayNameValue.trim() })
-      });
-
-      if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-        setEditingDisplayName(false);
-        toast({
-          title: "Display name updated",
-          description: "Your display name has been updated successfully.",
-        });
-      } else {
-        throw new Error('Failed to update display name');
-      }
-    } catch (error) {
-      console.error('Error updating display name:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update display name.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handlePin = async (sessionId: string) => {
     try {
@@ -475,135 +442,24 @@ export function ChatGPTSidebar({
 
       {/* User Profile */}
       <div className="border-t border-slate-700/50 p-3">
-        <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
-          <DialogTrigger asChild>
-            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                {(user?.displayName || user?.ensName || user?.githubUsername || user?.walletAddress)?.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <div className="text-sm text-white truncate">
-                  {user?.displayName || user?.ensName || user?.githubUsername || 
-                   (user?.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'Anonymous')}
-                </div>
-              </div>
-            </button>
-          </DialogTrigger>
-          <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Account</DialogTitle>
-              <DialogDescription className="text-slate-400">
-                Manage your profile and account settings
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              {/* User Profile Section */}
-              <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-600/50">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg font-bold">
-                    {(user?.displayName || user?.ensName || user?.githubUsername || user?.walletAddress)?.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    {/* Display Name Section */}
-                    <div>
-                      <label className="text-xs text-slate-400 uppercase tracking-wide font-medium">Display Name</label>
-                      {editingDisplayName ? (
-                        <div className="flex items-center gap-2 mt-1">
-                          <input
-                            type="text"
-                            value={displayNameValue}
-                            onChange={(e) => setDisplayNameValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateDisplayName()}
-                            className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-                            placeholder="Enter display name"
-                            autoFocus
-                          />
-                          <Button
-                            size="sm"
-                            onClick={handleUpdateDisplayName}
-                            className="bg-green-600 hover:bg-green-700 text-white px-3"
-                          >
-                            <Check className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingDisplayName(false);
-                              setDisplayNameValue('');
-                            }}
-                            className="border-slate-600 text-slate-300 hover:bg-slate-800 px-3"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="text-white font-medium">
-                            {user?.displayName || user?.ensName || user?.githubUsername || 'Anonymous'}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setDisplayNameValue(user?.displayName || '');
-                              setEditingDisplayName(true);
-                            }}
-                            className="text-slate-400 hover:text-white hover:bg-slate-800/50 h-7 w-7 p-0"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Wallet Address */}
-                    <div>
-                      <label className="text-xs text-slate-400 uppercase tracking-wide font-medium">Wallet</label>
-                      <div className="text-xs text-slate-300 mt-1 font-mono">
-                        {user?.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'Not connected'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Credits Section */}
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-300">Credits</span>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setShowUserModal(false);
-                      setShowCreditPurchase(true);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
-                  >
-                    Buy More
-                  </Button>
-                </div>
-                <CreditDisplay 
-                  userId={user?.id}
-                  compact={true}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-2">
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="w-full justify-start border-red-600/50 text-red-300 hover:bg-red-500/20 hover:text-red-200 h-9"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  <span>Log out</span>
-                </Button>
-              </div>
+        <button 
+          onClick={() => window.location.href = '/settings'}
+          className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
+        >
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+            {(user?.displayName || user?.ensName || user?.githubUsername || user?.walletAddress)?.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <div className="text-sm text-white truncate">
+              {user?.displayName || user?.ensName || user?.githubUsername || 
+               (user?.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'Anonymous')}
             </div>
-          </DialogContent>
-        </Dialog>
+            <div className="text-xs text-slate-400 truncate">
+              {user?.walletAddress ? `${user.walletAddress.slice(0, 8)}...${user.walletAddress.slice(-6)}` : 'No wallet connected'}
+            </div>
+          </div>
+          <Settings className="h-4 w-4 text-slate-400" />
+        </button>
       </div>
 
       {/* Context Menu */}
