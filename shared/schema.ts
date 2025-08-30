@@ -138,6 +138,32 @@ export const enterpriseContacts = pgTable("enterprise_contacts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Live scanned contracts from blockchain explorers
+export const liveScannedContracts = pgTable("live_scanned_contracts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contractAddress: text("contract_address").notNull().unique(),
+  network: text("network").notNull(), // ethereum, polygon, bsc, etc.
+  contractName: text("contract_name"),
+  contractType: text("contract_type"), // Token, DEX, DeFi, NFT, etc.
+  sourceCode: text("source_code").notNull(),
+  compiler: text("compiler"),
+  optimization: boolean("optimization"),
+  verificationDate: timestamp("verification_date"),
+  auditSessionId: varchar("audit_session_id").references(() => auditSessions.id),
+  scanStatus: text("scan_status").notNull().default("pending"), // pending, scanning, completed, failed
+  securityScore: integer("security_score"),
+  vulnerabilityCount: jsonb("vulnerability_count").$type<{
+    high: number;
+    medium: number;
+    low: number;
+    info: number;
+  }>(),
+  isHighProfile: boolean("is_high_profile").default(false), // Mark interesting contracts
+  explorerUrl: text("explorer_url").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  scannedAt: timestamp("scanned_at"),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   auditSessions: many(auditSessions),
@@ -187,6 +213,13 @@ export const creditTransactionsRelations = relations(creditTransactions, ({ one 
   }),
   session: one(auditSessions, {
     fields: [creditTransactions.sessionId],
+    references: [auditSessions.id],
+  }),
+}));
+
+export const liveScannedContractsRelations = relations(liveScannedContracts, ({ one }) => ({
+  auditSession: one(auditSessions, {
+    fields: [liveScannedContracts.auditSessionId],
     references: [auditSessions.id],
   }),
 }));
@@ -286,6 +319,23 @@ export const insertCreditPackageSchema = createInsertSchema(creditPackages).pick
   sortOrder: true,
 });
 
+export const insertLiveScannedContractSchema = createInsertSchema(liveScannedContracts).pick({
+  contractAddress: true,
+  network: true,
+  contractName: true,
+  contractType: true,
+  sourceCode: true,
+  compiler: true,
+  optimization: true,
+  verificationDate: true,
+  auditSessionId: true,
+  scanStatus: true,
+  securityScore: true,
+  vulnerabilityCount: true,
+  isHighProfile: true,
+  explorerUrl: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -302,3 +352,5 @@ export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSche
 export type CreditTransaction = typeof creditTransactions.$inferSelect;
 export type InsertCreditPackage = z.infer<typeof insertCreditPackageSchema>;
 export type CreditPackage = typeof creditPackages.$inferSelect;
+export type InsertLiveScannedContract = z.infer<typeof insertLiveScannedContractSchema>;
+export type LiveScannedContract = typeof liveScannedContracts.$inferSelect;

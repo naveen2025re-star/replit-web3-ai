@@ -58,6 +58,13 @@ export default function Community() {
     queryFn: () => fetch('/api/community/trending-tags').then(res => res.json())
   });
 
+  // Fetch live scanned contracts
+  const { data: liveScans, isLoading: liveScansLoading } = useQuery({
+    queryKey: ["/api/live-scans"],
+    queryFn: () => fetch('/api/live-scans?limit=6').then(res => res.json()),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   // Query for selected audit details
   const { data: auditDetails } = useQuery({
     queryKey: ['/api/audit/session', selectedAudit],
@@ -221,6 +228,100 @@ export default function Community() {
                 Clear Filters
               </Button>
             </div>
+          </div>
+
+          {/* Live Scanning Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20">
+                  <TrendingUp className="h-5 w-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Live Contract Scanning</h3>
+                  <p className="text-sm text-gray-400">Real-time analysis of verified contracts from blockchain explorers</p>
+                </div>
+              </div>
+              <Badge className="bg-green-500/20 text-green-300 border-green-400">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                Active
+              </Badge>
+            </div>
+
+            {liveScansLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <Card key={i} className="bg-gray-800/50 border-gray-700">
+                    <CardHeader className="pb-3">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-2/3"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gray-700 rounded animate-pulse"></div>
+                        <div className="h-3 bg-gray-700 rounded animate-pulse w-1/2"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : liveScans && liveScans.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {liveScans.slice(0, 6).map((scan: any) => (
+                  <Card key={scan.id} className="bg-gray-800/50 border-gray-700 hover:border-green-500/50 transition-all duration-300 cursor-pointer"
+                        onClick={() => window.open(scan.explorerUrl, '_blank')}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-white truncate">
+                          {scan.contractName || 'Unknown Contract'}
+                        </CardTitle>
+                        <Badge className={`text-xs ${scan.network === 'ethereum' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                          {scan.network}
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-xs text-gray-400 font-mono">
+                        {scan.contractAddress?.slice(0, 8)}...{scan.contractAddress?.slice(-6)}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="border-gray-600 text-gray-300">
+                            {scan.contractType || 'Contract'}
+                          </Badge>
+                          {scan.scanStatus === 'completed' && scan.securityScore && (
+                            <Badge className={`${
+                              scan.securityScore >= 80 ? 'bg-green-500/20 text-green-300' :
+                              scan.securityScore >= 60 ? 'bg-yellow-500/20 text-yellow-300' :
+                              'bg-red-500/20 text-red-300'
+                            }`}>
+                              Score: {scan.securityScore}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-400">
+                          <Clock className="h-3 w-3" />
+                          {scan.scannedAt ? new Date(scan.scannedAt).toLocaleDateString() : 'Scanning...'}
+                        </div>
+                      </div>
+                      {scan.scanStatus === 'scanning' && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-blue-400">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                          Analysis in progress...
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="bg-gray-800/50 border-gray-700">
+                <CardContent className="p-6 text-center">
+                  <TrendingUp className="h-12 w-12 text-gray-500 mx-auto mb-3" />
+                  <p className="text-gray-400">No live scans available yet. Our system automatically scans verified contracts daily.</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Trending Tags */}

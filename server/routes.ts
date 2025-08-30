@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema } from "@shared/schema";
+import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema, liveScannedContracts } from "@shared/schema";
 import { CreditService, type CreditCalculationFactors } from "./creditService";
+import { BlockchainScanner } from "./blockchainScanner";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
@@ -762,6 +763,32 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     } catch (error) {
       console.error("Failed to get trending tags:", error);
       res.status(500).json({ message: "Failed to fetch trending tags" });
+    }
+  });
+
+  // Live scanning endpoints
+  app.get("/api/live-scans", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const liveScans = await BlockchainScanner.getRecentLiveScans(limit);
+      res.json(liveScans);
+    } catch (error) {
+      console.error("Failed to get live scans:", error);
+      res.status(500).json({ message: "Failed to fetch live scans" });
+    }
+  });
+
+  app.post("/api/live-scans/trigger", async (req, res) => {
+    try {
+      const result = await BlockchainScanner.scanRandomContract();
+      if (result) {
+        res.json({ message: "Live scan initiated successfully", success: true });
+      } else {
+        res.status(400).json({ message: "Could not initiate live scan", success: false });
+      }
+    } catch (error) {
+      console.error("Failed to trigger live scan:", error);
+      res.status(500).json({ message: "Failed to trigger live scan" });
     }
   });
 

@@ -25,7 +25,9 @@ import {
   Calendar,
   TrendingUp,
   TrendingDown,
-  Gift
+  Gift,
+  Globe,
+  Key
 } from 'lucide-react';
 import { Link } from 'wouter';
 import CreditDisplay from '@/components/CreditDisplay';
@@ -63,6 +65,13 @@ export default function SettingsPage() {
     enabled: !!user?.id
   });
 
+  // Live scans data
+  const { data: liveScans } = useQuery({
+    queryKey: ["/api/live-scans"],
+    queryFn: () => fetch('/api/live-scans?limit=5').then(res => res.json()),
+    refetchInterval: 30000,
+  });
+
   // Format credit history from transactions
   const creditHistory = (creditTransactions as any[]).map((transaction: any) => ({
     date: new Date(transaction.createdAt).toLocaleString(),
@@ -74,6 +83,7 @@ export default function SettingsPage() {
   const sidebarItems = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'credits', label: 'Credits', icon: CreditCard },
+    { id: 'blockchain', label: 'Live Scanning', icon: Globe },
     { id: 'referral', label: 'Referral', icon: Gift },
     { id: 'billing', label: 'Billing', icon: FileText },
   ];
@@ -400,6 +410,125 @@ export default function SettingsPage() {
         <div className="flex-1 p-6 overflow-y-auto">
           {activeSection === 'profile' && renderProfileSection()}
           {activeSection === 'credits' && renderCreditsSection()}
+          {activeSection === 'blockchain' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Live Contract Scanning</h2>
+                <p className="text-slate-400">Configure blockchain explorer APIs for automatic contract scanning.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Live Scanning Status */}
+                <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Scanning Status</h3>
+                    <Badge className="bg-green-500/20 text-green-300 border-green-400">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                      Active
+                    </Badge>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Daily Scans</span>
+                      <span className="text-white font-medium">2 contracts/day</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Networks</span>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-300">Ethereum</Badge>
+                        <Badge variant="outline" className="text-xs border-purple-400 text-purple-300">Polygon</Badge>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Next Scan</span>
+                      <span className="text-white font-medium">In 6 hours</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* API Key Configuration */}
+                <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Key className="h-5 w-5 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-white">API Configuration</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm text-slate-300">Etherscan API Key</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input 
+                          type="password"
+                          placeholder="Configure in environment variables"
+                          disabled
+                          className="bg-slate-700/50 border-slate-600 text-slate-400"
+                        />
+                        <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
+                          <Key className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-slate-300">Polygonscan API Key</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input 
+                          type="password"
+                          placeholder="Configure in environment variables"
+                          disabled
+                          className="bg-slate-700/50 border-slate-600 text-slate-400"
+                        />
+                        <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
+                          <Key className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-slate-700">
+                      <p className="text-xs text-slate-500">
+                        API keys enable automatic scanning of verified smart contracts from blockchain explorers. 
+                        Configure ETHERSCAN_API_KEY and POLYGONSCAN_API_KEY in your environment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Live Scans */}
+              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                <h3 className="text-lg font-semibold text-white mb-4">Recent Live Scans</h3>
+                <div className="space-y-3">
+                  {liveScans && liveScans.length > 0 ? (
+                    liveScans.slice(0, 5).map((scan: any) => (
+                      <div key={scan.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            scan.scanStatus === 'completed' ? 'bg-green-400' :
+                            scan.scanStatus === 'scanning' ? 'bg-blue-400 animate-pulse' :
+                            'bg-yellow-400'
+                          }`}></div>
+                          <div>
+                            <p className="text-sm font-medium text-white">{scan.contractName || 'Unknown Contract'}</p>
+                            <p className="text-xs text-slate-400 font-mono">{scan.contractAddress?.slice(0, 10)}...{scan.contractAddress?.slice(-6)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge className={`text-xs ${scan.network === 'ethereum' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                            {scan.network}
+                          </Badge>
+                          {scan.securityScore && (
+                            <p className="text-xs text-slate-400 mt-1">Score: {scan.securityScore}/100</p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6">
+                      <Globe className="h-8 w-8 text-slate-500 mx-auto mb-2" />
+                      <p className="text-slate-400 text-sm">No live scans yet. Configure API keys to enable automatic scanning.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {activeSection === 'referral' && (
             <div className="space-y-6">
               <div>
