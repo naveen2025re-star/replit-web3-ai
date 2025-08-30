@@ -56,12 +56,16 @@ export function ChatGPTSidebar({
   const [showUserModal, setShowUserModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
+  const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{sessionId: string, x: number, y: number} | null>(null);
   const queryClient = useQueryClient();
   const { disconnect } = useWeb3Auth();
   const { toast } = useToast();
+
+  // Get archived chats
+  const archivedChats = auditHistory.filter(session => session.isArchived);
 
   // Filter sessions by search term and exclude archived
   const filteredSessions = auditHistory.filter(session => 
@@ -118,20 +122,65 @@ export function ChatGPTSidebar({
   };
 
   const handlePin = async (sessionId: string) => {
-    // Toggle pin status
-    setContextMenu(null);
-    toast({
-      title: "Pin toggled",
-      description: "Chat pin status has been updated.",
-    });
+    try {
+      setContextMenu(null);
+      const session = auditHistory.find(s => s.id === sessionId);
+      const newPinStatus = !session?.isPinned;
+      
+      const response = await fetch(`/api/audit/session/${sessionId}/pin`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: newPinStatus })
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        toast({
+          title: newPinStatus ? "Chat pinned" : "Chat unpinned",
+          description: newPinStatus ? "Chat has been pinned to the top." : "Chat has been unpinned.",
+        });
+      } else {
+        throw new Error('Failed to update pin status');
+      }
+    } catch (error) {
+      console.error('Error updating pin status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update pin status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleArchive = async (sessionId: string) => {
-    setContextMenu(null);
-    toast({
-      title: "Chat archived",
-      description: "Chat has been moved to archive.",
-    });
+    try {
+      setContextMenu(null);
+      const session = auditHistory.find(s => s.id === sessionId);
+      const newArchiveStatus = !session?.isArchived;
+      
+      const response = await fetch(`/api/audit/session/${sessionId}/archive`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived: newArchiveStatus })
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        toast({
+          title: newArchiveStatus ? "Chat archived" : "Chat unarchived",
+          description: newArchiveStatus ? "Chat has been moved to archive." : "Chat has been restored from archive.",
+        });
+      } else {
+        throw new Error('Failed to update archive status');
+      }
+    } catch (error) {
+      console.error('Error updating archive status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update archive status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRename = (sessionId: string, currentTitle: string) => {
@@ -314,6 +363,57 @@ export function ChatGPTSidebar({
         )}
       </div>
 
+      {/* Archived Chats Section */}
+      {archivedChats.length > 0 && (
+        <div className="border-t border-slate-700/50 p-3">
+          <button
+            onClick={() => setShowArchivedChats(!showArchivedChats)}
+            className="flex items-center justify-between w-full text-left py-2 text-sm text-slate-300 hover:text-white transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {showArchivedChats ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <Archive className="h-4 w-4" />
+              <span className="font-medium">Archived Chats</span>
+            </div>
+            <span className="text-xs text-slate-500 bg-slate-800/60 px-2 py-1 rounded-full">
+              {archivedChats.length}
+            </span>
+          </button>
+          
+          {showArchivedChats && (
+            <div className="space-y-1 mt-2">
+              {archivedChats.map((session: AuditSession) => (
+                <div
+                  key={session.id}
+                  className="group relative flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-800/50 cursor-pointer text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                  onClick={() => onLoadSession(session.id)}
+                  onContextMenu={(e) => handleContextMenu(e, session.id)}
+                >
+                  <div className="flex-1 truncate">
+                    {session.publicTitle || `${session.contractLanguage} Audit`}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleContextMenu(e, session.id);
+                    }}
+                  >
+                    <MoreVertical className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Bottom section with additional options */}
       <div className="border-t border-slate-700/50 p-3">
         <div className="space-y-1">
@@ -323,13 +423,6 @@ export function ChatGPTSidebar({
           >
             <Settings className="h-4 w-4 mr-2" />
             Settings
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800/50 h-9"
-          >
-            <Archive className="h-4 w-4 mr-2" />
-            Archived Chats
           </Button>
           <Button 
             variant="ghost" 
@@ -432,7 +525,7 @@ export function ChatGPTSidebar({
             onClick={() => handlePin(contextMenu.sessionId)}
           >
             <Pin className="h-3 w-3" />
-            Pin
+            {auditHistory.find(s => s.id === contextMenu.sessionId)?.isPinned ? 'Unpin' : 'Pin'}
           </button>
           <button
             className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
@@ -451,7 +544,7 @@ export function ChatGPTSidebar({
             onClick={() => handleArchive(contextMenu.sessionId)}
           >
             <Archive className="h-3 w-3" />
-            Archive
+            {auditHistory.find(s => s.id === contextMenu.sessionId)?.isArchived ? 'Unarchive' : 'Archive'}
           </button>
           <button
             className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"

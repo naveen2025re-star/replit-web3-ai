@@ -751,6 +751,44 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Toggle audit pin status
+  app.patch("/api/audit/session/:sessionId/pin", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { isPinned } = z.object({ isPinned: z.boolean() }).parse(req.body);
+      
+      const auditSession = await storage.updateAuditPinStatus(sessionId, isPinned);
+      
+      if (!auditSession) {
+        return res.status(404).json({ message: "Audit session not found" });
+      }
+      
+      res.json(auditSession);
+    } catch (error) {
+      console.error("Error updating audit pin status:", error);
+      res.status(500).json({ message: "Failed to update audit pin status" });
+    }
+  });
+
+  // Toggle audit archive status
+  app.patch("/api/audit/session/:sessionId/archive", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { isArchived } = z.object({ isArchived: z.boolean() }).parse(req.body);
+      
+      const auditSession = await storage.updateAuditArchiveStatus(sessionId, isArchived);
+      
+      if (!auditSession) {
+        return res.status(404).json({ message: "Audit session not found" });
+      }
+      
+      res.json(auditSession);
+    } catch (error) {
+      console.error("Error updating audit archive status:", error);
+      res.status(500).json({ message: "Failed to update audit archive status" });
+    }
+  });
+
   // Delete audit session
   app.delete("/api/audit/session/:sessionId", async (req, res) => {
     try {

@@ -56,6 +56,8 @@ export const auditSessions = pgTable("audit_sessions", {
   tags: jsonb("tags").$type<string[]>().default([]),
   creditsUsed: integer("credits_used").default(0).notNull(), // Track credits spent on this audit
   codeComplexity: integer("code_complexity").default(1).notNull(), // 1-10 scale for credit calculation
+  isPinned: boolean("is_pinned").notNull().default(false), // Pin important chats
+  isArchived: boolean("is_archived").notNull().default(false), // Archive old chats
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
 });

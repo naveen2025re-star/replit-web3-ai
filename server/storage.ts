@@ -44,6 +44,8 @@ export interface IStorage {
   getRecentAuditSessions(limit?: number): Promise<AuditSession[]>;
   // Audit CRUD operations
   updateAuditTitle(sessionId: string, title: string): Promise<AuditSession | undefined>;
+  updateAuditPinStatus(sessionId: string, isPinned: boolean): Promise<AuditSession | undefined>;
+  updateAuditArchiveStatus(sessionId: string, isArchived: boolean): Promise<AuditSession | undefined>;
   deleteAuditSession(sessionId: string): Promise<boolean>;
   getAuditSessionDetails(sessionId: string): Promise<any>;
   
@@ -191,6 +193,24 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(auditSessions)
       .set({ publicTitle: title })
+      .where(eq(auditSessions.id, sessionId))
+      .returning();
+    return updated;
+  }
+
+  async updateAuditPinStatus(sessionId: string, isPinned: boolean): Promise<AuditSession | undefined> {
+    const [updated] = await db
+      .update(auditSessions)
+      .set({ isPinned })
+      .where(eq(auditSessions.id, sessionId))
+      .returning();
+    return updated;
+  }
+
+  async updateAuditArchiveStatus(sessionId: string, isArchived: boolean): Promise<AuditSession | undefined> {
+    const [updated] = await db
+      .update(auditSessions)
+      .set({ isArchived })
       .where(eq(auditSessions.id, sessionId))
       .returning();
     return updated;
