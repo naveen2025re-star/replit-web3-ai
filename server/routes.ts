@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema, liveScannedContracts } from "@shared/schema";
+import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema, liveScannedContracts, auditSessions } from "@shared/schema";
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { BlockchainScanner } from "./blockchainScanner";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import { db } from "./db";
-import { eq, desc, and, isNull, sql } from "drizzle-orm";
+import { eq, desc, and, isNull, sql, lte } from "drizzle-orm";
 
 // Type definitions for global objects
 interface GitHubConnection {

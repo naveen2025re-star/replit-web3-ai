@@ -1,4 +1,7 @@
 import { BlockchainScanner } from "./blockchainScanner";
+import { db } from "./db";
+import { auditSessions, liveScannedContracts } from "@shared/schema";
+import { and, eq, lte } from "drizzle-orm";
 
 export class Scheduler {
   private static intervals: Map<string, NodeJS.Timeout> = new Map();
@@ -10,18 +13,25 @@ export class Scheduler {
       clearInterval(existingInterval);
     }
 
-    // Run immediately on startup (for testing)
-    setTimeout(() => {
-      this.runLiveScan();
+    // Run cleanup first, then scanning
+    setTimeout(async () => {
+      await this.cleanupOldSessions();
+      await this.runLiveScan();
     }, 5000); // Wait 5 seconds after server start
 
-    // Schedule to run twice daily (every 12 hours)
-    const interval = setInterval(() => {
+    // Schedule scanning every 8 hours + daily cleanup at midnight
+    const scanInterval = setInterval(() => {
       this.runLiveScan();
-    }, 12 * 60 * 60 * 1000); // 12 hours in milliseconds
+    }, 8 * 60 * 60 * 1000); // 8 hours for more frequent scanning
+    
+    // Daily cleanup at midnight
+    const cleanupInterval = setInterval(() => {
+      this.cleanupOldSessions();
+    }, 24 * 60 * 60 * 1000); // 24 hours
 
-    this.intervals.set("live-scanning", interval);
-    console.log("[SCHEDULER] Live scanning scheduled to run every 12 hours");
+    this.intervals.set("live-scanning", scanInterval);
+    this.intervals.set("cleanup", cleanupInterval);
+    console.log("[SCHEDULER] Smart scanning: every 8h + daily cleanup");
   }
 
   private static async runLiveScan(): Promise<void> {
@@ -36,6 +46,32 @@ export class Scheduler {
       }
     } catch (error) {
       console.error("[SCHEDULER] Live scan failed:", error);
+    }
+  }
+
+  // Smart cleanup for old failed sessions
+  private static async cleanupOldSessions(): Promise<void> {
+    try {
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      
+      // Update old failed sessions to cleaned status instead of deleting
+      const cleanedSessions = await db
+        .update(auditSessions)
+        .set({ status: "failed" })
+        .where(
+          and(
+            eq(auditSessions.contractSource, "live-scan"),
+            eq(auditSessions.status, "analyzing"),
+            lte(auditSessions.createdAt, oneWeekAgo)
+          )
+        )
+        .returning({ id: auditSessions.id });
+      
+      if (cleanedSessions.length > 0) {
+        console.log(`[CLEANUP] Cleaned up ${cleanedSessions.length} old stuck sessions`);
+      }
+    } catch (error) {
+      console.error("[CLEANUP] Error during cleanup:", error);
     }
   }
 

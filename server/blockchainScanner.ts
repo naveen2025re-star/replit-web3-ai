@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { liveScannedContracts, auditSessions, auditResults, type LiveScannedContract } from "@shared/schema";
-import { eq, desc, and, isNull, lte } from "drizzle-orm";
+import { eq, desc, and, isNull, lte, gte } from "drizzle-orm";
 
 const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
 
@@ -303,9 +303,9 @@ export class BlockchainScanner {
 
   public static async scanRandomContract(): Promise<boolean> {
     try {
-      // Check if we've already scanned today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Smart daily limit tracking - check completed scans for today
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
       
       const todayScans = await db
         .select()
@@ -313,13 +313,27 @@ export class BlockchainScanner {
         .where(
           and(
             eq(liveScannedContracts.scanStatus, "completed"),
-            lte(liveScannedContracts.scannedAt, new Date())
+            lte(todayStart, liveScannedContracts.scannedAt)
           )
-        )
-        .limit(5);
+        );
 
+      console.log(`[SMART LIMIT] Today's completed scans: ${todayScans.length}/3`);
+      
       if (todayScans.length >= 3) {
-        console.log("Already scanned enough contracts today (limit: 3)");
+        console.log("[SMART LIMIT] Daily limit reached (3 contracts analyzed today)");
+        return false;
+      }
+      
+      // Check for any active scanning to prevent duplicates
+      const activeScans = await db
+        .select()
+        .from(liveScannedContracts)
+        .where(
+          eq(liveScannedContracts.scanStatus, "scanning")
+        );
+        
+      if (activeScans.length > 0) {
+        console.log(`[SMART LIMIT] Analysis already in progress: ${activeScans[0].contractName}`);
         return false;
       }
 
@@ -328,27 +342,57 @@ export class BlockchainScanner {
         Math.floor(Math.random() * this.INTERESTING_CONTRACTS.length)
       ];
 
-      // Get all previously scanned contracts
+      // Smart contract selection - prioritize high-value, unscanned contracts
       const allScannedContracts = await db
         .select({ contractAddress: liveScannedContracts.contractAddress })
         .from(liveScannedContracts);
         
       const scannedAddresses = allScannedContracts.map(scan => scan.contractAddress);
       
-      // Filter out already scanned contracts
+      // Filter and prioritize contracts intelligently
       const unscannedContracts = this.INTERESTING_CONTRACTS.filter(contract => 
         !scannedAddresses.includes(contract.address)
       );
       
       if (unscannedContracts.length === 0) {
-        console.log("All contracts have been scanned. No new contracts available.");
-        return false;
+        console.log("[SMART SELECTION] All contracts scanned. Cycling through high-value contracts.");
+        // If all scanned, prefer high-value contract types for re-analysis
+        const highValueTypes = ["Token", "DeFi", "Stablecoin", "Bridge"];
+        const highValueContracts = this.INTERESTING_CONTRACTS.filter(c => 
+          highValueTypes.some(type => c.type.includes(type))
+        );
+        
+        if (highValueContracts.length > 0) {
+          const highValueContract = highValueContracts[
+            Math.floor(Math.random() * highValueContracts.length)
+          ];
+          console.log(`[SMART SELECTION] Re-analyzing high-value contract: ${highValueContract.type}`);
+          // Use the high value contract as our selection
+          contractToScan = highValueContract;
+        } else {
+          return false;
+        }
       }
       
-      // Pick a random unscanned contract
-      const contractToScan = unscannedContracts[
-        Math.floor(Math.random() * unscannedContracts.length)
-      ];
+      // Smart prioritization: prefer DeFi, Token, and Bridge contracts  
+      const priorityTypes = ["DeFi", "Token", "Stablecoin", "Bridge", "DEX"];
+      let contractToScan;
+      
+      const priorityContracts = unscannedContracts.filter(contract => 
+        priorityTypes.some(type => contract.type.includes(type))
+      );
+      
+      if (priorityContracts.length > 0) {
+        contractToScan = priorityContracts[
+          Math.floor(Math.random() * priorityContracts.length)
+        ];
+        console.log(`[SMART SELECTION] Selected priority contract: ${contractToScan.type}`);
+      } else {
+        contractToScan = unscannedContracts[
+          Math.floor(Math.random() * unscannedContracts.length)
+        ];
+        console.log(`[SMART SELECTION] Selected random contract: ${contractToScan.type}`);
+      }
 
       console.log(`Selected new contract for scanning: ${contractToScan.address} (${contractToScan.type})`);
 
