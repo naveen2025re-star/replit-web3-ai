@@ -18,28 +18,22 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({children}) => (
-            <div className="border-l-4 border-red-500 bg-red-500/10 rounded-lg p-6 mb-6">
-              <h1 className="text-2xl font-bold text-white mb-0 flex items-center">
-                <AlertTriangle className="h-6 w-6 text-red-400 mr-3" />
-                {children}
-              </h1>
-            </div>
+            <h1 className="text-2xl font-bold text-white mb-6 pb-3 border-b border-slate-700 flex items-center">
+              <AlertTriangle className="h-6 w-6 text-red-400 mr-3" />
+              {children}
+            </h1>
           ),
           h2: ({children}) => (
-            <div className="border-l-4 border-yellow-500 bg-yellow-500/10 rounded-lg p-4 mb-4">
-              <h2 className="text-xl font-semibold text-white mb-0 flex items-center">
-                <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
-                {children}
-              </h2>
-            </div>
+            <h2 className="text-xl font-semibold text-white mb-4 mt-8 pb-2 border-b border-slate-700/50 flex items-center">
+              <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
+              {children}
+            </h2>
           ),
           h3: ({children}) => (
-            <div className="border-l-4 border-blue-500 bg-blue-500/10 rounded-lg p-3 mb-3">
-              <h3 className="text-lg font-medium text-white mb-0 flex items-center">
-                <Info className="h-4 w-4 text-blue-400 mr-2" />
-                {children}
-              </h3>
-            </div>
+            <h3 className="text-lg font-medium text-white mb-3 mt-6 flex items-center">
+              <Info className="h-4 w-4 text-blue-400 mr-2" />
+              {children}
+            </h3>
           ),
           p: ({children}) => <p className="text-gray-300 mb-4 leading-relaxed">{children}</p>,
           ul: ({children}) => <ul className="list-disc list-inside text-gray-300 mb-4 space-y-2 ml-4">{children}</ul>,
