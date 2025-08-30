@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'wouter';
 import CreditDisplay from '@/components/CreditDisplay';
+import CreditPurchase from '@/components/CreditPurchase';
 
 export default function SettingsPage() {
   const { user } = useWeb3Auth();
@@ -48,6 +49,7 @@ export default function SettingsPage() {
   // Privacy preferences
   const [publicProfile, setPublicProfile] = useState(false);
   const [showAuditHistory, setShowAuditHistory] = useState(true);
+  const [showCreditPurchase, setShowCreditPurchase] = useState(false);
   
   // Credit balance data
   const { data: creditData } = useQuery({
@@ -55,18 +57,19 @@ export default function SettingsPage() {
     enabled: !!user?.id
   });
 
-  // Credit history data - use real API or generate from actual usage
-  const { data: creditHistory = [] } = useQuery({
-    queryKey: ['/api/credits/history'],
-    enabled: !!user?.id,
-    placeholderData: [
-      { date: '2025-08-23 08:30', amount: -102, type: 'Spend', description: 'Smart contract analysis - security' },
-      { date: '2025-08-01 17:38', amount: -246, type: 'Spend', description: 'Smart contract analysis - security' },
-      { date: '2025-08-01 17:27', amount: -287, type: 'Spend', description: 'Smart contract analysis - security' },
-      { date: '2025-08-01 17:25', amount: -137, type: 'Spend', description: 'Smart contract analysis - security' },
-      { date: '2025-08-01 17:15', amount: +500, type: 'Promo Code', description: 'Welcome bonus credits' },
-    ]
+  // Credit history data from transactions
+  const { data: creditTransactions = [] } = useQuery({
+    queryKey: ['/api/credits/transactions', user?.id],
+    enabled: !!user?.id
   });
+
+  // Format credit history from transactions
+  const creditHistory = (creditTransactions as any[]).map((transaction: any) => ({
+    date: new Date(transaction.createdAt).toLocaleString(),
+    amount: transaction.type === 'usage' ? -transaction.credits : transaction.credits,
+    type: transaction.type === 'usage' ? 'Spend' : transaction.type === 'purchase' ? 'Purchase' : 'Bonus',
+    description: transaction.reason || 'Credit transaction'
+  }));
 
   const sidebarItems = [
     { id: 'profile', label: 'Profile', icon: User },
@@ -216,7 +219,7 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <div className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-md text-white">
-                      {user.displayName || user.ensName || user.githubUsername || 'Not set'}
+                      {displayName || user.displayName || user.ensName || user.githubUsername || 'Not set'}
                     </div>
                     <Button
                       size="sm"
@@ -273,7 +276,11 @@ export default function SettingsPage() {
             Current Credit
           </h3>
           <div className="flex gap-2">
-            <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button 
+              size="sm" 
+              onClick={() => setShowCreditPurchase(true)}
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
               Buy more credits
             </Button>
             <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
@@ -304,7 +311,7 @@ export default function SettingsPage() {
           </div>
           
           {/* Table Rows */}
-          {creditHistory.map((entry, index) => (
+          {creditHistory.map((entry: any, index: number) => (
             <div key={index} className="grid grid-cols-3 gap-4 py-3 text-sm border-b border-slate-800/50 last:border-b-0">
               <div className="text-slate-300">{entry.date}</div>
               <div className={`font-medium ${
@@ -411,15 +418,49 @@ export default function SettingsPage() {
                 <h2 className="text-2xl font-bold text-white mb-2">Billing</h2>
                 <p className="text-slate-400">Manage your billing and subscription.</p>
               </div>
-              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
-                <h3 className="text-lg font-semibold text-white mb-2">Pay-as-you-go</h3>
-                <p className="text-slate-400 mb-4">You're currently on our flexible credit system.</p>
-                <Button className="bg-blue-600 hover:bg-blue-700">Purchase Credits</Button>
+              <div className="space-y-4">
+                <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                  <h3 className="text-lg font-semibold text-white mb-2">Pay-as-you-go</h3>
+                  <p className="text-slate-400 mb-4">You're currently on our flexible credit system.</p>
+                  <Button 
+                    onClick={() => setShowCreditPurchase(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Purchase Credits
+                  </Button>
+                </div>
+                
+                <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                  <h3 className="text-lg font-semibold text-white mb-2">Payment Method</h3>
+                  <p className="text-slate-400 mb-4">Secure payments via Stripe and PayPal</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-slate-400" />
+                      <span className="text-slate-300">Credit/Debit Cards</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-slate-400" />
+                      <span className="text-slate-300">PayPal</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
+      
+      {/* Credit Purchase Modal */}
+      {showCreditPurchase && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-900 rounded-lg p-1 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <CreditPurchase 
+              userId={user?.id || ''} 
+              onClose={() => setShowCreditPurchase(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
