@@ -20,10 +20,10 @@ import { Request, Response } from "express";
 const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } = process.env;
 
 if (!PAYPAL_CLIENT_ID) {
-  throw new Error("Missing PAYPAL_CLIENT_ID");
+  console.warn("Missing PAYPAL_CLIENT_ID - PayPal Advanced SDK will not be available");
 }
 if (!PAYPAL_CLIENT_SECRET) {
-  throw new Error("Missing PAYPAL_CLIENT_SECRET");
+  console.warn("Missing PAYPAL_CLIENT_SECRET - PayPal Advanced SDK will not be available");
 }
 const client = new Client({
   clientCredentialsAuthCredentials: {

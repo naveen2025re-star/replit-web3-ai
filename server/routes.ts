@@ -1098,11 +1098,52 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     await capturePaypalOrder(req, res);
   });
 
-  // Standard PayPal Routes (using paypal-rest-sdk - more reliable for sandbox)
+  // Standard PayPal Routes (using paypal-rest-sdk - live production mode)
   app.post("/api/paypal/create-payment", createPayment);
   app.get("/api/paypal/success", executePayment);
   app.get("/api/paypal/cancel", cancelPayment);
   app.get("/api/paypal/payment/:paymentId", getPaymentDetails);
+  
+  // PayPal credential test endpoint
+  app.get("/api/paypal/test-credentials", async (req, res) => {
+    try {
+      const axios = require('axios');
+      
+      // Test authentication with PayPal OAuth
+      const credentials = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString('base64');
+      
+      const response = await axios.post('https://api.paypal.com/v1/oauth2/token', 
+        'grant_type=client_credentials',
+        {
+          headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (response.data.access_token) {
+        res.json({ 
+          status: "success", 
+          message: "PayPal credentials are valid",
+          token_type: response.data.token_type,
+          expires_in: response.data.expires_in
+        });
+      } else {
+        res.status(400).json({ status: "error", message: "Invalid response from PayPal" });
+      }
+      
+    } catch (error: any) {
+      console.error("PayPal credential test failed:", error.response?.data || error.message);
+      res.status(401).json({ 
+        status: "error", 
+        message: "PayPal authentication failed",
+        details: error.response?.data || error.message,
+        suggestion: "Please verify your PayPal business account is verified and live credentials are correct"
+      });
+    }
+  });
 
   // GitHub OAuth Routes
   app.get("/api/integrations/github/install", isAuthenticated, async (req, res) => {

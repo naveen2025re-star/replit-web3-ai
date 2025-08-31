@@ -44,7 +44,17 @@ export default function PayPalButtonReliable({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        console.error("PayPal API Error:", errorData);
+        
+        let userFriendlyMessage = errorData.error || `HTTP ${response.status}`;
+        
+        if (errorData.code === 'INVALID_CREDENTIALS') {
+          userFriendlyMessage = "PayPal credentials need to be updated. Please contact support.";
+        } else if (errorData.suggestion) {
+          userFriendlyMessage = errorData.suggestion;
+        }
+        
+        throw new Error(userFriendlyMessage);
       }
 
       const paymentData = await response.json();

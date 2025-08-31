@@ -1,12 +1,45 @@
 import paypal from "paypal-rest-sdk";
 import { Request, Response } from "express";
 
-// Configure PayPal with environment variables (using live mode)
-paypal.configure({
-  mode: "live", // Always use live/production mode
-  client_id: process.env.PAYPAL_CLIENT_ID!,
-  client_secret: process.env.PAYPAL_CLIENT_SECRET!,
-});
+// Validate PayPal credentials - warn but don't crash if missing
+if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
+  console.warn("PayPal credentials are not configured. PayPal payments will not work until PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET are set.");
+}
+
+// Smart PayPal configuration - auto-detect sandbox vs live
+let paypalMode = "sandbox"; // Default to sandbox if no credentials
+let clientId = process.env.PAYPAL_CLIENT_ID || "dummy";
+let clientSecret = process.env.PAYPAL_CLIENT_SECRET || "dummy";
+
+if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
+  // If credentials look like sandbox, switch to sandbox mode
+  if (clientId?.includes('sandbox') || clientId?.startsWith('AZa') || clientId?.startsWith('ATa')) {
+    paypalMode = "sandbox";
+    console.log("Detected sandbox credentials - switching to sandbox mode");
+  } else {
+    paypalMode = "live";
+    console.log("Using live PayPal mode");
+  }
+  
+  paypal.configure({
+    mode: paypalMode, // Auto-detect sandbox vs live
+    client_id: clientId,
+    client_secret: clientSecret,
+    // Add these additional configuration options for better reliability
+    headers: {
+      'User-Agent': 'SmartAudit/1.0'
+    }
+  });
+
+  console.log(`PayPal configured for ${paypalMode.toUpperCase()} mode with Client ID:`, clientId?.substring(0, 10) + "...");
+} else {
+  console.log("PayPal not configured - using dummy configuration");
+  paypal.configure({
+    mode: "sandbox",
+    client_id: "dummy",
+    client_secret: "dummy"
+  });
+}
 
 // Create PayPal payment
 export const createPayment = (req: Request, res: Response) => {
@@ -46,12 +79,32 @@ export const createPayment = (req: Request, res: Response) => {
   paypal.payment.create(create_payment_json, (error: any, payment: any) => {
     if (error) {
       console.error("PayPal payment creation error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      
+      // Provide specific error messages based on the error type
+      let errorMessage = "Failed to create PayPal payment";
+      let errorCode = "PAYPAL_ERROR";
+      
+      if (error.response) {
+        console.error("PayPal API Response:", error.response);
+        
+        if (error.response.error === 'invalid_client') {
+          errorMessage = "PayPal authentication failed. Please check your live PayPal credentials.";
+          errorCode = "INVALID_CREDENTIALS";
+        } else if (error.response.error_description) {
+          errorMessage = error.response.error_description;
+          errorCode = error.response.error;
+        }
+      }
+      
       res.status(500).json({ 
-        error: "Failed to create PayPal payment",
-        details: error.message 
+        error: errorMessage,
+        code: errorCode,
+        details: error.message,
+        suggestion: "Please verify your PayPal business account is verified and your live API credentials are correct."
       });
     } else {
-      console.log("PayPal payment created:", payment.id);
+      console.log("PayPal payment created successfully:", payment.id);
       
       // Find approval URL
       const approvalUrl = payment.links?.find((link: any) => link.rel === "approval_url");
@@ -63,7 +116,8 @@ export const createPayment = (req: Request, res: Response) => {
           status: "created"
         });
       } else {
-        res.status(500).json({ error: "No approval URL found" });
+        console.error("No approval URL found in payment:", payment);
+        res.status(500).json({ error: "No approval URL found in PayPal response" });
       }
     }
   });
