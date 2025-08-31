@@ -1,9 +1,9 @@
 import paypal from "paypal-rest-sdk";
 import { Request, Response } from "express";
 
-// Configure PayPal with environment variables
+// Configure PayPal with environment variables (using live mode)
 paypal.configure({
-  mode: process.env.NODE_ENV === "production" ? "live" : "sandbox",
+  mode: "live", // Always use live/production mode
   client_id: process.env.PAYPAL_CLIENT_ID!,
   client_secret: process.env.PAYPAL_CLIENT_SECRET!,
 });
