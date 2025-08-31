@@ -315,6 +315,8 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                       amount={paymentData.amount}
                       currency={paymentData.currency}
                       packageName={packages.find(p => p.id === selectedPackage)?.name || "Credits"}
+                      packageId={selectedPackage || undefined}
+                      userId={userId}
                       onSuccess={(paymentData) => {
                         toast({
                           title: "Payment Successful!",

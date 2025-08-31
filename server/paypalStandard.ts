@@ -44,7 +44,7 @@ if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
 
 // Create PayPal payment using modern Orders v2 API
 export const createPayment = async (req: Request, res: Response) => {
-  const { amount, currency = "USD", packageName = "Smart Contract Audit Credits" } = req.body;
+  const { amount, currency = "USD", packageName = "Smart Contract Audit Credits", packageId, userId } = req.body;
   
   // Validate payment amount for security
   const numAmount = parseFloat(amount);
@@ -93,7 +93,8 @@ export const createPayment = async (req: Request, res: Response) => {
           currency_code: currency.toUpperCase(),
           value: parseFloat(amount).toFixed(2)
         },
-        description: `${packageName} - Smart Contract Audit Credits`
+        description: `${packageName} - Smart Contract Audit Credits`,
+        custom_id: packageId ? `${packageId}-${userId}` : undefined // Store package and user info
       }],
       application_context: {
         brand_name: "Smart Contract Auditor",
@@ -159,57 +160,111 @@ export const createPayment = async (req: Request, res: Response) => {
   }
 };
 
-// Execute PayPal payment after approval
-export const executePayment = (req: Request, res: Response) => {
-  const paymentId = req.query.paymentId as string;
-  const payerId = req.query.PayerID as string;
-
-  if (!paymentId || !payerId) {
-    return res.status(400).json({ error: "Missing payment ID or payer ID" });
+// Execute PayPal order after approval (Orders v2 API)
+export const executePayment = async (req: Request, res: Response) => {
+  const orderId = req.query.token as string; // Orders v2 uses 'token' instead of 'paymentId'
+  
+  if (!orderId) {
+    return res.status(400).json({ error: "Missing order ID" });
   }
 
-  console.log("Executing payment:", paymentId, "for payer:", payerId);
+  console.log("Capturing PayPal order:", orderId);
 
-  // Get payment details first to get the amount
-  paypal.payment.get(paymentId, (error: any, payment: any) => {
-    if (error) {
-      console.error("Error getting payment details:", error);
-      return res.status(500).json({ error: "Failed to get payment details" });
-    }
-
-    const amount = payment.transactions?.[0]?.amount?.total;
-    const currency = payment.transactions?.[0]?.amount?.currency;
-
-    if (!amount || !currency) {
-      return res.status(500).json({ error: "Invalid payment data" });
-    }
-
-    const execute_payment_json = {
-      payer_id: payerId,
-      transactions: [
-        {
-          amount: {
-            currency: currency,
-            total: amount,
-          },
-        },
-      ],
-    };
-
-    paypal.payment.execute(paymentId, execute_payment_json, (executeError: any, executedPayment: any) => {
-      if (executeError) {
-        console.error("Payment execution error:", executeError);
-        const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=error&message=${encodeURIComponent(executeError.message || 'Payment failed')}`;
-        res.redirect(frontendUrl);
-      } else {
-        console.log("Payment executed successfully:", executedPayment.id);
-        
-        // Redirect to success page with payment details
-        const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=success&amount=${amount}&currency=${currency}&paymentId=${executedPayment.id}`;
-        res.redirect(frontendUrl);
+  try {
+    // Get access token first
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const apiBase = paypalMode === 'sandbox' ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+    
+    const authResponse = await axios.post(`${apiBase}/v1/oauth2/token`, 
+      'grant_type=client_credentials',
+      {
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       }
-    });
-  });
+    );
+    
+    const accessToken = authResponse.data.access_token;
+    
+    // Capture the order
+    const captureResponse = await axios.post(`${apiBase}/v2/checkout/orders/${orderId}/capture`, 
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+    
+    const capturedOrder = captureResponse.data;
+    console.log("Order captured successfully:", capturedOrder.id);
+    
+    // Extract payment details
+    const amount = capturedOrder.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value;
+    const currency = capturedOrder.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.currency_code;
+    
+    if (amount && currency) {
+      // Extract package and user info from custom_id
+      const customId = capturedOrder.purchase_units?.[0]?.custom_id;
+      
+      if (customId) {
+        const [packageId, userId] = customId.split('-');
+        
+        if (packageId && userId) {
+          try {
+            // Import the credit service
+            const { CreditService } = await import('./creditService');
+            
+            // Get package details
+            const packages = await CreditService.getCreditPackages();
+            const selectedPackage = packages.find(p => p.id === packageId);
+            
+            if (selectedPackage) {
+              // Add credits to user account
+              const result = await CreditService.addCredits(
+                userId,
+                selectedPackage.totalCredits,
+                "purchase",
+                `Purchased ${selectedPackage.name} package via PayPal`,
+                { packageId, paypalOrderId: capturedOrder.id, amount, currency }
+              );
+              
+              if (result.success) {
+                console.log(`Credits added successfully: ${selectedPackage.totalCredits} credits to user ${userId}`);
+                // Redirect to success page with payment details
+                const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=success&amount=${amount}&currency=${currency}&credits=${selectedPackage.totalCredits}&paymentId=${capturedOrder.id}`;
+                res.redirect(frontendUrl);
+                return;
+              } else {
+                console.error("Failed to add credits:", result.error);
+              }
+            } else {
+              console.error("Package not found:", packageId);
+            }
+          } catch (error) {
+            console.error("Error processing credit addition:", error);
+          }
+        }
+      }
+      
+      // Fallback redirect for successful payment but failed credit processing
+      console.log(`Payment successful: ${amount} ${currency}`);
+      const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=success&amount=${amount}&currency=${currency}&paymentId=${capturedOrder.id}`;
+      res.redirect(frontendUrl);
+    } else {
+      console.error("Invalid capture response:", capturedOrder);
+      const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=error&message=${encodeURIComponent('Invalid payment response')}`;
+      res.redirect(frontendUrl);
+    }
+    
+  } catch (error: any) {
+    console.error("Order capture error:", error.response?.data || error.message);
+    const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=error&message=${encodeURIComponent(error.response?.data?.message || 'Payment failed')}`;
+    res.redirect(frontendUrl);
+  }
 };
 
 // Handle payment cancellation

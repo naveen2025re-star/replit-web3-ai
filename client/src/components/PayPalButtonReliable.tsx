@@ -7,6 +7,8 @@ interface PayPalButtonReliableProps {
   amount: string;
   currency: string;
   packageName: string;
+  packageId?: string;
+  userId?: string;
   onSuccess?: (paymentData: any) => void;
   onError?: (error: any) => void;
   onCancel?: () => void;
@@ -16,6 +18,8 @@ export default function PayPalButtonReliable({
   amount,
   currency,
   packageName,
+  packageId,
+  userId,
   onSuccess,
   onError,
   onCancel,
@@ -39,6 +43,8 @@ export default function PayPalButtonReliable({
           amount: parseFloat(amount).toFixed(2),
           currency: currency.toUpperCase(),
           packageName: packageName,
+          packageId: packageId,
+          userId: userId,
         }),
       });
 
