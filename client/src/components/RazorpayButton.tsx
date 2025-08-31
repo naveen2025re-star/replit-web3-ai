@@ -23,7 +23,7 @@ declare global {
 
 export default function RazorpayButton({
   amount,
-  currency = "INR",
+  currency = "USD",
   packageName,
   packageId,
   userId,
@@ -186,8 +186,8 @@ export default function RazorpayButton({
         },
         prefill: {
           name: `User ${userId}`,
-          email: '',
-          contact: ''
+          email: 'user@example.com',
+          contact: '9999999999'
         },
         notes: {
           packageId: packageId,
@@ -313,7 +313,7 @@ export default function RazorpayButton({
       ) : (
         <div className="flex items-center gap-2">
           <CreditCard className="h-4 w-4" />
-          Pay ₹{amount} with Razorpay
+          Pay ${amount} with Razorpay
         </div>
       )}
     </Button>

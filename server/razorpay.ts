@@ -12,7 +12,7 @@ const razorpay = new Razorpay({
 // Create Razorpay order
 export const createRazorpayOrder = async (req: Request, res: Response) => {
   try {
-    const { amount, currency = 'INR', packageId, userId, packageName } = req.body;
+    const { amount, currency = 'USD', packageId, userId, packageName } = req.body;
 
     // Validate required fields
     if (!amount || !packageId || !userId) {
