@@ -1,5 +1,6 @@
 import paypal from "paypal-rest-sdk";
 import { Request, Response } from "express";
+import axios from "axios";
 
 // Validate PayPal credentials - warn but don't crash if missing
 if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
@@ -41,8 +42,8 @@ if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
   });
 }
 
-// Create PayPal payment
-export const createPayment = (req: Request, res: Response) => {
+// Create PayPal payment using modern Orders v2 API
+export const createPayment = async (req: Request, res: Response) => {
   const { amount, currency = "USD", packageName = "Smart Contract Audit Credits" } = req.body;
   
   // Validate payment amount for security
@@ -54,94 +55,108 @@ export const createPayment = (req: Request, res: Response) => {
     });
   }
 
-  const create_payment_json = {
-    intent: "sale",
-    payer: {
-      payment_method: "paypal",
-    },
-    redirect_urls: {
-      return_url: `${req.protocol}://${req.get('host')}/api/paypal/success`,
-      cancel_url: `${req.protocol}://${req.get('host')}/api/paypal/cancel`,
-    },
-    application_context: {
-      brand_name: "Smart Contract Auditor",
-      locale: "en-US",
-      landing_page: "BILLING",
-      shipping_preference: "NO_SHIPPING",
-      user_action: "PAY_NOW",
-      return_url: `${req.protocol}://${req.get('host')}/api/paypal/success`,
-      cancel_url: `${req.protocol}://${req.get('host')}/api/paypal/cancel`,
-    },
-    transactions: [
-      {
-        item_list: {
-          items: [
-            {
-              name: packageName,
-              sku: "credits",
-              price: parseFloat(amount).toFixed(2),
-              currency: currency.toUpperCase(),
-              quantity: 1,
-            },
-          ],
-        },
-        amount: {
-          currency: currency.toUpperCase(),
-          total: parseFloat(amount).toFixed(2),
-          details: {
-            subtotal: parseFloat(amount).toFixed(2)
-          }
-        },
-        description: `${packageName} - Smart Contract Audit Credits`,
-      },
-    ],
-  };
+  // Check if credentials are configured
+  if (!clientId || !clientSecret || clientId === 'dummy') {
+    return res.status(500).json({
+      error: "PayPal not configured",
+      code: "MISSING_CREDENTIALS",
+      details: "PayPal credentials are not properly configured"
+    });
+  }
 
-  paypal.payment.create(create_payment_json, (error: any, payment: any) => {
-    if (error) {
-      console.error("PayPal payment creation error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
-      
-      // Provide specific error messages based on the error type
-      let errorMessage = "Failed to create PayPal payment";
-      let errorCode = "PAYPAL_ERROR";
-      
-      if (error.response) {
-        console.error("PayPal API Response:", error.response);
-        
-        if (error.response.error === 'invalid_client') {
-          errorMessage = "PayPal authentication failed. Please check your live PayPal credentials.";
-          errorCode = "INVALID_CREDENTIALS";
-        } else if (error.response.error_description) {
-          errorMessage = error.response.error_description;
-          errorCode = error.response.error;
+  try {
+    // Using axios for modern PayPal Orders v2 API calls
+    
+    // Get access token first
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const apiBase = paypalMode === 'sandbox' ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+    
+    console.log(`Creating PayPal order in ${paypalMode} mode`);
+    
+    const authResponse = await axios.post(`${apiBase}/v1/oauth2/token`, 
+      'grant_type=client_credentials',
+      {
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       }
-      
-      res.status(500).json({ 
-        error: errorMessage,
-        code: errorCode,
-        details: error.message,
-        suggestion: "Please verify your PayPal business account is verified and your live API credentials are correct."
+    );
+    
+    const accessToken = authResponse.data.access_token;
+    
+    // Create order using Orders v2 API
+    const orderData = {
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: {
+          currency_code: currency.toUpperCase(),
+          value: parseFloat(amount).toFixed(2)
+        },
+        description: `${packageName} - Smart Contract Audit Credits`
+      }],
+      application_context: {
+        brand_name: "Smart Contract Auditor",
+        landing_page: "BILLING",
+        shipping_preference: "NO_SHIPPING",
+        user_action: "PAY_NOW",
+        return_url: `${req.protocol}://${req.get('host')}/api/paypal/success`,
+        cancel_url: `${req.protocol}://${req.get('host')}/api/paypal/cancel`
+      }
+    };
+    
+    const orderResponse = await axios.post(`${apiBase}/v2/checkout/orders`, 
+      orderData,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      }
+    );
+    
+    const order = orderResponse.data;
+    console.log("PayPal order created successfully:", order.id);
+    
+    // Find approval URL
+    const approvalUrl = order.links?.find((link: any) => link.rel === "approve");
+    
+    if (approvalUrl) {
+      res.json({
+        id: order.id,
+        approval_url: approvalUrl.href,
+        status: "created"
       });
     } else {
-      console.log("PayPal payment created successfully:", payment.id);
-      
-      // Find approval URL
-      const approvalUrl = payment.links?.find((link: any) => link.rel === "approval_url");
-      
-      if (approvalUrl) {
-        res.json({
-          id: payment.id,
-          approval_url: approvalUrl.href,
-          status: "created"
-        });
-      } else {
-        console.error("No approval URL found in payment:", payment);
-        res.status(500).json({ error: "No approval URL found in PayPal response" });
+      console.error("No approval URL found in order:", order);
+      res.status(500).json({ error: "No approval URL found in PayPal response" });
+    }
+    
+  } catch (error: any) {
+    console.error("PayPal order creation error:", error.response?.data || error.message);
+    
+    let errorMessage = "Failed to create PayPal order";
+    let errorCode = "PAYPAL_ERROR";
+    
+    if (error.response?.data) {
+      const errorData = error.response.data;
+      if (errorData.name === 'VALIDATION_ERROR') {
+        errorMessage = "PayPal validation error: " + (errorData.details?.[0]?.issue || errorData.message);
+        errorCode = "VALIDATION_ERROR";
+      } else if (errorData.error === 'invalid_client') {
+        errorMessage = "PayPal authentication failed. Please check your live PayPal credentials.";
+        errorCode = "INVALID_CREDENTIALS";
       }
     }
-  });
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      code: errorCode,
+      details: error.response?.data || error.message,
+      suggestion: "Please verify your PayPal business account is verified and your live API credentials are correct."
+    });
+  }
 };
 
 // Execute PayPal payment after approval
