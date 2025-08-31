@@ -26,23 +26,29 @@ export default function PayPalButtonReliable({
 }: PayPalButtonReliableProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [useDirectPayment, setUseDirectPayment] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
   const { toast } = useToast();
   const paypalRef = useRef<HTMLDivElement>(null);
 
   // Load PayPal SDK and initialize buttons
   useEffect(() => {
+    // Force use of SDK integration for better user experience
     const loadPayPalSDK = () => {
       // Check if PayPal SDK is already loaded
       if ((window as any).paypal) {
+        console.log("PayPal SDK already loaded, initializing buttons");
         initializePayPalButtons();
         return;
       }
 
+      console.log("Loading PayPal SDK...");
       // Load PayPal SDK
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AcxoLIazlHKHcBwJIa9i1ZnkhSvZ9LHPKCP9k17m8a8K-h7E5XqNLAx1JWUwV2P_y5nTBfAApF3-Rd_S'}&currency=${currency}&intent=capture`;
       script.async = true;
       script.onload = () => {
+        console.log("PayPal SDK loaded successfully");
+        setSdkLoaded(true);
         initializePayPalButtons();
       };
       script.onerror = () => {
@@ -52,38 +58,72 @@ export default function PayPalButtonReliable({
       document.head.appendChild(script);
     };
 
-    loadPayPalSDK();
+    // Add a small delay to ensure the component is fully mounted
+    setTimeout(loadPayPalSDK, 100);
   }, [amount, currency, packageId, userId]);
 
   const initializePayPalButtons = () => {
-    if (!paypalRef.current || !(window as any).paypal) return;
+    if (!paypalRef.current || !(window as any).paypal) {
+      console.error("PayPal ref or SDK not available");
+      return;
+    }
 
     // Clear any existing PayPal buttons
     paypalRef.current.innerHTML = '';
+    console.log("Initializing PayPal SDK buttons...");
 
     (window as any).paypal.Buttons({
       createOrder: async () => {
         try {
-          const response = await fetch("/api/paypal/create-payment", {
-            method: "POST",
+          // Use a direct order creation for SDK (different from redirect approach)
+          const orderData = {
+            intent: 'CAPTURE',
+            purchase_units: [{
+              amount: {
+                currency_code: currency.toUpperCase(),
+                value: parseFloat(amount).toFixed(2)
+              },
+              description: `${packageName} - Credits`,
+              custom_id: packageId && userId ? `${packageId}-${userId}` : undefined
+            }]
+          };
+
+          // Create order directly through PayPal SDK
+          const order = await fetch('/api/paypal/sdk-order', {
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              amount: parseFloat(amount).toFixed(2),
-              currency: currency.toUpperCase(),
-              packageName: packageName,
-              packageId: packageId,
-              userId: userId,
-            }),
+            body: JSON.stringify(orderData),
           });
 
-          if (!response.ok) {
-            throw new Error("Failed to create PayPal order");
+          if (!order.ok) {
+            // Fallback to old method if new endpoint doesn't exist
+            const response = await fetch("/api/paypal/create-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                amount: parseFloat(amount).toFixed(2),
+                currency: currency.toUpperCase(),
+                packageName: packageName,
+                packageId: packageId,
+                userId: userId,
+                sdkMode: true, // Flag to indicate SDK usage
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to create PayPal order");
+            }
+
+            const orderData = await response.json();
+            return orderData.id;
           }
 
-          const orderData = await response.json();
-          return orderData.id;
+          const orderResult = await order.json();
+          return orderResult.id;
         } catch (error) {
           console.error("Error creating PayPal order:", error);
           toast({
@@ -236,6 +276,13 @@ export default function PayPalButtonReliable({
 
   return (
     <div className="space-y-4">
+      {!sdkLoaded && !useDirectPayment && (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader className="h-4 w-4 animate-spin" />
+          Loading PayPal...
+        </div>
+      )}
+      
       {isLoading && (
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader className="h-4 w-4 animate-spin" />
@@ -243,11 +290,21 @@ export default function PayPalButtonReliable({
         </div>
       )}
       
-      <div 
-        ref={paypalRef}
-        className="min-h-[45px]"
-        data-testid="paypal-button-sdk"
-      />
+      {sdkLoaded && (
+        <div 
+          ref={paypalRef}
+          className="min-h-[45px]"
+          data-testid="paypal-button-sdk"
+        />
+      )}
+      
+      {!sdkLoaded && !useDirectPayment && (
+        <div className="text-center p-4 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            Loading secure PayPal checkout...
+          </p>
+        </div>
+      )}
       
       <div className="text-xs text-center text-muted-foreground">
         Secure payment powered by PayPal

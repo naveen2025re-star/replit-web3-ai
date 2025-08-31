@@ -44,7 +44,7 @@ if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
 
 // Create PayPal payment using modern Orders v2 API
 export const createPayment = async (req: Request, res: Response) => {
-  const { amount, currency = "USD", packageName = "Smart Contract Audit Credits", packageId, userId } = req.body;
+  const { amount, currency = "USD", packageName = "Smart Contract Audit Credits", packageId, userId, sdkMode = false } = req.body;
   
   // Validate payment amount for security
   const numAmount = parseFloat(amount);
@@ -120,7 +120,15 @@ export const createPayment = async (req: Request, res: Response) => {
     const order = orderResponse.data;
     console.log("PayPal order created successfully:", order.id);
     
-    // Find approval URL
+    // If this is for SDK mode, just return the order ID
+    if (sdkMode) {
+      return res.json({
+        id: order.id,
+        status: order.status
+      });
+    }
+    
+    // Find approval URL (legacy mode)
     const approvalUrl = order.links?.find((link: any) => link.rel === "approve");
     
     if (approvalUrl) {
