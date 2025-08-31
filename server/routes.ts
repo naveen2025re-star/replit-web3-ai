@@ -6,6 +6,7 @@ import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { BlockchainScanner } from "./blockchainScanner";
 import { z } from "zod";
 import * as crypto from "crypto";
+import { createRazorpayOrder, verifyRazorpayPayment, getRazorpayPaymentDetails, handleRazorpayWebhook } from "./razorpay";
 import { db } from "./db";
 import { eq, desc, and, isNull, sql, lte } from "drizzle-orm";
 
@@ -1070,7 +1071,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   });
 
   
-  // PayPal credential test endpoint
+  // Razorpay Routes
+  app.post("/api/razorpay/create-order", createRazorpayOrder);
+  app.post("/api/razorpay/verify-payment", verifyRazorpayPayment);
+  app.get("/api/razorpay/payment/:paymentId", getRazorpayPaymentDetails);
+  app.post("/api/razorpay/webhook", handleRazorpayWebhook);
+  
   // Test successful payment simulation
   app.get("/api/paypal/test-success", async (req, res) => {
     try {

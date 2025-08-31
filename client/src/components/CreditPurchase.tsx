@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EnterpriseContactModal } from "./EnterpriseContactModal";
+import RazorpayButton from "./RazorpayButton";
 
 interface CreditPackage {
   id: string;
@@ -306,33 +307,45 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
 
                 {selectedPackage === pkg.id ? (
                   <div className="space-y-2">
-                    <p className="text-sm text-center text-muted-foreground mb-4">
-                      Complete your purchase with PayPal
-                    </p>
                     <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <Coins className="h-5 w-5 text-blue-600" />
                         <h4 className="font-medium text-blue-800 dark:text-blue-200">
-                          Payment Integration Coming Soon
+                          Secure Payment with Razorpay
                         </h4>
                       </div>
                       <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                        We're adding secure payment processing. For now, contact support to purchase credits.
+                        Secure payment processing with Razorpay. Click below to proceed with your purchase.
                       </p>
                       <div className="space-y-2">
-                        <Button
-                          onClick={() => {
-                            const pkg = packages.find(p => p.id === selectedPackage);
-                            if (pkg) {
-                              const subject = `Credit Purchase Request - ${pkg.name}`;
-                              const body = `Hi,\n\nI would like to purchase:\n- Package: ${pkg.name}\n- Credits: ${pkg.totalCredits}\n- Price: $${pkg.price}\n\nPlease help me complete this purchase.\n\nThank you!`;
-                              window.open(`mailto:support@yoursite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                            }
+                        <RazorpayButton
+                          amount={packages.find(p => p.id === selectedPackage)?.price || 0}
+                          currency="INR"
+                          packageName={packages.find(p => p.id === selectedPackage)?.name || "Credits"}
+                          packageId={selectedPackage}
+                          userId={userId || ""}
+                          onSuccess={(paymentData) => {
+                            toast({
+                              title: "Payment Successful!",
+                              description: "Credits have been added to your account.",
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['/api/credits/balance'] });
+                            setSelectedPackage(null);
+                            if (onOpenChange) onOpenChange(false);
+                            if (onClose) onClose();
                           }}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                          Contact Support for Purchase
-                        </Button>
+                          onError={(error) => {
+                            console.error('Razorpay payment failed:', error);
+                            toast({
+                              title: "Payment Failed",
+                              description: "Payment failed. Please try again.",
+                              variant: "destructive",
+                            });
+                          }}
+                          onCancel={() => {
+                            setSelectedPackage(null);
+                          }}
+                        />
                         <Button
                           onClick={() => {
                             window.location.href = `/api/paypal/test-success?userId=${userId}&packageId=${selectedPackage}`;
@@ -344,26 +357,6 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                           Test Purchase (Development Only)
                         </Button>
                       </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg">
-                      <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
-                        Having PayPal issues? 
-                      </p>
-                      <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
-                        If PayPal shows "Things don't appear to be working", this is a common sandbox issue. Contact support for immediate credit addition.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/50"
-                        onClick={() => {
-                          const subject = `Credit Purchase Issue - ${packages.find(p => p.id === selectedPackage)?.name} Package`;
-                          const body = `Hi,\n\nI'm experiencing issues when trying to purchase the ${packages.find(p => p.id === selectedPackage)?.name} package.\n\nPlease help me complete this purchase.\n\nThank you!`;
-                          window.open(`mailto:support@yoursite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-                        }}
-                      >
-                        Contact Support for Manual Purchase
-                      </Button>
                     </div>
                     <Button
                       variant="outline"
