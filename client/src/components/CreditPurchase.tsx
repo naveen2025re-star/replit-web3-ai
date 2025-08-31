@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import PayPalButtonWorking from "./PayPalButtonWorking";
+import PayPalButtonSmart from "./PayPalButtonSmart";
 import { EnterpriseContactModal } from "./EnterpriseContactModal";
 
 interface CreditPackage {
@@ -311,7 +311,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                     <p className="text-sm text-center text-muted-foreground mb-4">
                       Complete your purchase with PayPal
                     </p>
-                    <PayPalButtonWorking
+                    <PayPalButtonSmart
                       amount={paymentData.amount}
                       currency={paymentData.currency}
                       intent="CAPTURE"
@@ -336,6 +336,26 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                         setSelectedPackage(null);
                       }}
                     />
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                        Having PayPal issues? 
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                        If PayPal shows "Things don't appear to be working", this is a common sandbox issue. Contact support for immediate credit addition.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/50"
+                        onClick={() => {
+                          const subject = `Credit Purchase Issue - ${packages.find(p => p.id === selectedPackage)?.name} Package`;
+                          const body = `Hi,\n\nI'm experiencing PayPal sandbox issues when trying to purchase the ${packages.find(p => p.id === selectedPackage)?.name} package ($${paymentData.amount}).\n\nError: "Things don't appear to be working at the moment"\n\nPlease help me complete this purchase.\n\nThank you!`;
+                          window.open(`mailto:support@yoursite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                        }}
+                      >
+                        Contact Support for Manual Purchase
+                      </Button>
+                    </div>
                     <Button
                       variant="outline"
                       className="w-full"
