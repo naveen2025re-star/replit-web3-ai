@@ -39,6 +39,44 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Handle PayPal payment results from URL parameters
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const amount = urlParams.get('amount');
+    const currency = urlParams.get('currency');
+    const paymentId = urlParams.get('paymentId');
+    const message = urlParams.get('message');
+    
+    if (paymentStatus) {
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      if (paymentStatus === 'success') {
+        toast({
+          title: "Payment Successful!",
+          description: `Successfully processed payment of ${amount} ${currency}. Your credits have been added.`,
+        });
+        // Refresh credit balance
+        queryClient.invalidateQueries({ queryKey: ['/api/credits/balance'] });
+        // Set active section to credits
+        setActiveSection('credits');
+      } else if (paymentStatus === 'cancelled') {
+        toast({
+          title: "Payment Cancelled",
+          description: "Payment was cancelled. No charges were made.",
+          variant: "destructive",
+        });
+      } else if (paymentStatus === 'error') {
+        toast({
+          title: "Payment Error",
+          description: message ? decodeURIComponent(message) : "Payment failed. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [toast, queryClient]);
+  
   const [activeSection, setActiveSection] = useState('profile');
   const [displayName, setDisplayName] = useState('');
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);

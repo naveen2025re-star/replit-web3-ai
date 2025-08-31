@@ -7,6 +7,7 @@ import { BlockchainScanner } from "./blockchainScanner";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { createPayment, executePayment, cancelPayment, getPaymentDetails } from "./paypalStandard";
 import { db } from "./db";
 import { eq, desc, and, isNull, sql, lte } from "drizzle-orm";
 
@@ -1096,6 +1097,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
     await capturePaypalOrder(req, res);
   });
+
+  // Standard PayPal Routes (using paypal-rest-sdk - more reliable for sandbox)
+  app.post("/api/paypal/create-payment", createPayment);
+  app.get("/api/paypal/success", executePayment);
+  app.get("/api/paypal/cancel", cancelPayment);
+  app.get("/api/paypal/payment/:paymentId", getPaymentDetails);
 
   // GitHub OAuth Routes
   app.get("/api/integrations/github/install", isAuthenticated, async (req, res) => {

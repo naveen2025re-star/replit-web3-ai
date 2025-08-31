@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import PayPalButtonSmart from "./PayPalButtonSmart";
+import PayPalButtonReliable from "./PayPalButtonReliable";
 import { EnterpriseContactModal } from "./EnterpriseContactModal";
 
 interface CreditPackage {
@@ -311,15 +311,16 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                     <p className="text-sm text-center text-muted-foreground mb-4">
                       Complete your purchase with PayPal
                     </p>
-                    <PayPalButtonSmart
+                    <PayPalButtonReliable
                       amount={paymentData.amount}
                       currency={paymentData.currency}
-                      intent="CAPTURE"
-                      onSuccess={(orderData) => {
-                        completePurchaseMutation.mutate({
-                          packageId: paymentData.packageId,
-                          paypalOrderId: orderData.orderId
+                      packageName={packages.find(p => p.id === selectedPackage)?.name || "Credits"}
+                      onSuccess={(paymentData) => {
+                        toast({
+                          title: "Payment Successful!",
+                          description: "Redirecting to complete your purchase...",
                         });
+                        // Payment success is handled by URL redirect, so we just show success message
                       }}
                       onError={(error) => {
                         console.error('PayPal payment failed:', error);
