@@ -24,10 +24,16 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
     // Convert amount to paise (Razorpay requires amount in smallest currency unit)
     const amountInPaise = Math.round(parseFloat(amount) * 100);
 
+    // Create a short receipt ID (max 40 chars for Razorpay)
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits
+    const shortPackageId = packageId.slice(0, 8); // First 8 chars
+    const shortUserId = userId.slice(0, 8); // First 8 chars
+    const receipt = `ord_${shortPackageId}_${shortUserId}_${timestamp}`;
+
     const options = {
       amount: amountInPaise,
       currency: currency.toUpperCase(),
-      receipt: `order_${packageId}_${userId}_${Date.now()}`,
+      receipt: receipt.slice(0, 40), // Ensure max 40 chars
       payment_capture: 1, // Auto capture payment
       notes: {
         packageId,
