@@ -66,7 +66,7 @@ export default function SimpleRazorpayButton({
         });
       }
 
-      // Simple Razorpay options - minimal configuration
+      // Simple Razorpay options with proper prefill
       const options = {
         key: orderData.key_id,
         amount: orderData.amount,
@@ -74,8 +74,18 @@ export default function SimpleRazorpayButton({
         order_id: orderData.order_id,
         name: 'Smart Contract Auditor',
         description: packageName,
+        prefill: {
+          name: 'User',
+          email: 'user@example.com',
+          contact: '9999999999'
+        },
+        theme: {
+          color: '#3b82f6'
+        },
         handler: async function (response: any) {
           try {
+            setIsLoading(true);
+            
             // Verify payment
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
@@ -106,18 +116,40 @@ export default function SimpleRazorpayButton({
               variant: "destructive",
             });
             if (onError) onError(error);
+          } finally {
+            setIsLoading(false);
           }
         },
         modal: {
           ondismiss: function() {
+            console.log('Razorpay modal dismissed');
             setIsLoading(false);
           }
         }
       };
 
-      // Open payment
+      // Open payment with error handling
       const rzp = new window.Razorpay(options);
-      rzp.open();
+      
+      // Add error handling for Razorpay instance
+      rzp.on('payment.failed', function (response: any) {
+        console.error('Razorpay payment failed:', response.error);
+        setIsLoading(false);
+        toast({
+          title: "Payment Failed",
+          description: response.error.description || "Payment failed. Please try again.",
+          variant: "destructive",
+        });
+        if (onError) onError(new Error(response.error.description));
+      });
+      
+      try {
+        rzp.open();
+      } catch (error) {
+        console.error('Failed to open Razorpay:', error);
+        setIsLoading(false);
+        throw error;
+      }
 
     } catch (error: any) {
       console.error('Payment error:', error);
