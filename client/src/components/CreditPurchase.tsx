@@ -13,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import PayPalButtonReliable from "./PayPalButtonReliable";
 import { EnterpriseContactModal } from "./EnterpriseContactModal";
 
 interface CreditPackage {
@@ -46,7 +45,6 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
   });
 
 
-  const [paymentData, setPaymentData] = useState<any>(null);
 
   const purchaseMutation = useMutation({
     mutationFn: async (packageId: string) => {
@@ -64,7 +62,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
         if (onOpenChange) onOpenChange(false);
         if (onClose) onClose();
       } else if (data.requiresPayment) {
-        setPaymentData(data);
+        // Payment data no longer needed
       } else {
         toast({
           title: "Credits Added!",
@@ -99,7 +97,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
         description: `Successfully added ${data.creditsAdded} credits to your account.`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/credits/balance'] });
-      setPaymentData(null);
+      // Payment data no longer needed
       setSelectedPackage(null);
       if (onOpenChange) onOpenChange(false);
       if (onClose) onClose();
@@ -153,7 +151,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       if (!newOpen) {
-        setPaymentData(null);
+        // Payment data no longer needed
         setSelectedPackage(null);
       }
       if (onOpenChange) onOpenChange(newOpen);
@@ -306,39 +304,47 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                   )}
                 </div>
 
-                {paymentData && selectedPackage === pkg.id ? (
+                {selectedPackage === pkg.id ? (
                   <div className="space-y-2">
                     <p className="text-sm text-center text-muted-foreground mb-4">
                       Complete your purchase with PayPal
                     </p>
-                    <PayPalButtonReliable
-                      amount={paymentData.amount}
-                      currency={paymentData.currency}
-                      packageName={packages.find(p => p.id === selectedPackage)?.name || "Credits"}
-                      packageId={selectedPackage || undefined}
-                      userId={userId}
-                      onSuccess={(paymentData) => {
-                        toast({
-                          title: "Payment Successful!",
-                          description: "Redirecting to complete your purchase...",
-                        });
-                        // Payment success is handled by URL redirect, so we just show success message
-                      }}
-                      onError={(error) => {
-                        console.error('PayPal payment failed:', error);
-                        toast({
-                          title: "Payment Failed",
-                          description: "PayPal payment failed. Please try again.",
-                          variant: "destructive",
-                        });
-                        setPaymentData(null);
-                        setSelectedPackage(null);
-                      }}
-                      onCancel={() => {
-                        setPaymentData(null);
-                        setSelectedPackage(null);
-                      }}
-                    />
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Coins className="h-5 w-5 text-blue-600" />
+                        <h4 className="font-medium text-blue-800 dark:text-blue-200">
+                          Payment Integration Coming Soon
+                        </h4>
+                      </div>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                        We're adding secure payment processing. For now, contact support to purchase credits.
+                      </p>
+                      <div className="space-y-2">
+                        <Button
+                          onClick={() => {
+                            const pkg = packages.find(p => p.id === selectedPackage);
+                            if (pkg) {
+                              const subject = `Credit Purchase Request - ${pkg.name}`;
+                              const body = `Hi,\n\nI would like to purchase:\n- Package: ${pkg.name}\n- Credits: ${pkg.totalCredits}\n- Price: $${pkg.price}\n\nPlease help me complete this purchase.\n\nThank you!`;
+                              window.open(`mailto:support@yoursite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                            }
+                          }}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          Contact Support for Purchase
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            window.location.href = `/api/paypal/test-success?userId=${userId}&packageId=${selectedPackage}`;
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-600 dark:text-blue-300"
+                        >
+                          Test Purchase (Development Only)
+                        </Button>
+                      </div>
+                    </div>
                     <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg">
                       <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
                         Having PayPal issues? 
@@ -352,7 +358,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                         className="w-full border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/50"
                         onClick={() => {
                           const subject = `Credit Purchase Issue - ${packages.find(p => p.id === selectedPackage)?.name} Package`;
-                          const body = `Hi,\n\nI'm experiencing PayPal sandbox issues when trying to purchase the ${packages.find(p => p.id === selectedPackage)?.name} package ($${paymentData.amount}).\n\nError: "Things don't appear to be working at the moment"\n\nPlease help me complete this purchase.\n\nThank you!`;
+                          const body = `Hi,\n\nI'm experiencing issues when trying to purchase the ${packages.find(p => p.id === selectedPackage)?.name} package.\n\nPlease help me complete this purchase.\n\nThank you!`;
                           window.open(`mailto:support@yoursite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
                         }}
                       >
@@ -363,7 +369,6 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                       variant="outline"
                       className="w-full"
                       onClick={() => {
-                        setPaymentData(null);
                         setSelectedPackage(null);
                       }}
                     >
@@ -413,7 +418,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                       ) : (
                         <div className="flex items-center gap-2">
                           <Coins className="h-5 w-5" />
-                          Purchase with PayPal
+                          Purchase Credits
                         </div>
                       )}
                     </Button>

@@ -6,8 +6,6 @@ import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { BlockchainScanner } from "./blockchainScanner";
 import { z } from "zod";
 import * as crypto from "crypto";
-import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
-import { createPayment, executePayment, cancelPayment, getPaymentDetails } from "./paypalStandard";
 import { db } from "./db";
 import { eq, desc, and, isNull, sql, lte } from "drizzle-orm";
 
@@ -1071,38 +1069,6 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // PayPal Routes (following blueprint pattern)
-  app.get("/paypal/setup", async (req, res) => {
-    await loadPaypalDefault(req, res);
-  });
-
-  app.post("/paypal/order", async (req, res) => {
-    // Request body should contain: { intent, amount, currency }
-    await createPaypalOrder(req, res);
-  });
-
-  app.post("/paypal/order/:orderID/capture", async (req, res) => {
-    await capturePaypalOrder(req, res);
-  });
-
-  // Keep legacy API routes for backward compatibility
-  app.get("/api/paypal/setup", async (req, res) => {
-    await loadPaypalDefault(req, res);
-  });
-
-  app.post("/api/paypal/order", async (req, res) => {
-    await createPaypalOrder(req, res);
-  });
-
-  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
-    await capturePaypalOrder(req, res);
-  });
-
-  // Standard PayPal Routes (using paypal-rest-sdk - live production mode)
-  app.post("/api/paypal/create-payment", createPayment);
-  app.get("/api/paypal/success", executePayment);
-  app.get("/api/paypal/cancel", cancelPayment);
-  app.get("/api/paypal/payment/:paymentId", getPaymentDetails);
   
   // PayPal credential test endpoint
   // Test successful payment simulation
