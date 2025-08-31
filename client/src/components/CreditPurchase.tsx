@@ -319,7 +319,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                       </p>
                       <div className="space-y-2">
                         <RazorpayButton
-                          amount={packages.find(p => p.id === selectedPackage)?.price || 0}
+                          amount={(packages.find(p => p.id === selectedPackage)?.price || 0) / 100}
                           currency="USD"
                           packageName={packages.find(p => p.id === selectedPackage)?.name || "Credits"}
                           packageId={selectedPackage}
