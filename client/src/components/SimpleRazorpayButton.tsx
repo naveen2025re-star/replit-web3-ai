@@ -112,16 +112,27 @@ export default function SimpleRazorpayButton({
             });
             if (onError) onError(error);
           } finally {
+            // Re-enable body scroll
+            document.body.style.overflow = 'unset';
             setIsLoading(false);
           }
         },
         modal: {
           ondismiss: function() {
             console.log('Razorpay modal dismissed by user');
+            // Re-enable body scroll
+            document.body.style.overflow = 'unset';
             setIsLoading(false);
           },
           escape: true,
-          backdropclose: false
+          backdropclose: true,
+          confirm_close: false,
+          animation: false
+        },
+        config: {
+          display: {
+            language: 'en'
+          }
         }
       };
 
@@ -131,6 +142,8 @@ export default function SimpleRazorpayButton({
       // Add error handling for Razorpay instance
       rzp.on('payment.failed', function (response: any) {
         console.error('Razorpay payment failed:', response.error);
+        // Re-enable body scroll
+        document.body.style.overflow = 'unset';
         setIsLoading(false);
         toast({
           title: "Payment Failed",
@@ -141,9 +154,13 @@ export default function SimpleRazorpayButton({
       });
       
       try {
+        // Prevent body scroll when modal opens
+        document.body.style.overflow = 'hidden';
         rzp.open();
       } catch (error) {
         console.error('Failed to open Razorpay:', error);
+        // Re-enable body scroll on error
+        document.body.style.overflow = 'unset';
         setIsLoading(false);
         throw error;
       }
