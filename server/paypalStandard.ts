@@ -236,6 +236,7 @@ export const executePayment = async (req: Request, res: Response) => {
                 console.log(`Credits added successfully: ${selectedPackage.totalCredits} credits to user ${userId}`);
                 // Redirect to success page with payment details
                 const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=success&amount=${amount}&currency=${currency}&credits=${selectedPackage.totalCredits}&paymentId=${capturedOrder.id}`;
+                console.log(`Redirecting to success page: ${frontendUrl}`);
                 res.redirect(frontendUrl);
                 return;
               } else {
@@ -252,7 +253,8 @@ export const executePayment = async (req: Request, res: Response) => {
       
       // Fallback redirect for successful payment but failed credit processing
       console.log(`Payment successful: ${amount} ${currency}`);
-      const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=success&amount=${amount}&currency=${currency}&paymentId=${capturedOrder.id}`;
+      const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=success&amount=${amount}&currency=${currency}&paymentId=${capturedOrder.id}&warning=credits_not_added`;
+      console.log(`Redirecting to fallback success page: ${frontendUrl}`);
       res.redirect(frontendUrl);
     } else {
       console.error("Invalid capture response:", capturedOrder);
@@ -262,7 +264,18 @@ export const executePayment = async (req: Request, res: Response) => {
     
   } catch (error: any) {
     console.error("Order capture error:", error.response?.data || error.message);
-    const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=error&message=${encodeURIComponent(error.response?.data?.message || 'Payment failed')}`;
+    
+    // Handle specific PayPal errors
+    let errorMessage = 'Payment failed';
+    if (error.response?.data?.details?.[0]?.issue === 'ORDER_NOT_APPROVED') {
+      errorMessage = 'Payment not yet approved by user. Please complete the payment process on PayPal.';
+    } else if (error.response?.data?.name === 'UNPROCESSABLE_ENTITY') {
+      errorMessage = 'Payment could not be processed. Please try again or contact support.';
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+    
+    const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=error&message=${encodeURIComponent(errorMessage)}`;
     res.redirect(frontendUrl);
   }
 };

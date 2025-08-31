@@ -1105,6 +1105,46 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.get("/api/paypal/payment/:paymentId", getPaymentDetails);
   
   // PayPal credential test endpoint
+  // Test successful payment simulation
+  app.get("/api/paypal/test-success", async (req, res) => {
+    try {
+      // Simulate a successful payment and credit addition
+      const userId = req.query.userId as string;
+      const packageId = req.query.packageId as string;
+      
+      if (!userId || !packageId) {
+        return res.status(400).json({ error: "Missing userId or packageId" });
+      }
+      
+      // Get package details
+      const packages = await CreditService.getCreditPackages();
+      const selectedPackage = packages.find(p => p.id === packageId);
+      
+      if (!selectedPackage) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      // Add credits to user account
+      const result = await CreditService.addCredits(
+        userId,
+        selectedPackage.totalCredits,
+        "purchase", 
+        `Test purchase of ${selectedPackage.name} package`,
+        { packageId, testPayment: true }
+      );
+      
+      if (result.success) {
+        const frontendUrl = `${req.protocol}://${req.get('host')}/settings?tab=credits&payment=success&amount=TEST&currency=USD&credits=${selectedPackage.totalCredits}&paymentId=TEST-${Date.now()}`;
+        res.redirect(frontendUrl);
+      } else {
+        res.status(500).json({ error: "Failed to add credits", details: result.error });
+      }
+    } catch (error: any) {
+      console.error("Test payment failed:", error);
+      res.status(500).json({ error: "Test payment failed", details: error.message });
+    }
+  });
+
   app.get("/api/paypal/test-credentials", async (req, res) => {
     try {
       const axios = require('axios');
