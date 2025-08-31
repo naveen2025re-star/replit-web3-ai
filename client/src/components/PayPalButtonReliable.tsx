@@ -32,19 +32,23 @@ export default function PayPalButtonReliable({
 
   // Load PayPal SDK and initialize buttons
   useEffect(() => {
-    // Force use of SDK integration for better user experience
+    // Skip SDK loading and use direct payment method temporarily
+    console.log("Skipping SDK, using direct payment to avoid redirect issues");
+    setUseDirectPayment(true);
+    return;
+
+    // SDK loading code (disabled for now)
     const loadPayPalSDK = () => {
-      // Check if PayPal SDK is already loaded
       if ((window as any).paypal) {
         console.log("PayPal SDK already loaded, initializing buttons");
+        setSdkLoaded(true);
         initializePayPalButtons();
         return;
       }
 
       console.log("Loading PayPal SDK...");
-      // Load PayPal SDK
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AcxoLIazlHKHcBwJIa9i1ZnkhSvZ9LHPKCP9k17m8a8K-h7E5XqNLAx1JWUwV2P_y5nTBfAApF3-Rd_S'}&currency=${currency}&intent=capture`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=AcxoLIazlHKHcBwJIa9i1ZnkhSvZ9LHPKCP9k17m8a8K-h7E5XqNLAx1JWUwV2P_y5nTBfAApF3-Rd_S&currency=${currency}&intent=capture&disable-funding=credit,card`;
       script.async = true;
       script.onload = () => {
         console.log("PayPal SDK loaded successfully");
@@ -58,7 +62,6 @@ export default function PayPalButtonReliable({
       document.head.appendChild(script);
     };
 
-    // Add a small delay to ensure the component is fully mounted
     setTimeout(loadPayPalSDK, 100);
   }, [amount, currency, packageId, userId]);
 
@@ -193,6 +196,20 @@ export default function PayPalButtonReliable({
   };
 
   const handleDirectPayment = async () => {
+    // For now, show a message that PayPal needs to be completed externally
+    toast({
+      title: "PayPal Payment Setup",
+      description: "We're setting up a better PayPal integration. For now, please contact support to complete your purchase.",
+      variant: "default",
+    });
+    
+    if (onError) {
+      onError(new Error("PayPal integration temporarily disabled"));
+    }
+    
+    // Temporarily disabled to prevent the redirect issue
+    return;
+
     try {
       setIsLoading(true);
 
@@ -245,30 +262,43 @@ export default function PayPalButtonReliable({
   if (useDirectPayment) {
     return (
       <div className="space-y-4">
-        <Button
-          onClick={handleDirectPayment}
-          disabled={isLoading}
-          className="w-full bg-[#0070ba] hover:bg-[#005ea6] text-white font-medium py-3 px-6 rounded-lg transition-colors"
-          data-testid="paypal-button-reliable"
-        >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader className="h-4 w-4 animate-spin" />
-              Creating Payment...
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.281-.919c-.431-1.04-1.284-1.775-2.623-2.257C17.37 3.347 16.17 3.12 14.66 3.12H9.204c-.524 0-.968.382-1.05.9L6.86 9.797c-.082.518.317.937.841.937h2.62c4.298 0 7.664-1.747 8.647-6.797.03-.15.054-.294.077-.437.172-.87.259-1.733.177-2.583z"/>
-              </svg>
-              Pay with PayPal
-              <ExternalLink className="h-4 w-4" />
-            </div>
-          )}
-        </Button>
-        
-        <div className="text-xs text-center text-muted-foreground">
-          Secure payment powered by PayPal
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <h4 className="font-medium text-amber-800 dark:text-amber-200">
+              PayPal Integration Notice
+            </h4>
+          </div>
+          <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+            We're currently updating our PayPal integration to provide a better payment experience. 
+          </p>
+          <div className="space-y-2">
+            <Button
+              onClick={() => {
+                const subject = `Credit Purchase Request - ${packageName}`;
+                const body = `Hi,\n\nI would like to purchase:\n- Package: ${packageName}\n- Amount: $${amount}\n- Package ID: ${packageId}\n\nPlease help me complete this purchase.\n\nThank you!`;
+                window.open(`mailto:support@yoursite.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+              }}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Contact Support for Purchase
+            </Button>
+            <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+              Or use the test endpoint to simulate successful purchase
+            </p>
+            <Button
+              onClick={() => {
+                window.location.href = `/api/paypal/test-success?userId=${userId}&packageId=${packageId}`;
+              }}
+              variant="outline"
+              size="sm"
+              className="w-full border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300"
+            >
+              Test Purchase (Development Only)
+            </Button>
+          </div>
         </div>
       </div>
     );
