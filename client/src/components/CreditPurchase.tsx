@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EnterpriseContactModal } from "./EnterpriseContactModal";
-import RazorpayButton from "./RazorpayButton";
+import SimpleRazorpayButton from "./SimpleRazorpayButton";
 
 interface CreditPackage {
   id: string;
@@ -318,7 +318,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                         Secure payment processing with Razorpay. Click below to proceed with your purchase.
                       </p>
                       <div className="space-y-2">
-                        <RazorpayButton
+                        <SimpleRazorpayButton
                           amount={(packages.find(p => p.id === selectedPackage)?.price || 0) / 100}
                           currency="USD"
                           packageName={packages.find(p => p.id === selectedPackage)?.name || "Credits"}
@@ -336,13 +336,6 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                           }}
                           onError={(error) => {
                             console.error('Razorpay payment failed:', error);
-                            toast({
-                              title: "Payment Failed",
-                              description: "Payment failed. Please try again.",
-                              variant: "destructive",
-                            });
-                          }}
-                          onCancel={() => {
                             setSelectedPackage(null);
                           }}
                         />
