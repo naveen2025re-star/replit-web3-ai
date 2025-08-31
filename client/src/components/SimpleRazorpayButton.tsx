@@ -66,7 +66,7 @@ export default function SimpleRazorpayButton({
         });
       }
 
-      // Simple Razorpay options with proper prefill
+      // Razorpay options - let user fill their own details
       const options = {
         key: orderData.key_id,
         amount: orderData.amount,
@@ -74,11 +74,6 @@ export default function SimpleRazorpayButton({
         order_id: orderData.order_id,
         name: 'Smart Contract Auditor',
         description: packageName,
-        prefill: {
-          name: 'User',
-          email: 'user@example.com',
-          contact: '9999999999'
-        },
         theme: {
           color: '#3b82f6'
         },
@@ -122,9 +117,11 @@ export default function SimpleRazorpayButton({
         },
         modal: {
           ondismiss: function() {
-            console.log('Razorpay modal dismissed');
+            console.log('Razorpay modal dismissed by user');
             setIsLoading(false);
-          }
+          },
+          escape: true,
+          backdropclose: false
         }
       };
 
