@@ -35,19 +35,49 @@ export default function RazorpayButton({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Load Razorpay script dynamically
+  // Load Razorpay script dynamically with better error handling
   const loadRazorpay = (): Promise<boolean> => {
     return new Promise((resolve) => {
+      // Check if Razorpay is already loaded
       if (window.Razorpay) {
         resolve(true);
         return;
       }
 
+      // Remove any existing scripts first
+      const existingScript = document.querySelector('script[src*="checkout.razorpay.com"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      
+      let timeoutId: NodeJS.Timeout;
+      
+      script.onload = () => {
+        clearTimeout(timeoutId);
+        // Give it a moment to initialize
+        setTimeout(() => {
+          resolve(!!window.Razorpay);
+        }, 100);
+      };
+      
+      script.onerror = () => {
+        clearTimeout(timeoutId);
+        console.error('Failed to load Razorpay script');
+        resolve(false);
+      };
+
+      // Set a timeout for script loading
+      timeoutId = setTimeout(() => {
+        console.error('Razorpay script loading timeout');
+        resolve(false);
+      }, 10000); // 10 second timeout
+
+      document.head.appendChild(script);
     });
   };
 
@@ -55,10 +85,18 @@ export default function RazorpayButton({
     try {
       setIsLoading(true);
 
-      // Load Razorpay script
-      const razorpayLoaded = await loadRazorpay();
+      // Load Razorpay script with retry logic
+      let razorpayLoaded = await loadRazorpay();
+      
+      // Retry once if failed
       if (!razorpayLoaded) {
-        throw new Error('Failed to load Razorpay SDK');
+        console.log('Retrying Razorpay script load...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        razorpayLoaded = await loadRazorpay();
+      }
+      
+      if (!razorpayLoaded || !window.Razorpay) {
+        throw new Error('Failed to load Razorpay SDK. Please check your internet connection and try again.');
       }
 
       // Create order on backend
@@ -91,8 +129,11 @@ export default function RazorpayButton({
         name: 'Smart Contract Auditor',
         description: `${packageName} - Smart Contract Audit Credits`,
         order_id: orderData.order_id,
+        timeout: 300, // 5 minutes timeout
         handler: async function (paymentResponse: any) {
           try {
+            setIsLoading(true);
+            
             // Verify payment on backend
             const verificationResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
@@ -139,6 +180,8 @@ export default function RazorpayButton({
             if (onError) {
               onError(error);
             }
+          } finally {
+            setIsLoading(false);
           }
         },
         prefill: {
@@ -152,21 +195,91 @@ export default function RazorpayButton({
           packageName: packageName
         },
         theme: {
-          color: '#3b82f6' // Blue theme to match the app
+          color: '#3b82f6',
+          backdrop_color: 'rgba(0, 0, 0, 0.5)'
         },
         modal: {
+          escape: true,
+          animation: true,
+          backdropclose: false,
+          handleback: true,
+          confirm_close: false,
           ondismiss: function() {
-            console.log('Payment modal closed');
+            console.log('Payment modal closed by user');
+            setIsLoading(false);
             if (onCancel) {
               onCancel();
+            }
+          }
+        },
+        retry: {
+          enabled: true,
+          max_count: 3
+        },
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: 'Pay using NetBanking',
+                instruments: [
+                  {
+                    method: 'netbanking',
+                    banks: ['HDFC', 'ICICI', 'SBI', 'AXIS', 'KOTAK']
+                  }
+                ]
+              },
+              other: {
+                name: 'Other payment modes',
+                instruments: [
+                  {
+                    method: 'card',
+                  },
+                  {
+                    method: 'upi'
+                  }
+                ]
+              }
+            },
+            hide: [
+              {
+                method: 'emi'
+              }
+            ],
+            sequence: ['block.banks', 'block.other'],
+            preferences: {
+              show_default_blocks: true,
             }
           }
         }
       };
 
-      // Open Razorpay checkout
+      // Open Razorpay checkout with error handling
       const paymentObject = new window.Razorpay(options);
-      paymentObject.open();
+      
+      // Add error handler for payment object
+      paymentObject.on('payment.failed', function (response: any) {
+        console.error('Payment failed:', response.error);
+        setIsLoading(false);
+        
+        toast({
+          title: "Payment Failed",
+          description: response.error.description || "Payment failed. Please try again.",
+          variant: "destructive",
+        });
+
+        if (onError) {
+          onError(new Error(response.error.description || 'Payment failed'));
+        }
+      });
+
+      // Open the payment modal
+      try {
+        paymentObject.open();
+      } catch (error) {
+        console.error('Failed to open Razorpay modal:', error);
+        setIsLoading(false);
+        throw error;
+      }
 
     } catch (error: any) {
       console.error('Payment initialization failed:', error);
