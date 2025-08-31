@@ -44,6 +44,15 @@ if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
 // Create PayPal payment
 export const createPayment = (req: Request, res: Response) => {
   const { amount, currency = "USD", packageName = "Smart Contract Audit Credits" } = req.body;
+  
+  // Validate payment amount for security
+  const numAmount = parseFloat(amount);
+  if (isNaN(numAmount) || numAmount <= 0 || numAmount > 10000) {
+    return res.status(400).json({ 
+      error: "Invalid payment amount", 
+      details: "Amount must be between $0.01 and $10,000" 
+    });
+  }
 
   const create_payment_json = {
     intent: "sale",
@@ -51,6 +60,15 @@ export const createPayment = (req: Request, res: Response) => {
       payment_method: "paypal",
     },
     redirect_urls: {
+      return_url: `${req.protocol}://${req.get('host')}/api/paypal/success`,
+      cancel_url: `${req.protocol}://${req.get('host')}/api/paypal/cancel`,
+    },
+    application_context: {
+      brand_name: "Smart Contract Auditor",
+      locale: "en-US",
+      landing_page: "BILLING",
+      shipping_preference: "NO_SHIPPING",
+      user_action: "PAY_NOW",
       return_url: `${req.protocol}://${req.get('host')}/api/paypal/success`,
       cancel_url: `${req.protocol}://${req.get('host')}/api/paypal/cancel`,
     },
@@ -70,6 +88,9 @@ export const createPayment = (req: Request, res: Response) => {
         amount: {
           currency: currency.toUpperCase(),
           total: parseFloat(amount).toFixed(2),
+          details: {
+            subtotal: parseFloat(amount).toFixed(2)
+          }
         },
         description: `${packageName} - Smart Contract Audit Credits`,
       },
