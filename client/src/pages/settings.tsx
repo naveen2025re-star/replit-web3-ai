@@ -34,6 +34,7 @@ import { Link } from 'wouter';
 import CreditDisplay from '@/components/CreditDisplay';
 import CreditPurchase from '@/components/CreditPurchase';
 import { CreditTracker } from '@/components/CreditTracker';
+import { ReferralCard } from '@/components/ReferralCard';
 
 export default function SettingsPage() {
   const { user } = useWeb3Auth();
@@ -774,28 +775,122 @@ export default function SettingsPage() {
                 <h2 className="text-2xl font-bold text-white mb-2">Referral Program</h2>
                 <p className="text-slate-400">Invite friends and earn credits together.</p>
               </div>
-              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
-                <div className="text-center">
-                  <Gift className="h-12 w-12 text-teal-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Coming Soon</h3>
-                  <p className="text-slate-400">Referral program will be available soon.</p>
-                </div>
-              </div>
+              <ReferralCard userId={user?.walletAddress || "demo-user"} />
             </div>
           )}
           {activeSection === 'billing' && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-2">Billing & Subscriptions</h2>
-                <p className="text-slate-400">Manage your payment methods and billing history.</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Billing & Payment History</h2>
+                <p className="text-slate-400">Track your credit purchases and transaction history.</p>
               </div>
-              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
-                <div className="text-center">
-                  <FileText className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Pay-per-use Model</h3>
-                  <p className="text-slate-400">Currently using credit-based billing. Subscription plans coming soon.</p>
+              
+              {/* Payment Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-800/20 rounded-lg p-4 border border-slate-700/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-slate-400">Total Spent</span>
+                  </div>
+                  <div className="text-xl font-bold text-white">$0.00</div>
+                  <div className="text-xs text-slate-400">Lifetime</div>
+                </div>
+                
+                <div className="bg-slate-800/20 rounded-lg p-4 border border-slate-700/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Coins className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm text-slate-400">Credits Purchased</span>
+                  </div>
+                  <div className="text-xl font-bold text-white">0</div>
+                  <div className="text-xs text-slate-400">Total</div>
+                </div>
+                
+                <div className="bg-slate-800/20 rounded-lg p-4 border border-slate-700/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-purple-400" />
+                    <span className="text-sm text-slate-400">Transactions</span>
+                  </div>
+                  <div className="text-xl font-bold text-white">{transactions?.length || 0}</div>
+                  <div className="text-xs text-slate-400">This month</div>
                 </div>
               </div>
+
+              {/* Payment Model Info */}
+              <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-lg p-6 border border-slate-700/50">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">💳 Pay-per-use Model</h3>
+                    <p className="text-slate-300 mb-4">
+                      Simple and transparent credit-based billing. Only pay for what you use.
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                        <span>No monthly subscriptions or hidden fees</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                        <span>Credits never expire</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                        <span>Secure payments via Razorpay</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ml-6">
+                    <CreditPurchase userId={user?.walletAddress || ""} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Transactions */}
+              {transactions && transactions.length > 0 && (
+                <div className="bg-slate-800/20 rounded-lg border border-slate-700/50">
+                  <div className="p-4 border-b border-slate-700/50">
+                    <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {transactions.slice(0, 5).map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${
+                            transaction.type === 'purchase' ? 'bg-green-500/20' : 
+                            transaction.type === 'deduction' ? 'bg-red-500/20' : 
+                            'bg-blue-500/20'
+                          }`}>
+                            {transaction.type === 'purchase' ? (
+                              <CreditCard className="h-4 w-4 text-green-400" />
+                            ) : transaction.type === 'deduction' ? (
+                              <Coins className="h-4 w-4 text-red-400" />
+                            ) : (
+                              <Gift className="h-4 w-4 text-blue-400" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-white">
+                              {transaction.reason}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {new Date(transaction.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-sm font-medium ${
+                            transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {transaction.amount > 0 ? '+' : ''}{transaction.amount} credits
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            Balance: {transaction.balanceAfter}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {false && (

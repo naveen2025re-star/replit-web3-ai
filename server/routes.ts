@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { ReferralService } from "./referralService";
 import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema, liveScannedContracts, auditSessions } from "@shared/schema";
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { BlockchainScanner } from "./blockchainScanner";
@@ -993,6 +994,59 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // Credit system endpoints
   
   // Get user credit balance and transactions
+  // Referral endpoints
+  
+  // Get user's referral stats and code
+  app.get("/api/referrals/stats", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stats = await ReferralService.getReferralStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting referral stats:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to get referral stats" 
+      });
+    }
+  });
+
+  // Apply referral code for new users
+  app.post("/api/referrals/apply", async (req, res) => {
+    try {
+      const { referralCode, userId } = z.object({
+        referralCode: z.string().min(6).max(12),
+        userId: z.string()
+      }).parse(req.body);
+
+      const success = await ReferralService.applyReferralCode(referralCode, userId);
+      
+      if (success) {
+        res.json({ success: true, message: "Referral code applied successfully" });
+      } else {
+        res.status(400).json({ success: false, message: "Invalid or expired referral code" });
+      }
+    } catch (error) {
+      console.error("Error applying referral code:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to apply referral code" 
+      });
+    }
+  });
+
+  // Generate new referral code
+  app.post("/api/referrals/generate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const referralCode = await ReferralService.generateReferralCode(userId);
+      res.json({ referralCode });
+    } catch (error) {
+      console.error("Error generating referral code:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate referral code" 
+      });
+    }
+  });
+
   app.get("/api/credits/balance", async (req, res) => {
     try {
       // Get userId from query parameter for Web3 auth compatibility

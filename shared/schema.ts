@@ -19,6 +19,10 @@ export const users = pgTable("users", {
   totalCreditsUsed: integer("total_credits_used").default(0).notNull(),
   totalCreditsEarned: integer("total_credits_earned").default(1000).notNull(), // Track total earned including initial
   lastCreditGrant: timestamp("last_credit_grant").defaultNow(), // Track when last credits were granted
+  referralCode: text("referral_code").unique(), // User's unique referral code
+  referredBy: varchar("referred_by").references(() => users.id), // Who referred this user
+  referralCount: integer("referral_count").default(0).notNull(), // Total successful referrals
+  referralCreditsEarned: integer("referral_credits_earned").default(0).notNull(), // Credits earned from referrals
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -92,18 +96,40 @@ export const authNonces = pgTable("auth_nonces", {
 export const creditTransactions = pgTable("credit_transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["deduction", "purchase", "bonus", "refund", "initial"] }).notNull(),
+  type: text("type", { enum: ["deduction", "purchase", "bonus", "refund", "initial", "referral"] }).notNull(),
   amount: integer("amount").notNull(), // Positive for additions, negative for deductions
   reason: text("reason").notNull(), // Description of transaction
   sessionId: varchar("session_id").references(() => auditSessions.id), // Link to audit session if applicable
+  referralId: varchar("referral_id"), // Link to referral if applicable
   metadata: jsonb("metadata").$type<{
     codeLength?: number;
     complexity?: number;
     packageId?: string;
     paypalOrderId?: string;
     originalAmount?: number;
+    referralCode?: string;
+    referredUserId?: string;
   }>(), // Additional data
   balanceAfter: integer("balance_after").notNull(), // User's credit balance after this transaction
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Referral tracking table
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  referredUserId: varchar("referred_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  referralCode: text("referral_code").notNull(),
+  status: text("status", { enum: ["pending", "completed", "credited"] }).notNull().default("pending"),
+  referrerReward: integer("referrer_reward").default(0).notNull(), // Credits given to referrer
+  referredReward: integer("referred_reward").default(0).notNull(), // Credits given to referred user
+  completedAt: timestamp("completed_at"), // When referral requirements were met
+  creditedAt: timestamp("credited_at"), // When credits were awarded
+  metadata: jsonb("metadata").$type<{
+    firstAuditCompleted?: boolean;
+    creditsSpent?: number;
+    signupSource?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -336,6 +362,16 @@ export const insertLiveScannedContractSchema = createInsertSchema(liveScannedCon
   explorerUrl: true,
 });
 
+export const insertReferralSchema = createInsertSchema(referrals).pick({
+  referrerId: true,
+  referredUserId: true,
+  referralCode: true,
+  status: true,
+  referrerReward: true,
+  referredReward: true,
+  metadata: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -354,3 +390,5 @@ export type InsertCreditPackage = z.infer<typeof insertCreditPackageSchema>;
 export type CreditPackage = typeof creditPackages.$inferSelect;
 export type InsertLiveScannedContract = z.infer<typeof insertLiveScannedContractSchema>;
 export type LiveScannedContract = typeof liveScannedContracts.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
