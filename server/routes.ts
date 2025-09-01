@@ -7,6 +7,7 @@ import { BlockchainScanner } from "./blockchainScanner";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createRazorpayOrder, verifyRazorpayPayment, getRazorpayPaymentDetails, handleRazorpayWebhook } from "./razorpay";
+import Razorpay from 'razorpay';
 import { db } from "./db";
 import { eq, desc, and, isNull, sql, lte } from "drizzle-orm";
 
@@ -36,6 +37,12 @@ const isAuthenticated = (req: any, res: any, next: any) => {
 
 const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
 const JWT_TOKEN = process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE";
+
+// Initialize Razorpay for order fetching
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_yourKeyId',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'yourKeySecret',
+});
 
 // Helper function to generate secure nonce
 function generateSecureNonce(): string {
@@ -1082,13 +1089,13 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     try {
       const { orderId } = req.params;
       
-      // Fetch order details from Razorpay
-      const orderDetails = await getRazorpayPaymentDetails(orderId);
+      // Fetch order details from Razorpay directly
+      const order = await razorpay.orders.fetch(orderId);
       
       res.json({
-        status: orderDetails.status,
-        amount_paid: orderDetails.amount_paid,
-        amount_due: orderDetails.amount_due
+        status: order.status,
+        amount_paid: order.amount_paid || 0,
+        amount_due: order.amount_due || order.amount
       });
     } catch (error: any) {
       console.error('Error fetching payment status:', error);
@@ -1104,14 +1111,44 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.query;
       
       if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
-        // Verify the payment
-        const isValid = await verifyRazorpayPayment(
-          razorpay_order_id as string, 
-          razorpay_payment_id as string, 
-          razorpay_signature as string
-        );
+        // Verify the payment signature manually
+        const sign = razorpay_order_id + '|' + razorpay_payment_id;
+        const expectedSign = crypto
+          .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'yourKeySecret')
+          .update(sign.toString())
+          .digest('hex');
+        
+        const isValid = razorpay_signature === expectedSign;
         
         if (isValid) {
+          // Extract package info from order notes and add credits
+          try {
+            const order = await razorpay.orders.fetch(razorpay_order_id as string);
+            const { packageId, userId } = order.notes || {};
+            
+            if (packageId && userId) {
+              const packages = await CreditService.getCreditPackages();
+              const selectedPackage = packages.find(p => p.id === packageId);
+              
+              if (selectedPackage) {
+                await CreditService.addCredits(
+                  userId,
+                  selectedPackage.totalCredits,
+                  "purchase",
+                  `Payment for ${selectedPackage.name} package`,
+                  { 
+                    packageId, 
+                    razorpay_payment_id, 
+                    razorpay_order_id,
+                    amount: selectedPackage.price 
+                  }
+                );
+                console.log(`✅ Added ${selectedPackage.totalCredits} credits to user ${userId}`);
+              }
+            }
+          } catch (error) {
+            console.error('Error processing credits in callback:', error);
+          }
           res.send(`
             <html>
               <head>
