@@ -86,10 +86,19 @@ async function auditSmartContract(
   }
 
   try {
-    // Check if user has enough credits
-    const creditCost = 10; // Cost for single audit
-    if (mcpSession.credits && mcpSession.credits < creditCost) {
-      throw new Error(`Insufficient credits. Need ${creditCost} credits, have ${mcpSession.credits}`);
+    // Calculate credit cost based on code complexity using existing backend logic
+    const factors = {
+      codeLength: contractCode.length,
+      complexity: contractCode.includes('assembly') ? 'high' : 
+                 contractCode.includes('modifier') ? 'medium' : 'standard',
+      analysisType: 'comprehensive',
+      hasExternalCalls: /\.call\(|delegatecall\(|send\(/.test(contractCode)
+    };
+
+    // Use existing CreditService to check and calculate cost
+    const creditCheck = await CreditService.checkCreditsAndCalculateCost(mcpSession.userId, factors);
+    if (!creditCheck.hasEnough) {
+      throw new Error(`Insufficient credits. Need ${creditCheck.needed} credits, have ${creditCheck.current}`);
     }
 
     // Create audit session via internal API
@@ -154,9 +163,18 @@ async function auditSmartContract(
       securityScore: analysisResults.overallScore,
     });
 
-    // Deduct credits and update session
-    await CreditService.deductCredits(mcpSession.userId, creditCost, 'Smart Contract Audit', auditSession.id);
-    mcpSession.credits = await CreditService.getUserCredits(mcpSession.userId);
+    // Deduct credits using existing service with proper factors
+    const deductionResult = await CreditService.deductCreditsForAudit(mcpSession.userId, auditSession.id, factors);
+    if (!deductionResult.success) {
+      throw new Error(deductionResult.error || 'Credit deduction failed');
+    }
+    
+    // Update MCP session with new balance
+    mcpSession.credits = deductionResult.remainingCredits;
+    
+    // Add cost info to results
+    analysisResults.creditsUsed = deductionResult.creditsDeducted;
+    analysisResults.remainingCredits = deductionResult.remainingCredits;
 
     return analysisResults;
   } catch (error) {
@@ -192,9 +210,25 @@ async function bulkAuditContracts(contracts: Array<{ code: string; name?: string
   }
 
   try {
-    const creditCost = contracts.length * 8; // Bulk discount: 8 credits per contract instead of 10
-    if (mcpSession.credits && mcpSession.credits < creditCost) {
-      throw new Error(`Insufficient credits. Need ${creditCost} credits, have ${mcpSession.credits}`);
+    // Calculate total cost for all contracts using existing backend logic
+    let totalCost = 0;
+    const contractFactors = [];
+    
+    for (const contract of contracts) {
+      const factors = {
+        codeLength: contract.code.length,
+        complexity: contract.code.includes('assembly') ? 'high' : 
+                   contract.code.includes('modifier') ? 'medium' : 'standard',
+        analysisType: 'bulk', // Bulk analysis gets discount
+        hasExternalCalls: /\.call\(|delegatecall\(|send\(/.test(contract.code)
+      };
+      contractFactors.push(factors);
+      const cost = CreditService.calculateCreditsNeeded(factors);
+      totalCost += Math.floor(cost * 0.8); // 20% bulk discount
+    }
+    
+    if (mcpSession.credits && mcpSession.credits < totalCost) {
+      throw new Error(`Insufficient credits. Need ${totalCost} credits, have ${mcpSession.credits}`);
     }
 
     const results = [];
@@ -224,15 +258,35 @@ async function bulkAuditContracts(contracts: Array<{ code: string; name?: string
       results.push(analysisResult);
     }
 
-    // Deduct credits
-    await CreditService.deductCredits(mcpSession.userId, creditCost, 'Bulk Smart Contract Audit', `${contracts.length} contracts`);
-    mcpSession.credits = await CreditService.getUserCredits(mcpSession.userId);
+    // Process each contract and deduct credits
+    let totalCreditsUsed = 0;
+    for (let i = 0; i < contracts.length; i++) {
+      const factors = contractFactors[i];
+      const adjustedCost = Math.floor(CreditService.calculateCreditsNeeded(factors) * 0.8); // Bulk discount
+      
+      const deductionResult = await CreditService.deductCreditsForAudit(
+        mcpSession.userId, 
+        results[i].sessionId, 
+        { ...factors, analysisType: 'bulk' }
+      );
+      
+      if (!deductionResult.success) {
+        throw new Error(`Credit deduction failed for contract ${i + 1}: ${deductionResult.error}`);
+      }
+      
+      totalCreditsUsed += deductionResult.creditsDeducted;
+      results[i].creditsUsed = deductionResult.creditsDeducted;
+    }
+    
+    // Update session credits
+    mcpSession.credits = await CreditService.getUserCredits(mcpSession.userId).then(data => data.balance);
 
     return {
       totalContracts: contracts.length,
       results,
-      creditsUsed: creditCost,
-      remainingCredits: mcpSession.credits
+      creditsUsed: totalCreditsUsed,
+      remainingCredits: mcpSession.credits,
+      bulkDiscount: '20% discount applied'
     };
   } catch (error) {
     throw new Error(`Bulk audit failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -268,7 +322,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "audit_smart_contract",
-        description: "Audit a smart contract for security vulnerabilities, gas optimizations, and best practices (Costs 10 credits)",
+        description: "Audit a smart contract for security vulnerabilities, gas optimizations, and best practices (Cost varies by code complexity)",
         inputSchema: {
           type: "object",
           properties: {
@@ -292,7 +346,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "bulk_audit",
-        description: "Audit multiple smart contracts at once with bulk discount (8 credits per contract)",
+        description: "Audit multiple smart contracts at once with 20% bulk discount (Cost varies by code complexity)",
         inputSchema: {
           type: "object",
           properties: {
@@ -428,8 +482,8 @@ ${creditDetails.packages.map((pkg: any) => `
 - **Blockchain**: ${blockchain || "ethereum"}
 - **Overall Score**: ${result.overallScore}/10
 - **Risk Level**: ${result.riskLevel}
-- **Credits Used**: 10
-- **Remaining Credits**: ${mcpSession.credits}
+- **Credits Used**: ${result.creditsUsed}
+- **Remaining Credits**: ${result.remainingCredits}
 
 ## Vulnerabilities Found (${result.vulnerabilities.length})
 ${result.vulnerabilities.map((vuln: any) => `
