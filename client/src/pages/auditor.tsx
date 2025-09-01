@@ -208,8 +208,8 @@ const AuditorPage = React.memo(() => {
     return !credits?.planTier || credits.planTier === 'Free';
   }, [credits?.planTier]);
 
-  // Stable toast callback
-  const stableToast = useCallback(toast, []);
+  // Remove stableToast to prevent infinite loop
+  // Use toast directly
 
   // Memoize Select value to prevent infinite re-renders
   const selectValue = useMemo(() => {
@@ -221,7 +221,7 @@ const AuditorPage = React.memo(() => {
     const isPublic = value === "public";
     // Prevent Free users from selecting private
     if (!isPublic && isFreePlan) {
-      stableToast({
+      toast({
         title: "Upgrade Required",
         description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
         variant: "destructive",
@@ -230,7 +230,7 @@ const AuditorPage = React.memo(() => {
       return;
     }
     setAuditVisibility(prev => ({...prev, isPublic}));
-  }, [isFreePlan, stableToast]);
+  }, [isFreePlan]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -243,7 +243,7 @@ const AuditorPage = React.memo(() => {
   const handleFilesProcessed = useCallback((combinedContent: string, contractLanguage: string, fileInfo: {fileCount: number, totalSize: number}) => {
     // Validate file content
     if (!combinedContent || combinedContent.trim().length === 0) {
-      stableToast({
+      toast({
         title: "Empty files",
         description: "The uploaded files appear to be empty. Please check your files.",
         variant: "destructive",
@@ -252,7 +252,7 @@ const AuditorPage = React.memo(() => {
     }
     
     if (combinedContent.length > 100000) { // 100KB limit
-      stableToast({
+      toast({
         title: "Files too large",
         description: "Combined file size is too large. Please reduce the content or upload fewer files.",
         variant: "destructive",
@@ -274,11 +274,11 @@ const AuditorPage = React.memo(() => {
       textareaRef.current?.focus();
     }, 100);
     
-    stableToast({
+    toast({
       title: "Files uploaded successfully",
       description: `${fileInfo.fileCount} file(s) loaded (${(fileInfo.totalSize / 1024).toFixed(1)}KB). Ready for analysis.`,
     });
-  }, [textareaRef, stableToast]);
+  }, [textareaRef]);
 
   const handleContractFetch = useCallback(async (contractAddress: string, network: string = "ethereum") => {
     try {
