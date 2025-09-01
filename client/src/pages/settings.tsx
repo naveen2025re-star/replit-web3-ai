@@ -800,7 +800,14 @@ export default function SettingsPage() {
                     <CreditCard className="h-4 w-4 text-green-400" />
                     <span className="text-sm text-slate-400">Total Spent</span>
                   </div>
-                  <div className="text-xl font-bold text-white">$0.00</div>
+                  <div className="text-xl font-bold text-white">
+                    ${creditTransactions ? 
+                      creditTransactions
+                        .filter((t: any) => t.type === 'purchase')
+                        .reduce((sum: number, t: any) => sum + (t.usdAmount || 0), 0)
+                        .toFixed(2) 
+                      : '0.00'}
+                  </div>
                   <div className="text-xs text-slate-400">Lifetime</div>
                 </div>
                 
@@ -809,7 +816,14 @@ export default function SettingsPage() {
                     <Coins className="h-4 w-4 text-blue-400" />
                     <span className="text-sm text-slate-400">Credits Purchased</span>
                   </div>
-                  <div className="text-xl font-bold text-white">0</div>
+                  <div className="text-xl font-bold text-white">
+                    {creditTransactions ? 
+                      creditTransactions
+                        .filter((t: any) => t.type === 'purchase')
+                        .reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
+                        .toLocaleString() 
+                      : '0'}
+                  </div>
                   <div className="text-xs text-slate-400">Total</div>
                 </div>
                 
@@ -842,12 +856,19 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-300">
                         <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-                        <span>Secure payments via Razorpay</span>
+                        <span>Secure payments via PayPal</span>
                       </div>
                     </div>
                   </div>
                   <div className="ml-6">
-                    <CreditPurchase userId={user?.walletAddress || ""} />
+                    <Button 
+                      onClick={() => setShowCreditPurchase(true)}
+                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-emerald-500/30"
+                      data-testid="button-purchase-credits"
+                    >
+                      <Coins className="h-4 w-4 mr-2" />
+                      Purchase Credits
+                    </Button>
                   </div>
                 </div>
               </div>
