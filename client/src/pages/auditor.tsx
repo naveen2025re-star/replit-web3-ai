@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-// Removed problematic Select import that was causing infinite loops
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useLocation } from "wouter";
@@ -75,7 +74,7 @@ interface AuditSession {
   completedAt?: string;
 }
 
-const AuditorPage = React.memo(() => {
+export default function AuditorPage() {
   const { user, isConnected, isAuthenticated, authenticate, disconnect, isAuthenticating } = useWeb3Auth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -87,9 +86,9 @@ const AuditorPage = React.memo(() => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
-  const [auditVisibility, setAuditVisibility] = useState<AuditVisibilityOptions>(() => ({
+  const [auditVisibility, setAuditVisibility] = useState<AuditVisibilityOptions>({
     isPublic: true // Default to public for Free users
-  }));
+  });
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles | null>(null);
   const [showFileUploader, setShowFileUploader] = useState(false);
   const [showContractFetcher, setShowContractFetcher] = useState(false);
@@ -98,69 +97,192 @@ const AuditorPage = React.memo(() => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const processedSessionRef = useRef<string | null>(null);
 
-  // Check authentication status once
-  const authRedirectRef = useRef(false);
+  // Redirect to auth page if not authenticated
   useEffect(() => {
-    if (!authRedirectRef.current && (!isConnected || !isAuthenticated)) {
-      authRedirectRef.current = true;
+    if (!isConnected || !isAuthenticated) {
       setLocation('/auth');
     }
-  }, [isConnected, isAuthenticated]); // Remove setLocation from dependencies
+  }, [isConnected, isAuthenticated, setLocation]);
 
-  // Handle session URL parameter for direct links from GitHub integration - run only once
+  // Handle session URL parameter for direct links from GitHub integration
   useEffect(() => {
-    if (!isAuthenticated || !user?.id) return;
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session');
-    
-    if (!sessionId || sessionId === processedSessionRef.current) return;
-    
-    processedSessionRef.current = sessionId;
-    
-    const loadSessionFromUrl = async () => {
-      try {
-        setMessages([]);
-        setCurrentSessionId(sessionId);
+    const handleSessionFromUrl = async () => {
+      if (isAuthenticated && user?.id) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
         
-        const response = await fetch(`/api/audit/session/${sessionId}`);
-        if (!response.ok) throw new Error('Failed to load audit session');
-        
-        const sessionData = await response.json();
-        
-        if (sessionData.contractCode) {
-          const userMessage: ChatMessage = {
-            id: Date.now().toString(),
-            type: "user",
-            content: sessionData.contractCode,
-            timestamp: new Date(sessionData.createdAt)
-          };
+        if (sessionId && sessionId !== currentSessionId) {
           
-          setMessages([userMessage]);
-          setInputValue("");
-          
-          if (sessionData.result && (sessionData.result.rawResponse || sessionData.result.formattedReport)) {
-            const aiMessage: ChatMessage = {
-              id: (Date.now() + 1).toString(),
-              type: "assistant",
-              content: sessionData.result.rawResponse || sessionData.result.formattedReport,
-              timestamp: new Date(sessionData.result.createdAt || sessionData.completedAt)
-            };
-            setMessages([userMessage, aiMessage]);
+          try {
+            // Load session directly using the same logic as loadAuditSession
+            toast({
+              title: "Loading GitHub analysis",
+              description: "Retrieving your blockchain file analysis...",
+            });
+
+            setMessages([]);
+            setCurrentSessionId(sessionId);
+            
+            // Fetch the audit session details
+            const response = await fetch(`/api/audit/session/${sessionId}`);
+            if (!response.ok) {
+              throw new Error('Failed to load audit session');
+            }
+            
+            const sessionData = await response.json();
+            
+            // Create user message with the original contract code
+            if (sessionData.contractCode) {
+              const userMessage: ChatMessage = {
+                id: Date.now().toString(),
+                type: "user",
+                content: sessionData.contractCode,
+                timestamp: new Date(sessionData.createdAt)
+              };
+              
+              // Set messages first
+              setMessages([userMessage]);
+              setInputValue(""); // Clear input
+              
+              // Check if analysis already exists
+              if (sessionData.result && (sessionData.result.rawResponse || sessionData.result.formattedReport)) {
+                // Analysis already exists, show it
+                const aiMessage: ChatMessage = {
+                  id: (Date.now() + 1).toString(),
+                  type: "assistant",
+                  content: sessionData.result.rawResponse || sessionData.result.formattedReport,
+                  timestamp: new Date(sessionData.result.createdAt || sessionData.completedAt)
+                };
+                setMessages([userMessage, aiMessage]);
+                
+                toast({
+                  title: "Analysis loaded",
+                  description: "Your GitHub analysis has been loaded successfully.",
+                });
+              } else {
+                // No analysis result yet, start the AI analysis automatically
+                toast({
+                  title: "Starting AI analysis",
+                  description: "Analyzing your GitHub code with AI...",
+                });
+                
+                setAnalysisState("streaming");
+                
+                // Start streaming analysis
+                const eventSource = new EventSource(`/api/audit/analyze/${sessionId}`);
+                
+                // Create assistant message immediately for streaming
+                const assistantMessage: ChatMessage = {
+                  id: (Date.now() + 1).toString(),
+                  type: "assistant",
+                  content: "",
+                  timestamp: new Date(),
+                  isStreaming: true
+                };
+                
+                setMessages(prev => {
+                  const userMsg = prev.find(m => m.type === 'user');
+                  return userMsg ? [userMsg, assistantMessage] : [assistantMessage];
+                });
+                
+                eventSource.onmessage = (event) => {
+                  try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.status === "completed") {
+                      eventSource.close();
+                      setAnalysisState("completed");
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, isStreaming: false }
+                          : msg
+                      ));
+                      // Invalidate audit history to refresh
+                      queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+                      
+                      toast({
+                        title: "Analysis complete",
+                        description: "Your GitHub code analysis is ready!",
+                      });
+                      return;
+                    }
+                    
+                    if (data.body) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: msg.content + data.body }
+                          : msg
+                      ));
+                    }
+                  } catch (error) {
+                    console.error('Error parsing SSE data:', error);
+                  }
+                };
+
+                eventSource.addEventListener('content', (event) => {
+                  try {
+                    const data = JSON.parse(event.data);
+                    if (data.body) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: msg.content + data.body }
+                          : msg
+                      ));
+                    }
+                  } catch (error) {
+                    console.error('Error parsing content event:', error);
+                  }
+                });
+
+                eventSource.addEventListener('complete', (event) => {
+                  eventSource.close();
+                  setAnalysisState("completed");
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessage.id 
+                      ? { ...msg, isStreaming: false }
+                      : msg
+                  ));
+                  queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
+                  
+                  toast({
+                    title: "Analysis complete",
+                    description: "Your GitHub code analysis is ready!",
+                  });
+                });
+                
+                eventSource.onerror = () => {
+                  eventSource.close();
+                  setAnalysisState("initial");
+                  toast({
+                    title: "Connection error",
+                    description: "Lost connection to analysis service",
+                    variant: "destructive",
+                  });
+                };
+              }
+            }
+            
+            // Clear the URL parameter after loading
+            window.history.replaceState({}, '', '/auditor');
+          } catch (error) {
+            console.error('Error loading session from URL:', error);
+            toast({
+              title: "Error",
+              description: "Failed to load the analysis session. Please try again.",
+              variant: "destructive",
+            });
+            // Clear the URL parameter even on error
+            window.history.replaceState({}, '', '/auditor');
           }
         }
-        
-        window.history.replaceState({}, '', '/auditor');
-      } catch (error) {
-        console.error('Error loading session from URL:', error);
-        window.history.replaceState({}, '', '/auditor');
       }
     };
     
-    loadSessionFromUrl();
-  }, []); // Empty dependency array - run only once
+    handleSessionFromUrl();
+  }, [isAuthenticated, user?.id, currentSessionId, toast, queryClient]);
 
   // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
@@ -170,8 +292,7 @@ const AuditorPage = React.memo(() => {
       return fetch(`/api/audit/user-sessions/${user.id}?page=1&pageSize=50`).then(res => res.json()).then(data => data.sessions || []);
     },
     enabled: !!user?.id && isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    refetchInterval: 30000, // Refetch every 30 seconds to get latest audits
   });
 
   // Fetch community audits
@@ -185,8 +306,7 @@ const AuditorPage = React.memo(() => {
       }
       return response.json();
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
+    refetchInterval: 60000, // Refetch every minute
   });
 
   // Fetch user credits and plan tier
@@ -200,42 +320,8 @@ const AuditorPage = React.memo(() => {
       return response.json();
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    refetchInterval: 30000,
   });
-
-  // Memoize plan tier check to prevent Select re-renders
-  const isFreePlan = useMemo(() => {
-    return !credits?.planTier || credits.planTier === 'Free';
-  }, [credits?.planTier]);
-
-  // Remove stableToast to prevent infinite loop
-  // Use toast directly
-
-  // Direct value calculation to prevent memoization loops
-  const selectValue = auditVisibility.isPublic ? "public" : "private";
-
-  // Stable onValueChange handler
-  const handleVisibilityChange = useCallback((value: string) => {
-    const isPublic = value === "public";
-    
-    // Prevent update if value hasn't changed
-    if (isPublic === auditVisibility.isPublic) {
-      return;
-    }
-    
-    // Prevent Free users from selecting private
-    if (!isPublic && isFreePlan) {
-      toast({
-        title: "Upgrade Required",
-        description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
-        variant: "destructive",
-      });
-      setShowCreditPurchase(true);
-      return;
-    }
-    setAuditVisibility(prev => ({...prev, isPublic}));
-  }, [isFreePlan, auditVisibility.isPublic]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -244,7 +330,7 @@ const AuditorPage = React.memo(() => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  
+
   const handleFilesProcessed = useCallback((combinedContent: string, contractLanguage: string, fileInfo: {fileCount: number, totalSize: number}) => {
     // Validate file content
     if (!combinedContent || combinedContent.trim().length === 0) {
@@ -283,7 +369,7 @@ const AuditorPage = React.memo(() => {
       title: "Files uploaded successfully",
       description: `${fileInfo.fileCount} file(s) loaded (${(fileInfo.totalSize / 1024).toFixed(1)}KB). Ready for analysis.`,
     });
-  }, [textareaRef]);
+  }, [toast]);
 
   const handleContractFetch = useCallback(async (contractAddress: string, network: string = "ethereum") => {
     try {
@@ -754,22 +840,50 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
                 Community
               </Button>
               <div className="h-6 w-px bg-slate-600"></div>
-              <select 
-                value={selectValue}
-                onChange={(e) => handleVisibilityChange(e.target.value)}
+              <Select 
+                value={auditVisibility.isPublic ? "public" : "private"}
+                onValueChange={(value) => {
+                  const isPublic = value === "public";
+                  // Prevent Free users from selecting private
+                  if (!isPublic && (!credits?.planTier || credits.planTier === 'Free')) {
+                    toast({
+                      title: "Upgrade Required",
+                      description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
+                      variant: "destructive",
+                    });
+                    setShowCreditPurchase(true);
+                    return;
+                  }
+                  setAuditVisibility({...auditVisibility, isPublic});
+                }}
                 disabled={analysisState === "loading" || analysisState === "streaming"}
-                className="w-32 h-9 px-3 py-1 bg-slate-800 border border-slate-600 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                <option 
-                  value="private" 
-                  disabled={isFreePlan}
-                >
-                  🔒 Private {isFreePlan ? "(Pro+)" : ""}
-                </option>
-                <option value="public">
-                  🌐 Public
-                </option>
-              </select>
+                <SelectTrigger className="w-32 bg-slate-800 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem 
+                    value="private" 
+                    disabled={!credits?.planTier || credits.planTier === 'Free'}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" />
+                      Private
+                      {(!credits?.planTier || credits.planTier === 'Free') && (
+                        <Badge variant="outline" className="text-xs ml-2 border-amber-500 text-amber-600">
+                          Pro+
+                        </Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="public">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Public
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -1193,8 +1307,4 @@ Focus on payment security and marketplace vulnerabilities.`)}
       />
     </div>
   );
-});
-
-AuditorPage.displayName = 'AuditorPage';
-
-export default AuditorPage;
+}

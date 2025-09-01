@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-// Removed problematic Select import that was causing infinite loops
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
 import { 
   Shield, 
@@ -205,19 +204,16 @@ export default function Community() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2">
-              <select 
-                value={sortBy} 
-                onChange={(e) => {
-                  if (e.target.value !== sortBy) {
-                    setSortBy(e.target.value);
-                  }
-                }}
-                className="w-full sm:w-[140px] h-9 px-3 py-1 bg-gray-800/50 border border-gray-600 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="score">Security Score</option>
-              </select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full sm:w-[140px] bg-gray-800/50 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="score">Security Score</SelectItem>
+                </SelectContent>
+              </Select>
               
               <Button
                 variant="outline"
