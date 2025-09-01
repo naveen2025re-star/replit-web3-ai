@@ -1092,10 +1092,68 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Fetch order details from Razorpay directly
       const order = await razorpay.orders.fetch(orderId);
       
+      console.log(`💳 Checking payment status for order: ${orderId}`);
+      console.log(`📊 Order status: ${order.status}, Amount paid: ${order.amount_paid}, Total: ${order.amount}`);
+      
+      // Check if payment is successful and credits haven't been added yet
+      const isPaid = order.status === 'paid' || (order.amount_paid && Number(order.amount_paid) >= Number(order.amount));
+      
+      if (isPaid && order.notes) {
+        const { packageId, userId } = order.notes;
+        console.log(`✅ Payment detected! Package: ${packageId}, User: ${userId}`);
+        
+        if (packageId && userId) {
+          // Check if credits have already been added for this order
+          const existingTransactions = await db.select()
+            .from(creditTransactions)
+            .where(
+              and(
+                eq(creditTransactions.userId, String(userId)),
+                eq(creditTransactions.type, 'purchase')
+              )
+            );
+          
+          // Only add credits if not already processed
+          const hasBeenProcessed = existingTransactions.some(t => 
+            t.metadata && 
+            typeof t.metadata === 'object' && 
+            'razorpay_order_id' in t.metadata && 
+            t.metadata.razorpay_order_id === orderId
+          );
+          
+          if (!hasBeenProcessed) {
+            try {
+              const packages = await CreditService.getCreditPackages();
+              const selectedPackage = packages.find(p => p.id === packageId);
+              
+              if (selectedPackage) {
+                await CreditService.addCredits(
+                  String(userId),
+                  selectedPackage.totalCredits,
+                  "purchase",
+                  `Payment for ${selectedPackage.name} package`,
+                  { 
+                    packageId: String(packageId), 
+                    razorpay_order_id: String(orderId),
+                    amount: selectedPackage.price 
+                  }
+                );
+                console.log(`🎉 Successfully added ${selectedPackage.totalCredits} credits to user ${userId}`);
+              }
+            } catch (creditError) {
+              console.error('❌ Error adding credits:', creditError);
+            }
+          } else {
+            console.log(`⚠️ Credits already processed for order ${orderId}`);
+          }
+        }
+      }
+      
       res.json({
         status: order.status,
         amount_paid: order.amount_paid || 0,
-        amount_due: order.amount_due || order.amount
+        amount_due: order.amount_due || order.amount,
+        credits_processed: isPaid && order.notes ? true : false
       });
     } catch (error: any) {
       console.error('Error fetching payment status:', error);
