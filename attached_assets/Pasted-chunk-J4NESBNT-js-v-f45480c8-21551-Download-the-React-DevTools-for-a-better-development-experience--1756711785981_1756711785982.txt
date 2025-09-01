@@ -1,0 +1,394 @@
+chunk-J4NESBNT.js?v=f45480c8:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+content-script.js:22 Document already loaded, running initialization immediately
+content-script.js:4 Attempting to initialize AdUnit
+content-script.js:6 AdUnit initialized successfully
+chunk-S6EXHY4W.js?v=f45480c8:23 Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information.
+issueWarning @ chunk-S6EXHY4W.js?v=f45480c8:23
+pulse.walletconnect.org/e?projectId=demo-project-id&st=appkit&sv=html-core-1.7.8:1  Failed to load resource: the server responded with a status of 400 ()
+api.web3modal.org/appkit/v1/config?projectId=demo-project-id&st=appkit&sv=html-core-1.7.8:1  Failed to load resource: the server responded with a status of 403 ()
+core-WEEXMLRO.js?v=f45480c8:9736 [Reown Config] Failed to fetch remote project configuration. Using local/default values. Error: HTTP status code: 403
+    at fetchData (chunk-SQVIFXMS.js?v=f45480c8:2959:17)
+    at async FetchUtil.get (chunk-SQVIFXMS.js?v=f45480c8:2973:22)
+    at async Object.fetchProjectConfig (chunk-SQVIFXMS.js?v=f45480c8:6107:22)
+    at async Object.fetchRemoteFeatures (core-WEEXMLRO.js?v=f45480c8:9733:26)
+    at async AppKit.initialize (core-WEEXMLRO.js?v=f45480c8:9936:27)
+fetchRemoteFeatures @ core-WEEXMLRO.js?v=f45480c8:9736
+0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/:1 Error while trying to use the following icon from the Manifest: https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/icon-192.png (Download error or resource isn't a valid image)
+@radix-ui_react-dialog.js?v=f45480c8:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f45480c8:340
+@radix-ui_react-dialog.js?v=f45480c8:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f45480c8:340
+@radix-ui_react-dialog.js?v=f45480c8:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=f45480c8:340
+chunk-J4NESBNT.js?v=f45480c8:16670 Uncaught Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (chunk-J4NESBNT.js?v=f45480c8:19659:19)
+    at scheduleUpdateOnFiber (chunk-J4NESBNT.js?v=f45480c8:18533:11)
+    at dispatchSetState (chunk-J4NESBNT.js?v=f45480c8:12403:15)
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>)
+    at chunk-EQ4QHUY2.js?v=f45480c8:26:27
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>)
+chunk-J4NESBNT.js?v=f45480c8:521 Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+    at Route (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f45480c8:191:16)
+    at Switch (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f45480c8:247:17)
+    at main
+    at Router (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/App.tsx?t=1756711353579&v=Un_27-HiyBYxG8C0HSyUM:208:55)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at TooltipProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f45480c8:61:5)
+    at Hydrate (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wagmi.js?v=f45480c8:212:11)
+    at WagmiProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wagmi.js?v=f45480c8:236:11)
+    at Web3Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/Web3Provider.tsx:19:32)
+    at QueryClientProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5T6ZDHJF.js?v=f45480c8:2805:3)
+    at ErrorBoundary (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/ErrorBoundary.tsx:10:5)
+    at App
+printWarning @ chunk-J4NESBNT.js?v=f45480c8:521
+chunk-J4NESBNT.js?v=f45480c8:14032 The above error occurred in the <button> component:
+
+    at button
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-ONBHUMKJ.js?v=f45480c8:42:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EQ4QHUY2.js?v=f45480c8:79:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EQ4QHUY2.js?v=f45480c8:56:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-ONBHUMKJ.js?v=f45480c8:42:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QKXT6J23.js?v=f45480c8:1927:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=f45480c8:183:13
+    at _c (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/ui/select.tsx:26:11)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at CollectionProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GQVAZRCK.js?v=f45480c8:29:13)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at Popper (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QKXT6J23.js?v=f45480c8:1919:11)
+    at Select (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=f45480c8:85:5)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at AuditorPage (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/pages/auditor.tsx?t=1756711353579:51:94)
+    at AuditorPageWithTitle (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/App.tsx?t=1756711353579&v=Un_27-HiyBYxG8C0HSyUM:64:33)
+    at component
+    at Route (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f45480c8:191:16)
+    at Switch (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f45480c8:247:17)
+    at main
+    at Router (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/App.tsx?t=1756711353579&v=Un_27-HiyBYxG8C0HSyUM:208:55)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at TooltipProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f45480c8:61:5)
+    at Hydrate (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wagmi.js?v=f45480c8:212:11)
+    at WagmiProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wagmi.js?v=f45480c8:236:11)
+    at Web3Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/Web3Provider.tsx:19:32)
+    at QueryClientProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5T6ZDHJF.js?v=f45480c8:2805:3)
+    at ErrorBoundary (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/ErrorBoundary.tsx:10:5)
+    at App
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+logCapturedError @ chunk-J4NESBNT.js?v=f45480c8:14032
+ErrorBoundary.tsx:28 ErrorBoundary caught an error: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (chunk-J4NESBNT.js?v=f45480c8:19659:19)
+    at scheduleUpdateOnFiber (chunk-J4NESBNT.js?v=f45480c8:18533:11)
+    at dispatchSetState (chunk-J4NESBNT.js?v=f45480c8:12403:15)
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>)
+    at chunk-EQ4QHUY2.js?v=f45480c8:26:27
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>) Object
+componentDidCatch @ ErrorBoundary.tsx:28
+chunk-J4NESBNT.js?v=f45480c8:19659 Uncaught Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (chunk-J4NESBNT.js?v=f45480c8:19659:19)
+    at scheduleUpdateOnFiber (chunk-J4NESBNT.js?v=f45480c8:18533:11)
+    at dispatchSetState (chunk-J4NESBNT.js?v=f45480c8:12403:15)
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>)
+    at chunk-EQ4QHUY2.js?v=f45480c8:26:27
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>)
+checkForNestedUpdates @ chunk-J4NESBNT.js?v=f45480c8:19659
+scheduleUpdateOnFiber @ chunk-J4NESBNT.js?v=f45480c8:18533
+dispatchSetState @ chunk-J4NESBNT.js?v=f45480c8:12403
+setRef @ chunk-EQ4QHUY2.js?v=f45480c8:18
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:27
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:26
+setRef @ chunk-EQ4QHUY2.js?v=f45480c8:18
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:27
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:26
+safelyDetachRef @ chunk-J4NESBNT.js?v=f45480c8:16726
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17495
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17503
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17503
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17503
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17503
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17503
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+commitDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17477
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17674
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17896
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17737
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17896
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17896
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17896
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17727
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17794
+commitMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17663
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19347
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+performSyncWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18895
+flushSyncCallbacks @ chunk-J4NESBNT.js?v=f45480c8:9119
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19432
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+finishConcurrentRender @ chunk-J4NESBNT.js?v=f45480c8:18805
+performConcurrentWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18718
+workLoop @ chunk-J4NESBNT.js?v=f45480c8:197
+flushWork @ chunk-J4NESBNT.js?v=f45480c8:176
+performWorkUntilDeadline @ chunk-J4NESBNT.js?v=f45480c8:384
+chunk-J4NESBNT.js?v=f45480c8:521 Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+    at ErrorBoundary (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/ErrorBoundary.tsx:10:5)
+    at App
+printWarning @ chunk-J4NESBNT.js?v=f45480c8:521
+error @ chunk-J4NESBNT.js?v=f45480c8:505
+checkForNestedUpdates @ chunk-J4NESBNT.js?v=f45480c8:19665
+scheduleUpdateOnFiber @ chunk-J4NESBNT.js?v=f45480c8:18533
+dispatchSetState @ chunk-J4NESBNT.js?v=f45480c8:12403
+setRef @ chunk-EQ4QHUY2.js?v=f45480c8:18
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:27
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:26
+setRef @ chunk-EQ4QHUY2.js?v=f45480c8:18
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:27
+(anonymous) @ chunk-EQ4QHUY2.js?v=f45480c8:26
+safelyDetachRef @ chunk-J4NESBNT.js?v=f45480c8:16726
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17495
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17503
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17610
+recursivelyTraverseDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17486
+commitDeletionEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17577
+commitDeletionEffects @ chunk-J4NESBNT.js?v=f45480c8:17477
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17674
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17727
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17699
+recursivelyTraverseMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17685
+commitMutationEffectsOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17794
+commitMutationEffects @ chunk-J4NESBNT.js?v=f45480c8:17663
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19347
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+performSyncWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18895
+flushSyncCallbacks @ chunk-J4NESBNT.js?v=f45480c8:9119
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19432
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+finishConcurrentRender @ chunk-J4NESBNT.js?v=f45480c8:18805
+performConcurrentWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18718
+workLoop @ chunk-J4NESBNT.js?v=f45480c8:197
+flushWork @ chunk-J4NESBNT.js?v=f45480c8:176
+performWorkUntilDeadline @ chunk-J4NESBNT.js?v=f45480c8:384
+chunk-J4NESBNT.js?v=f45480c8:14032 The above error occurred in the <button> component:
+
+    at button
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-ONBHUMKJ.js?v=f45480c8:42:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EQ4QHUY2.js?v=f45480c8:79:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EQ4QHUY2.js?v=f45480c8:56:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-ONBHUMKJ.js?v=f45480c8:42:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QKXT6J23.js?v=f45480c8:1927:13
+    at https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=f45480c8:183:13
+    at _c (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/ui/select.tsx:26:11)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at CollectionProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GQVAZRCK.js?v=f45480c8:29:13)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at Popper (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QKXT6J23.js?v=f45480c8:1919:11)
+    at Select (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=f45480c8:85:5)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at AuditorPage (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/pages/auditor.tsx?t=1756711353579:51:94)
+    at AuditorPageWithTitle (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/App.tsx?t=1756711353579&v=Un_27-HiyBYxG8C0HSyUM:64:33)
+    at component
+    at Route (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f45480c8:191:16)
+    at Switch (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f45480c8:247:17)
+    at main
+    at Router (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/App.tsx?t=1756711353579&v=Un_27-HiyBYxG8C0HSyUM:208:55)
+    at Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-HHTIKOHQ.js?v=f45480c8:48:15)
+    at TooltipProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f45480c8:61:5)
+    at Hydrate (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wagmi.js?v=f45480c8:212:11)
+    at WagmiProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wagmi.js?v=f45480c8:236:11)
+    at Web3Provider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/Web3Provider.tsx:19:32)
+    at QueryClientProvider (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5T6ZDHJF.js?v=f45480c8:2805:3)
+    at ErrorBoundary (https://0f76a9a4-3c22-4681-bcf8-c9830aef4774-00-2pa4bc5fxok5l.spock.replit.dev/src/components/ErrorBoundary.tsx:10:5)
+    at App
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+logCapturedError @ chunk-J4NESBNT.js?v=f45480c8:14032
+callback @ chunk-J4NESBNT.js?v=f45480c8:14078
+callCallback @ chunk-J4NESBNT.js?v=f45480c8:11248
+commitUpdateQueue @ chunk-J4NESBNT.js?v=f45480c8:11265
+commitLayoutEffectOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17075
+commitLayoutMountEffects_complete @ chunk-J4NESBNT.js?v=f45480c8:17980
+commitLayoutEffects_begin @ chunk-J4NESBNT.js?v=f45480c8:17969
+commitLayoutEffects @ chunk-J4NESBNT.js?v=f45480c8:17920
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19353
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+performSyncWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18895
+flushSyncCallbacks @ chunk-J4NESBNT.js?v=f45480c8:9119
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19432
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+finishConcurrentRender @ chunk-J4NESBNT.js?v=f45480c8:18805
+performConcurrentWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18718
+workLoop @ chunk-J4NESBNT.js?v=f45480c8:197
+flushWork @ chunk-J4NESBNT.js?v=f45480c8:176
+performWorkUntilDeadline @ chunk-J4NESBNT.js?v=f45480c8:384
+ErrorBoundary.tsx:28 ErrorBoundary caught an error: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (chunk-J4NESBNT.js?v=f45480c8:19659:19)
+    at scheduleUpdateOnFiber (chunk-J4NESBNT.js?v=f45480c8:18533:11)
+    at dispatchSetState (chunk-J4NESBNT.js?v=f45480c8:12403:15)
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>)
+    at chunk-EQ4QHUY2.js?v=f45480c8:26:27
+    at setRef (chunk-EQ4QHUY2.js?v=f45480c8:18:12)
+    at chunk-EQ4QHUY2.js?v=f45480c8:27:23
+    at Array.map (<anonymous>) {componentStack: '\n    at button\n    at https://0f76a9a4-3c22-4681-b…src/components/ErrorBoundary.tsx:10:5)\n    at App'}
+componentDidCatch @ ErrorBoundary.tsx:28
+callback @ chunk-J4NESBNT.js?v=f45480c8:14084
+callCallback @ chunk-J4NESBNT.js?v=f45480c8:11248
+commitUpdateQueue @ chunk-J4NESBNT.js?v=f45480c8:11265
+commitLayoutEffectOnFiber @ chunk-J4NESBNT.js?v=f45480c8:17075
+commitLayoutMountEffects_complete @ chunk-J4NESBNT.js?v=f45480c8:17980
+commitLayoutEffects_begin @ chunk-J4NESBNT.js?v=f45480c8:17969
+commitLayoutEffects @ chunk-J4NESBNT.js?v=f45480c8:17920
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19353
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+performSyncWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18895
+flushSyncCallbacks @ chunk-J4NESBNT.js?v=f45480c8:9119
+commitRootImpl @ chunk-J4NESBNT.js?v=f45480c8:19432
+commitRoot @ chunk-J4NESBNT.js?v=f45480c8:19277
+finishConcurrentRender @ chunk-J4NESBNT.js?v=f45480c8:18805
+performConcurrentWorkOnRoot @ chunk-J4NESBNT.js?v=f45480c8:18718
+workLoop @ chunk-J4NESBNT.js?v=f45480c8:197
+flushWork @ chunk-J4NESBNT.js?v=f45480c8:176
+performWorkUntilDeadline @ chunk-J4NESBNT.js?v=f45480c8:384
