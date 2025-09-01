@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useRazorpay } from 'react-razorpay';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { Loader, CreditCard } from "lucide-react";
 
-interface ModernRazorpayButtonProps {
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+interface SimpleRazorpayButtonProps {
   amount: number;
   currency?: string;
   packageName: string;
@@ -24,29 +29,38 @@ export default function SimpleRazorpayButton({
   onSuccess,
   onError,
   disabled = false
-}: ModernRazorpayButtonProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+}: SimpleRazorpayButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { isLoading: isRazorpayLoading, Razorpay } = useRazorpay();
 
-  // Detect mobile device for responsive handling
-  useEffect(() => {
-    const checkDevice = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
-  }, []);
+  const loadRazorpayScript = () => {
+    return new Promise<boolean>((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   const handlePayment = async () => {
-    if (isProcessing || isRazorpayLoading || !Razorpay) return;
+    if (isLoading) return;
     
-    setIsProcessing(true);
+    setIsLoading(true);
 
     try {
+      // Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error('Razorpay SDK failed to load. Please check your internet connection.');
+      }
+
       // Create purchase session
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
@@ -81,7 +95,7 @@ export default function SimpleRazorpayButton({
 
       const orderData = await orderResponse.json();
 
-      // Modern Razorpay options with 2024 best practices
+      // Bare minimum Razorpay configuration - NO PREFILL, NO COMPLEX MODAL
       const options = {
         key: orderData.key_id,
         amount: orderData.amount,
@@ -89,10 +103,9 @@ export default function SimpleRazorpayButton({
         order_id: orderData.order_id,
         name: 'Smart Contract Auditor',
         description: packageName,
-        image: '', // Empty to prevent loading issues
         handler: async function (response: any) {
           try {
-            // Verify payment on backend
+            // Verify payment
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -123,119 +136,65 @@ export default function SimpleRazorpayButton({
             });
             if (onError) onError(error);
           } finally {
-            setIsProcessing(false);
+            setIsLoading(false);
           }
-        },
-        prefill: {
-          name: 'Customer',
-          email: 'customer@example.com',
-          contact: '9999999999'
-        },
-        theme: {
-          color: '#3b82f6',
         },
         modal: {
-          ondismiss: (reason: any) => {
-            console.log('Payment modal dismissed:', reason);
-            setIsProcessing(false);
-          },
-          confirm_close: !isMobile, // Less friction on mobile
-          escape: true,
-          backdropclose: false
-        },
-        retry: {
-          enabled: true,
-          max_count: 3
-        },
-        timeout: 300, // 5 minutes
-        remember_customer: false,
-        // Mobile-optimized settings
-        ...(isMobile && {
-          display: {
-            language: 'en',
-            hide: {
-              email: false,
-              contact: false,
-              card: false,
-              bank_account: false
-            }
+          ondismiss: function() {
+            console.log('Payment cancelled by user');
+            setIsLoading(false);
           }
-        })
+        }
       };
 
-      const razorpayInstance = new Razorpay(options);
+      // Create and open Razorpay instance
+      const rzp = new window.Razorpay(options);
       
-      // Enhanced error handling with proper event listener cleanup
-      const handlePaymentFailed = (response: any) => {
+      // Handle payment failures
+      rzp.on('payment.failed', function (response: any) {
         console.error('Payment failed:', response.error);
-        setIsProcessing(false);
-        
-        const errorMsg = response.error?.description || 
-                        response.error?.reason || 
-                        'Payment failed. Please try again.';
-        
+        setIsLoading(false);
         toast({
           title: "Payment Failed",
-          description: errorMsg,
+          description: response.error?.description || "Payment failed. Please try again.",
           variant: "destructive",
         });
-        
-        if (onError) onError(new Error(errorMsg));
-      };
+        if (onError) onError(new Error(response.error?.description));
+      });
 
-      razorpayInstance.on('payment.failed', handlePaymentFailed);
-
-      // Open payment modal
-      razorpayInstance.open();
+      // Open the payment modal
+      rzp.open();
 
     } catch (error: any) {
-      console.error('Payment initialization error:', error);
+      console.error('Payment error:', error);
       toast({
-        title: "Payment Error",
-        description: error.message || "Failed to initialize payment. Please try again.",
+        title: "Payment Failed",
+        description: error.message || "Failed to process payment",
         variant: "destructive",
       });
-      setIsProcessing(false);
+      setIsLoading(false);
       if (onError) onError(error);
     }
   };
 
-  const isButtonDisabled = isProcessing || isRazorpayLoading || !Razorpay || disabled;
-
   return (
-    <div className={`payment-container ${isMobile ? 'w-full' : ''}`}>
-      {isRazorpayLoading && (
-        <p className="text-sm text-gray-600 mb-2">Loading payment system...</p>
+    <Button
+      onClick={handlePayment}
+      disabled={isLoading || disabled}
+      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+      data-testid="simple-razorpay-button"
+    >
+      {isLoading ? (
+        <div className="flex items-center gap-2">
+          <Loader className="h-4 w-4 animate-spin" />
+          Processing...
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4" />
+          Pay ${amount} with Razorpay
+        </div>
       )}
-      
-      <Button
-        onClick={handlePayment}
-        disabled={isButtonDisabled}
-        className={`
-          ${isMobile ? 'w-full py-4 text-lg' : 'py-3 px-6 text-base'}
-          w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg 
-          transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-          flex items-center justify-center min-h-[48px]
-        `}
-        data-testid="modern-razorpay-button"
-      >
-        {isProcessing ? (
-          <div className="flex items-center gap-2">
-            <Loader className="h-4 w-4 animate-spin" />
-            Processing...
-          </div>
-        ) : isRazorpayLoading ? (
-          <div className="flex items-center gap-2">
-            <Loader className="h-4 w-4 animate-spin" />
-            Loading...
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Pay ${amount} with Razorpay
-          </div>
-        )}
-      </Button>
-    </div>
+    </Button>
   );
 }
