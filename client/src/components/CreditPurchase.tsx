@@ -383,7 +383,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Crown className="h-6 w-6 text-purple-400" />
+                <Star className="h-6 w-6 text-purple-400" />
               </div>
               <div className="font-semibold text-purple-400 mb-1">Complex Systems</div>
               <div className="text-slate-300">75-500 credits</div>
