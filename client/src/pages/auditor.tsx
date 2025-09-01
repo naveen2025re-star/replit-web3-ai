@@ -74,7 +74,7 @@ interface AuditSession {
   completedAt?: string;
 }
 
-export default function AuditorPage() {
+const AuditorPage = React.memo(() => {
   const { user, isConnected, isAuthenticated, authenticate, disconnect, isAuthenticating } = useWeb3Auth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -99,192 +99,67 @@ export default function AuditorPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const processedSessionRef = useRef<string | null>(null);
 
-  // Redirect to auth page if not authenticated
+  // Check authentication status once
+  const authRedirectRef = useRef(false);
   useEffect(() => {
-    if (!isConnected || !isAuthenticated) {
+    if (!authRedirectRef.current && (!isConnected || !isAuthenticated)) {
+      authRedirectRef.current = true;
       setLocation('/auth');
     }
   }, [isConnected, isAuthenticated, setLocation]);
 
-  // Handle session URL parameter for direct links from GitHub integration
+  // Handle session URL parameter for direct links from GitHub integration - run only once
   useEffect(() => {
-    const handleSessionFromUrl = async () => {
-      if (isAuthenticated && user?.id) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session');
+    if (!isAuthenticated || !user?.id) return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+    
+    if (!sessionId || sessionId === processedSessionRef.current) return;
+    
+    processedSessionRef.current = sessionId;
+    
+    const loadSessionFromUrl = async () => {
+      try {
+        setMessages([]);
+        setCurrentSessionId(sessionId);
         
-        if (sessionId && sessionId !== processedSessionRef.current) {
-          processedSessionRef.current = sessionId;
+        const response = await fetch(`/api/audit/session/${sessionId}`);
+        if (!response.ok) throw new Error('Failed to load audit session');
+        
+        const sessionData = await response.json();
+        
+        if (sessionData.contractCode) {
+          const userMessage: ChatMessage = {
+            id: Date.now().toString(),
+            type: "user",
+            content: sessionData.contractCode,
+            timestamp: new Date(sessionData.createdAt)
+          };
           
-          try {
-            // Load session directly using the same logic as loadAuditSession
-            toast({
-              title: "Loading GitHub analysis",
-              description: "Retrieving your blockchain file analysis...",
-            });
-
-            setMessages([]);
-            setCurrentSessionId(sessionId);
-            
-            // Fetch the audit session details
-            const response = await fetch(`/api/audit/session/${sessionId}`);
-            if (!response.ok) {
-              throw new Error('Failed to load audit session');
-            }
-            
-            const sessionData = await response.json();
-            
-            // Create user message with the original contract code
-            if (sessionData.contractCode) {
-              const userMessage: ChatMessage = {
-                id: Date.now().toString(),
-                type: "user",
-                content: sessionData.contractCode,
-                timestamp: new Date(sessionData.createdAt)
-              };
-              
-              // Set messages first
-              setMessages([userMessage]);
-              setInputValue(""); // Clear input
-              
-              // Check if analysis already exists
-              if (sessionData.result && (sessionData.result.rawResponse || sessionData.result.formattedReport)) {
-                // Analysis already exists, show it
-                const aiMessage: ChatMessage = {
-                  id: (Date.now() + 1).toString(),
-                  type: "assistant",
-                  content: sessionData.result.rawResponse || sessionData.result.formattedReport,
-                  timestamp: new Date(sessionData.result.createdAt || sessionData.completedAt)
-                };
-                setMessages([userMessage, aiMessage]);
-                
-                toast({
-                  title: "Analysis loaded",
-                  description: "Your GitHub analysis has been loaded successfully.",
-                });
-              } else {
-                // No analysis result yet, start the AI analysis automatically
-                toast({
-                  title: "Starting AI analysis",
-                  description: "Analyzing your GitHub code with AI...",
-                });
-                
-                setAnalysisState("streaming");
-                
-                // Start streaming analysis
-                const eventSource = new EventSource(`/api/audit/analyze/${sessionId}`);
-                
-                // Create assistant message immediately for streaming
-                const assistantMessage: ChatMessage = {
-                  id: (Date.now() + 1).toString(),
-                  type: "assistant",
-                  content: "",
-                  timestamp: new Date(),
-                  isStreaming: true
-                };
-                
-                setMessages(prev => {
-                  const userMsg = prev.find(m => m.type === 'user');
-                  return userMsg ? [userMsg, assistantMessage] : [assistantMessage];
-                });
-                
-                eventSource.onmessage = (event) => {
-                  try {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.status === "completed") {
-                      eventSource.close();
-                      setAnalysisState("completed");
-                      setMessages(prev => prev.map(msg => 
-                        msg.id === assistantMessage.id 
-                          ? { ...msg, isStreaming: false }
-                          : msg
-                      ));
-                      // Invalidate audit history to refresh
-                      queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
-                      queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
-                      
-                      toast({
-                        title: "Analysis complete",
-                        description: "Your GitHub code analysis is ready!",
-                      });
-                      return;
-                    }
-                    
-                    if (data.body) {
-                      setMessages(prev => prev.map(msg => 
-                        msg.id === assistantMessage.id 
-                          ? { ...msg, content: msg.content + data.body }
-                          : msg
-                      ));
-                    }
-                  } catch (error) {
-                    console.error('Error parsing SSE data:', error);
-                  }
-                };
-
-                eventSource.addEventListener('content', (event) => {
-                  try {
-                    const data = JSON.parse(event.data);
-                    if (data.body) {
-                      setMessages(prev => prev.map(msg => 
-                        msg.id === assistantMessage.id 
-                          ? { ...msg, content: msg.content + data.body }
-                          : msg
-                      ));
-                    }
-                  } catch (error) {
-                    console.error('Error parsing content event:', error);
-                  }
-                });
-
-                eventSource.addEventListener('complete', (event) => {
-                  eventSource.close();
-                  setAnalysisState("completed");
-                  setMessages(prev => prev.map(msg => 
-                    msg.id === assistantMessage.id 
-                      ? { ...msg, isStreaming: false }
-                      : msg
-                  ));
-                  queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
-                  queryClient.invalidateQueries({ queryKey: ['/api/community/audits'] });
-                  
-                  toast({
-                    title: "Analysis complete",
-                    description: "Your GitHub code analysis is ready!",
-                  });
-                });
-                
-                eventSource.onerror = () => {
-                  eventSource.close();
-                  setAnalysisState("initial");
-                  toast({
-                    title: "Connection error",
-                    description: "Lost connection to analysis service",
-                    variant: "destructive",
-                  });
-                };
-              }
-            }
-            
-            // Clear the URL parameter after loading
-            window.history.replaceState({}, '', '/auditor');
-          } catch (error) {
-            console.error('Error loading session from URL:', error);
-            toast({
-              title: "Error",
-              description: "Failed to load the analysis session. Please try again.",
-              variant: "destructive",
-            });
-            // Clear the URL parameter even on error
-            window.history.replaceState({}, '', '/auditor');
+          setMessages([userMessage]);
+          setInputValue("");
+          
+          if (sessionData.result && (sessionData.result.rawResponse || sessionData.result.formattedReport)) {
+            const aiMessage: ChatMessage = {
+              id: (Date.now() + 1).toString(),
+              type: "assistant",
+              content: sessionData.result.rawResponse || sessionData.result.formattedReport,
+              timestamp: new Date(sessionData.result.createdAt || sessionData.completedAt)
+            };
+            setMessages([userMessage, aiMessage]);
           }
         }
+        
+        window.history.replaceState({}, '', '/auditor');
+      } catch (error) {
+        console.error('Error loading session from URL:', error);
+        window.history.replaceState({}, '', '/auditor');
       }
     };
     
-    handleSessionFromUrl();
-  }, [isAuthenticated, user?.id, toast, queryClient]);
+    loadSessionFromUrl();
+  }, []); // Empty dependency array - run only once
 
   // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
@@ -341,10 +216,12 @@ export default function AuditorPage() {
     scrollToBottom();
   }, [messages]);
 
+  const stableToast = useCallback(toast, []);
+  
   const handleFilesProcessed = useCallback((combinedContent: string, contractLanguage: string, fileInfo: {fileCount: number, totalSize: number}) => {
     // Validate file content
     if (!combinedContent || combinedContent.trim().length === 0) {
-      toast({
+      stableToast({
         title: "Empty files",
         description: "The uploaded files appear to be empty. Please check your files.",
         variant: "destructive",
@@ -353,7 +230,7 @@ export default function AuditorPage() {
     }
     
     if (combinedContent.length > 100000) { // 100KB limit
-      toast({
+      stableToast({
         title: "Files too large",
         description: "Combined file size is too large. Please reduce the content or upload fewer files.",
         variant: "destructive",
@@ -375,11 +252,11 @@ export default function AuditorPage() {
       textareaRef.current?.focus();
     }, 100);
     
-    toast({
+    stableToast({
       title: "Files uploaded successfully",
       description: `${fileInfo.fileCount} file(s) loaded (${(fileInfo.totalSize / 1024).toFixed(1)}KB). Ready for analysis.`,
     });
-  }, [toast]);
+  }, [textareaRef, stableToast]);
 
   const handleContractFetch = useCallback(async (contractAddress: string, network: string = "ethereum") => {
     try {
@@ -856,7 +733,7 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
                   const isPublic = value === "public";
                   // Prevent Free users from selecting private
                   if (!isPublic && isFreePlan) {
-                    toast({
+                    stableToast({
                       title: "Upgrade Required",
                       description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
                       variant: "destructive",
@@ -864,7 +741,7 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
                     setShowCreditPurchase(true);
                     return;
                   }
-                  setAuditVisibility({...auditVisibility, isPublic});
+                  setAuditVisibility(prev => ({...prev, isPublic}));
                 }}
                 disabled={analysisState === "loading" || analysisState === "streaming"}
               >
@@ -1317,4 +1194,8 @@ Focus on payment security and marketplace vulnerabilities.`)}
       />
     </div>
   );
-}
+});
+
+AuditorPage.displayName = 'AuditorPage';
+
+export default AuditorPage;
