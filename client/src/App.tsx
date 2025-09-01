@@ -33,6 +33,47 @@ function useDocumentTitle(title: string, description?: string) {
   }, [title, description]);
 }
 
+// Page components with title setting
+const AuthPageWithTitle = () => {
+  useDocumentTitle("Sign In - SmartAudit AI", "Sign in to access professional smart contract auditing tools and security analysis features.");
+  return <AuthPage />;
+};
+
+const AuditorPageWithTitle = ({ isAuthenticated, user }: { isAuthenticated: boolean; user: any }) => {
+  useDocumentTitle("Smart Contract Auditor - SmartAudit AI", "Analyze smart contracts for security vulnerabilities with AI-powered auditing tools.");
+  return isAuthenticated && user ? <Auditor /> : <AuthPage />;
+};
+
+const HistoryPageWithTitle = ({ isAuthenticated, user }: { isAuthenticated: boolean; user: any }) => {
+  useDocumentTitle("Audit History - SmartAudit AI", "View your smart contract audit history and security analysis reports.");
+  return isAuthenticated && user ? <AuditHistoryPage /> : <AuthPage />;
+};
+
+const CommunityPageWithTitle = () => {
+  useDocumentTitle("Community Audits - SmartAudit AI", "Explore public smart contract audits shared by the security community.");
+  return <Community />;
+};
+
+const IntegrationsPageWithTitle = ({ isAuthenticated, user }: { isAuthenticated: boolean; user: any }) => {
+  useDocumentTitle("Integrations - SmartAudit AI", "Connect GitHub and automate your smart contract security workflows.");
+  return isAuthenticated && user ? <IntegrationsPage /> : <AuthPage />;
+};
+
+const SettingsPageWithTitle = ({ isAuthenticated, user }: { isAuthenticated: boolean; user: any }) => {
+  useDocumentTitle("Settings - SmartAudit AI", "Manage your account, credits, and security preferences.");
+  return isAuthenticated && user ? <SettingsPage /> : <AuthPage />;
+};
+
+const LandingPageWithTitle = () => {
+  useDocumentTitle("SmartAudit AI - Advanced Smart Contract Security Analysis", "Professional AI-powered smart contract auditing platform. Detect vulnerabilities and ensure your Web3 contracts are production-ready.");
+  return <Landing />;
+};
+
+const NotFoundPageWithTitle = () => {
+  useDocumentTitle("Page Not Found - SmartAudit AI");
+  return <NotFound />;
+};
+
 // Loading screen component
 function LoadingScreen() {
   return (
@@ -70,38 +111,14 @@ function Router() {
   return (
     <main className="page-transition" role="main">
       <Switch>
-        <Route path="/auth" component={() => {
-          useDocumentTitle("Sign In - SmartAudit AI", "Sign in to access professional smart contract auditing tools and security analysis features.");
-          return <AuthPage />;
-        }} />
-        <Route path="/auditor" component={() => {
-          useDocumentTitle("Smart Contract Auditor - SmartAudit AI", "Analyze smart contracts for security vulnerabilities with AI-powered auditing tools.");
-          return isAuthenticated && user ? <Auditor /> : <AuthPage />;
-        }} />
-        <Route path="/history" component={() => {
-          useDocumentTitle("Audit History - SmartAudit AI", "View your smart contract audit history and security analysis reports.");
-          return isAuthenticated && user ? <AuditHistoryPage /> : <AuthPage />;
-        }} />
-        <Route path="/community" component={() => {
-          useDocumentTitle("Community Audits - SmartAudit AI", "Explore public smart contract audits shared by the security community.");
-          return <Community />;
-        }} />
-        <Route path="/integrations" component={() => {
-          useDocumentTitle("Integrations - SmartAudit AI", "Connect GitHub and automate your smart contract security workflows.");
-          return isAuthenticated && user ? <IntegrationsPage /> : <AuthPage />;
-        }} />
-        <Route path="/settings" component={() => {
-          useDocumentTitle("Settings - SmartAudit AI", "Manage your account, credits, and security preferences.");
-          return isAuthenticated && user ? <SettingsPage /> : <AuthPage />;
-        }} />
-        <Route path="/" component={() => {
-          useDocumentTitle("SmartAudit AI - Advanced Smart Contract Security Analysis", "Professional AI-powered smart contract auditing platform. Detect vulnerabilities and ensure your Web3 contracts are production-ready.");
-          return <Landing />;
-        }} />
-        <Route component={() => {
-          useDocumentTitle("Page Not Found - SmartAudit AI");
-          return <NotFound />;
-        }} />
+        <Route path="/auth" component={AuthPageWithTitle} />
+        <Route path="/auditor" component={() => <AuditorPageWithTitle isAuthenticated={isAuthenticated} user={user} />} />
+        <Route path="/history" component={() => <HistoryPageWithTitle isAuthenticated={isAuthenticated} user={user} />} />
+        <Route path="/community" component={CommunityPageWithTitle} />
+        <Route path="/integrations" component={() => <IntegrationsPageWithTitle isAuthenticated={isAuthenticated} user={user} />} />
+        <Route path="/settings" component={() => <SettingsPageWithTitle isAuthenticated={isAuthenticated} user={user} />} />
+        <Route path="/" component={LandingPageWithTitle} />
+        <Route component={NotFoundPageWithTitle} />
       </Switch>
     </main>
   );
