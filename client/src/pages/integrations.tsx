@@ -14,7 +14,6 @@ import {
   Github, 
   Settings, 
   Download, 
-  ExternalLink, 
   Copy,
   Shield,
   CheckCircle,
@@ -22,7 +21,13 @@ import {
   Code,
   FileText,
   FolderOpen,
-  Brain
+  Brain,
+  Webhook,
+  Key,
+  Terminal,
+  Zap,
+  Server,
+  Globe
 } from 'lucide-react';
 
 export default function IntegrationsPage() {
@@ -389,11 +394,11 @@ export default function IntegrationsPage() {
             </TabsTrigger>
             <TabsTrigger value="cicd" className="data-[state=active]:bg-blue-600">
               <Settings className="h-4 w-4 mr-2" />
-              CI/CD
+              Automation
             </TabsTrigger>
-            <TabsTrigger value="browser" className="data-[state=active]:bg-blue-600">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Browser Extension
+            <TabsTrigger value="api" className="data-[state=active]:bg-blue-600">
+              <Key className="h-4 w-4 mr-2" />
+              API & Webhooks
             </TabsTrigger>
           </TabsList>
 
@@ -661,53 +666,73 @@ export default function IntegrationsPage() {
             </div>
           </TabsContent>
 
-          {/* CI/CD Integration */}
+          {/* Automation */}
           <TabsContent value="cicd">
             <div className="grid gap-6 lg:grid-cols-2">
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
-                    <Settings className="h-5 w-5 mr-2 text-blue-400" />
-                    CI/CD Pipeline Setup
+                    <Zap className="h-5 w-5 mr-2 text-blue-400" />
+                    Smart Automation
                     {cicdStatus?.configured && (
                       <Badge className="ml-2 bg-green-500/20 text-green-400 border-green-500/30">
                         <CheckCircle className="h-3 w-3 mr-1" />
-                        Configured
+                        Active
                       </Badge>
                     )}
                   </CardTitle>
                   <CardDescription className="text-gray-300">
-                    Setup automated contract audits in your CI/CD pipeline
+                    Automated security scanning with intelligent triggers
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="repo-url" className="text-white">Repository URL</Label>
-                    <Input
-                      id="repo-url"
-                      placeholder="https://github.com/username/repository"
-                      value={cicdForm.repositoryUrl}
-                      onChange={(e) => setCicdForm({...cicdForm, repositoryUrl: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
-                      data-testid="input-repository-url"
-                    />
+                  <div className="grid gap-4">
+                    <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <Server className="h-5 w-5 text-green-400 mr-2" />
+                          <span className="text-white font-medium">GitHub Webhooks</span>
+                        </div>
+                        <Badge variant="outline" className="text-green-400 border-green-500/30">
+                          Enabled
+                        </Badge>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-3">
+                        Automatic audits triggered on push, PR, and releases
+                      </p>
+                      <div className="flex gap-2">
+                        <Badge className="bg-blue-500/20 text-blue-300 text-xs">
+                          Pull Requests
+                        </Badge>
+                        <Badge className="bg-orange-500/20 text-orange-300 text-xs">
+                          Main Branch
+                        </Badge>
+                        <Badge className="bg-purple-500/20 text-purple-300 text-xs">
+                          Releases
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <Terminal className="h-5 w-5 text-blue-400 mr-2" />
+                          <span className="text-white font-medium">CI/CD Integration</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={handleCicdSetup}
+                          disabled={cicdSetupMutation.isPending}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {cicdSetupMutation.isPending ? "Setting up..." : "Configure"}
+                        </Button>
+                      </div>
+                      <p className="text-gray-300 text-sm">
+                        Get workflow files for GitHub Actions, Jenkins, or GitLab CI
+                      </p>
+                    </div>
                   </div>
-                  
-                  <Button 
-                    onClick={handleCicdSetup}
-                    disabled={cicdSetupMutation.isPending || !cicdForm.repositoryUrl}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    data-testid="button-setup-cicd"
-                  >
-                    {cicdSetupMutation.isPending ? (
-                      <>Setting up...</>
-                    ) : (
-                      <>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Setup CI/CD Pipeline
-                      </>
-                    )}
-                  </Button>
 
                   {cicdConfig && (
                     <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-600">
@@ -742,89 +767,188 @@ export default function IntegrationsPage() {
                 </CardContent>
               </Card>
 
-              {/* CI/CD Instructions */}
+              {/* Smart Features */}
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
-                  <CardTitle className="text-white">Setup Instructions</CardTitle>
+                  <CardTitle className="text-white">Intelligent Features</CardTitle>
                   <CardDescription className="text-gray-300">
-                    How to configure automated security scanning
+                    Advanced automation capabilities for security teams
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start space-x-3">
-                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">1</div>
-                      <span className="text-gray-300">Click "Setup CI/CD Pipeline" to generate configuration</span>
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-4 rounded-lg border border-blue-500/20">
+                      <div className="flex items-center mb-2">
+                        <Brain className="h-5 w-5 text-blue-400 mr-2" />
+                        <span className="text-white font-medium">Smart Risk Assessment</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">
+                        AI analyzes code changes to automatically determine audit priority and scope
+                      </p>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">2</div>
-                      <span className="text-gray-300">Create .github/workflows/smart-audit.yml in your repository</span>
+                    
+                    <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 p-4 rounded-lg border border-green-500/20">
+                      <div className="flex items-center mb-2">
+                        <Shield className="h-5 w-5 text-green-400 mr-2" />
+                        <span className="text-white font-medium">Conditional Audits</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">
+                        Only trigger audits when smart contracts or security-critical files are modified
+                      </p>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">3</div>
-                      <span className="text-gray-300">Paste the generated configuration and commit</span>
+                    
+                    <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-lg border border-purple-500/20">
+                      <div className="flex items-center mb-2">
+                        <Zap className="h-5 w-5 text-purple-400 mr-2" />
+                        <span className="text-white font-medium">Instant Feedback</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">
+                        Real-time security feedback directly in PRs with actionable recommendations
+                      </p>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">4</div>
-                      <span className="text-gray-300">Add SMART_AUDIT_API_KEY secret in repository settings</span>
+                    
+                    <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 p-4 rounded-lg border border-orange-500/20">
+                      <div className="flex items-center mb-2">
+                        <Settings className="h-5 w-5 text-orange-400 mr-2" />
+                        <span className="text-white font-medium">Custom Rules</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">
+                        Set up custom security policies and compliance rules for your organization
+                      </p>
                     </div>
                   </div>
+                  
+                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700" data-testid="button-setup-smart-automation">
+                    <Brain className="h-4 w-4 mr-2" />
+                    Enable Smart Automation
+                  </Button>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
-          {/* Browser Extension */}
-          <TabsContent value="browser">
-            <div className="grid gap-6 md:grid-cols-2">
+          {/* API & Webhooks */}
+          <TabsContent value="api">
+            <div className="grid gap-6 lg:grid-cols-2">
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
-                    <ExternalLink className="h-5 w-5 mr-2 text-blue-400" />
-                    Browser Extension
+                    <Key className="h-5 w-5 mr-2 text-blue-400" />
+                    API Access
                   </CardTitle>
                   <CardDescription className="text-gray-300">
-                    Analyze contracts directly from Etherscan and block explorers
+                    Integrate SmartAudit AI directly into your applications
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-center py-6">
-                    <Code className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-white mb-2">SmartAudit Browser Extension</h3>
-                    <p className="text-gray-400 mb-4">
-                      Scan contracts directly from Etherscan with one click
+                  <div>
+                    <Label htmlFor="api-key" className="text-white">Your API Key</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        id="api-key"
+                        type="password"
+                        value="sa_1234567890abcdef..."
+                        readOnly
+                        className="bg-slate-700 border-slate-600 text-white font-mono text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard("sa_1234567890abcdef1234567890abcdef")}
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Use this key to authenticate API requests. Keep it secure!
                     </p>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Extension
-                    </Button>
                   </div>
+                  
+                  <div className="space-y-3">
+                    <h4 className="text-white font-medium">API Endpoints</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between bg-slate-700/30 p-2 rounded">
+                        <span className="text-gray-300">POST /api/v1/audit</span>
+                        <Badge variant="outline" className="text-green-400 border-green-500/30">Live</Badge>
+                      </div>
+                      <div className="flex items-center justify-between bg-slate-700/30 p-2 rounded">
+                        <span className="text-gray-300">GET /api/v1/audit/{id}</span>
+                        <Badge variant="outline" className="text-green-400 border-green-500/30">Live</Badge>
+                      </div>
+                      <div className="flex items-center justify-between bg-slate-700/30 p-2 rounded">
+                        <span className="text-gray-300">POST /api/v1/batch-audit</span>
+                        <Badge variant="outline" className="text-green-400 border-green-500/30">Live</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700" data-testid="button-view-api-docs">
+                    <Globe className="h-4 w-4 mr-2" />
+                    View API Documentation
+                  </Button>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
-                  <CardTitle className="text-white">Extension Features</CardTitle>
+                  <CardTitle className="text-white flex items-center">
+                    <Webhook className="h-5 w-5 mr-2 text-purple-400" />
+                    Webhooks
+                  </CardTitle>
                   <CardDescription className="text-gray-300">
-                    What you can do with the browser extension
+                    Receive real-time notifications about audit completions
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
-                    <span className="text-gray-300">One-click Etherscan analysis</span>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="webhook-url" className="text-white">Webhook URL</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        id="webhook-url"
+                        placeholder="https://your-app.com/webhooks/smartaudit"
+                        className="bg-slate-700 border-slate-600 text-white"
+                      />
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                        Save
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
-                    <span className="text-gray-300">Multi-chain support</span>
+                  
+                  <div className="space-y-3">
+                    <h4 className="text-white font-medium">Webhook Events</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="audit-complete" defaultChecked />
+                        <Label htmlFor="audit-complete" className="text-gray-300 text-sm">
+                          audit.completed
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="audit-failed" defaultChecked />
+                        <Label htmlFor="audit-failed" className="text-gray-300 text-sm">
+                          audit.failed
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="credits-low" />
+                        <Label htmlFor="credits-low" className="text-gray-300 text-sm">
+                          credits.low_balance
+                        </Label>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
-                    <span className="text-gray-300">Real-time vulnerability detection</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="h-2 w-2 bg-green-400 rounded-full"></div>
-                    <span className="text-gray-300">Instant security reports</span>
+                  
+                  <div className="bg-slate-700/30 p-3 rounded-lg">
+                    <h5 className="text-white text-sm font-medium mb-2">Sample Payload</h5>
+                    <pre className="text-xs text-gray-300 overflow-x-auto">
+{`{
+  "event": "audit.completed",
+  "audit_id": "audit_123",
+  "status": "completed",
+  "timestamp": "2024-01-01T12:00:00Z"
+}`}
+                    </pre>
                   </div>
                 </CardContent>
               </Card>
