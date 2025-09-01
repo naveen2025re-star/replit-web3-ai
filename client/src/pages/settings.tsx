@@ -33,6 +33,7 @@ import {
 import { Link } from 'wouter';
 import CreditDisplay from '@/components/CreditDisplay';
 import CreditPurchase from '@/components/CreditPurchase';
+import { CreditTracker } from '@/components/CreditTracker';
 
 export default function SettingsPage() {
   const { user } = useWeb3Auth();
@@ -150,6 +151,7 @@ export default function SettingsPage() {
   const sidebarItems = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'credits', label: 'Credits', icon: CreditCard },
+    { id: 'analytics', label: 'Credit Analytics', icon: TrendingUp },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'referral', label: 'Referral', icon: Gift },
     { id: 'billing', label: 'Billing', icon: FileText },
@@ -336,6 +338,14 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+
+  const renderAnalyticsSection = () => (
+    <CreditTracker 
+      userId={user?.id}
+      showPurchaseModal={showCreditPurchase}
+      onPurchaseModalChange={setShowCreditPurchase}
+    />
   );
 
   const renderCreditsSection = () => (
@@ -756,6 +766,7 @@ export default function SettingsPage() {
         <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-br from-slate-950/50 via-slate-900/30 to-slate-950/50">
           {activeSection === 'profile' && renderProfileSection()}
           {activeSection === 'credits' && renderCreditsSection()}
+          {activeSection === 'analytics' && renderAnalyticsSection()}
           {activeSection === 'security' && renderSecuritySection()}
           {activeSection === 'referral' && (
             <div className="space-y-6">
