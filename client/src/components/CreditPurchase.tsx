@@ -178,7 +178,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                     ) : pkg.price === 0 ? (
                       <span className="text-emerald-400">FREE</span>
                     ) : (
-                      <span>${pkg.price.toFixed(2)}</span>
+                      <span>${(pkg.price / 100).toFixed(2)}</span>
                     )}
                   </div>
                   
