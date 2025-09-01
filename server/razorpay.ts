@@ -33,7 +33,7 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
     }
     
     // 🛡️ SECURITY CHECK 3: Verify amount matches package price exactly
-    const expectedAmount = validPackage.price;
+    const expectedAmount = validPackage.price / 100; // Convert cents to dollars for comparison
     if (Math.abs(parseFloat(amount) - expectedAmount) > 0.01) {
       console.error(`🚨 SECURITY ALERT: Amount manipulation detected. Expected: $${expectedAmount}, Received: $${amount}`);
       return res.status(400).json({ error: 'Invalid amount specified' });
@@ -58,7 +58,7 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
         packageId,
         userId,
         packageName: validPackage.name,
-        expected_amount_usd: validPackage.price,
+        expected_amount_usd: validPackage.price / 100,
         created_timestamp: new Date().toISOString(),
         security_hash: crypto.createHash('sha256')
           .update(`${packageId}:${userId}:${validPackage.price}:${Date.now()}`)
@@ -66,7 +66,7 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
       }
     };
 
-    console.log(`🔒 SECURITY: Creating verified order for user ${userId}, package ${validPackage.name} ($${validPackage.price})`);
+    console.log(`🔒 SECURITY: Creating verified order for user ${userId}, package ${validPackage.name} ($${validPackage.price / 100})`);
     console.log('Order creation options:', {
       ...options,
       notes: {

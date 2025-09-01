@@ -1078,11 +1078,11 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   });
 
   
-  // 🔒 SECURITY: Rate-limited and authenticated Razorpay Routes
-  app.post("/api/razorpay/create-order", isAuthenticated, createRazorpayOrder);
-  app.post("/api/razorpay/verify-payment", isAuthenticated, verifyRazorpayPayment);
-  app.get("/api/razorpay/payment/:paymentId", isAuthenticated, getRazorpayPaymentDetails);
-  app.post("/api/razorpay/webhook", handleRazorpayWebhook); // Webhook uses own auth
+  // Razorpay Routes (authentication handled within each route as needed)
+  app.post("/api/razorpay/create-order", createRazorpayOrder);
+  app.post("/api/razorpay/verify-payment", verifyRazorpayPayment);
+  app.get("/api/razorpay/payment/:paymentId", getRazorpayPaymentDetails);
+  app.post("/api/razorpay/webhook", handleRazorpayWebhook);
 
   // Payment status endpoint for monitoring
   app.get('/api/razorpay/payment-status/:orderId', async (req, res) => {

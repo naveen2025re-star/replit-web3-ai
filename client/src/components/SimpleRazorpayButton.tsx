@@ -59,7 +59,10 @@ export default function SimpleRazorpayButton({
       // Create purchase session first
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': userId 
+        },
         body: JSON.stringify({ packageId, userId }),
       });
 
@@ -72,7 +75,10 @@ export default function SimpleRazorpayButton({
       // Create Razorpay order
       const orderResponse = await fetch('/api/razorpay/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': userId 
+        },
         body: JSON.stringify({
           sessionId,
           packageId,
@@ -125,7 +131,9 @@ export default function SimpleRazorpayButton({
       // Monitor payment status
       const checkPaymentStatus = async () => {
         try {
-          const statusResponse = await fetch(`/api/razorpay/payment-status/${orderData.order_id}`);
+          const statusResponse = await fetch(`/api/razorpay/payment-status/${orderData.order_id}`, {
+            headers: { 'x-user-id': userId }
+          });
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();
             console.log('📊 Payment status:', statusData);

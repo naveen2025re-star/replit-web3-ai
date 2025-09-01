@@ -289,7 +289,7 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
                         </div>
                         
                         <SimpleRazorpayButton
-                          amount={pkg.price}
+                          amount={pkg.price / 100}
                           currency="USD"
                           packageName={pkg.name}
                           packageId={pkg.id}
