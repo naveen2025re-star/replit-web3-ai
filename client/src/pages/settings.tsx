@@ -1055,9 +1055,6 @@ export default function SettingsPage() {
           )}
           {activeSection === 'billing' && (
             <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-6">Billing & Payment History</h2>
-              </div>
             </div>
           )}
         </div>
