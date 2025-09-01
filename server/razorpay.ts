@@ -14,11 +14,29 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
   try {
     const { amount, currency = 'USD', packageId, userId, packageName } = req.body;
 
-    // Validate required fields
+    // 🛡️ SECURITY CHECK 1: Validate required fields
     if (!amount || !packageId || !userId) {
+      console.error(`🚨 SECURITY: Missing required fields in order creation`);
       return res.status(400).json({ 
         error: 'Missing required fields: amount, packageId, userId' 
       });
+    }
+
+    // 🛡️ SECURITY CHECK 2: Validate package exists and amount matches expected price
+    const { CreditService } = await import('./creditService');
+    const packages = await CreditService.getCreditPackages();
+    const validPackage = packages.find(p => p.id === packageId);
+    
+    if (!validPackage) {
+      console.error(`🚨 SECURITY ALERT: Invalid package ID ${packageId} requested by user ${userId}`);
+      return res.status(400).json({ error: 'Invalid package selected' });
+    }
+    
+    // 🛡️ SECURITY CHECK 3: Verify amount matches package price exactly
+    const expectedAmount = validPackage.price;
+    if (Math.abs(parseFloat(amount) - expectedAmount) > 0.01) {
+      console.error(`🚨 SECURITY ALERT: Amount manipulation detected. Expected: $${expectedAmount}, Received: $${amount}`);
+      return res.status(400).json({ error: 'Invalid amount specified' });
     }
 
     // Convert amount to cents (Razorpay requires amount in smallest currency unit)
@@ -39,11 +57,23 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
       notes: {
         packageId,
         userId,
-        packageName: packageName || 'Smart Contract Audit Credits'
+        packageName: validPackage.name,
+        expected_amount_usd: validPackage.price,
+        created_timestamp: new Date().toISOString(),
+        security_hash: crypto.createHash('sha256')
+          .update(`${packageId}:${userId}:${validPackage.price}:${Date.now()}`)
+          .digest('hex').substring(0, 16)
       }
     };
 
-    console.log('Creating Razorpay order with options:', options);
+    console.log(`🔒 SECURITY: Creating verified order for user ${userId}, package ${validPackage.name} ($${validPackage.price})`);
+    console.log('Order creation options:', {
+      ...options,
+      notes: {
+        ...options.notes,
+        security_hash: '[REDACTED]' // Don't log security hash
+      }
+    });
 
     const order = await razorpay.orders.create(options);
     

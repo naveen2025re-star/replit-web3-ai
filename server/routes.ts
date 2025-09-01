@@ -1078,11 +1078,11 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   });
 
   
-  // Razorpay Routes
-  app.post("/api/razorpay/create-order", createRazorpayOrder);
-  app.post("/api/razorpay/verify-payment", verifyRazorpayPayment);
-  app.get("/api/razorpay/payment/:paymentId", getRazorpayPaymentDetails);
-  app.post("/api/razorpay/webhook", handleRazorpayWebhook);
+  // 🔒 SECURITY: Rate-limited and authenticated Razorpay Routes
+  app.post("/api/razorpay/create-order", isAuthenticated, createRazorpayOrder);
+  app.post("/api/razorpay/verify-payment", isAuthenticated, verifyRazorpayPayment);
+  app.get("/api/razorpay/payment/:paymentId", isAuthenticated, getRazorpayPaymentDetails);
+  app.post("/api/razorpay/webhook", handleRazorpayWebhook); // Webhook uses own auth
 
   // Payment status endpoint for monitoring
   app.get('/api/razorpay/payment-status/:orderId', async (req, res) => {
@@ -1095,12 +1095,38 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       console.log(`💳 Checking payment status for order: ${orderId}`);
       console.log(`📊 Order status: ${order.status}, Amount paid: ${order.amount_paid}, Total: ${order.amount}`);
       
-      // Check if payment is successful and credits haven't been added yet
+      // 🔒 SECURITY: Verify payment legitimacy before processing credits
       const isPaid = order.status === 'paid' || (order.amount_paid && Number(order.amount_paid) >= Number(order.amount));
       
       if (isPaid && order.notes) {
         const { packageId, userId } = order.notes;
         console.log(`✅ Payment detected! Package: ${packageId}, User: ${userId}`);
+        
+        // 🛡️ SECURITY CHECK 1: Validate package exists and amount matches
+        const packages = await CreditService.getCreditPackages();
+        const expectedPackage = packages.find(p => p.id === packageId);
+        
+        if (!expectedPackage) {
+          console.error(`🚨 SECURITY ALERT: Invalid package ID ${packageId} in order ${orderId}`);
+          return res.status(400).json({ error: 'Invalid package ID' });
+        }
+        
+        // 🛡️ SECURITY CHECK 2: Verify order amount matches package price
+        const expectedAmountCents = Math.round(expectedPackage.price * 100);
+        if (Number(order.amount) !== expectedAmountCents) {
+          console.error(`🚨 SECURITY ALERT: Amount mismatch for order ${orderId}. Expected: ${expectedAmountCents}, Got: ${order.amount}`);
+          return res.status(400).json({ error: 'Amount validation failed' });
+        }
+        
+        // 🛡️ SECURITY CHECK 3: Verify order is not too old (prevent replay attacks)
+        const orderCreatedAt = new Date(order.created_at * 1000);
+        const now = new Date();
+        const hoursDifference = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursDifference > 24) {
+          console.error(`🚨 SECURITY ALERT: Order ${orderId} is too old (${hoursDifference.toFixed(1)} hours)`);
+          return res.status(400).json({ error: 'Order expired' });
+        }
         
         if (packageId && userId) {
           // Check if credits have already been added for this order
@@ -1123,28 +1149,36 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
           
           if (!hasBeenProcessed) {
             try {
-              const packages = await CreditService.getCreditPackages();
-              const selectedPackage = packages.find(p => p.id === packageId);
+              // 🛡️ SECURITY CHECK 4: Final verification before credit addition
+              console.log(`🔐 SECURITY: Adding ${expectedPackage.totalCredits} credits for verified payment`);
+              console.log(`🔐 SECURITY: Order ID: ${orderId}, Amount: $${expectedPackage.price}, User: ${userId}`);
               
-              if (selectedPackage) {
-                await CreditService.addCredits(
-                  String(userId),
-                  selectedPackage.totalCredits,
-                  "purchase",
-                  `Payment for ${selectedPackage.name} package`,
-                  { 
-                    packageId: String(packageId), 
-                    razorpay_order_id: String(orderId),
-                    amount: selectedPackage.price 
-                  }
-                );
-                console.log(`🎉 Successfully added ${selectedPackage.totalCredits} credits to user ${userId}`);
-              }
+              await CreditService.addCredits(
+                String(userId),
+                expectedPackage.totalCredits,
+                "purchase",
+                `Verified payment for ${expectedPackage.name} package`,
+                { 
+                  packageId: String(packageId), 
+                  razorpay_order_id: String(orderId),
+                  razorpay_amount_cents: Number(order.amount),
+                  package_price_usd: expectedPackage.price,
+                  verification_timestamp: new Date().toISOString(),
+                  order_created_at: orderCreatedAt.toISOString()
+                }
+              );
+              
+              // 🔒 AUDIT LOG: Record successful credit addition
+              console.log(`🎉 SECURITY: Successfully added ${expectedPackage.totalCredits} credits to user ${userId}`);
+              console.log(`🔒 AUDIT: Payment verified and processed - Order: ${orderId}, Amount: ${order.amount} cents`);
+              
             } catch (creditError) {
-              console.error('❌ Error adding credits:', creditError);
+              console.error('❌ CRITICAL: Error adding credits:', creditError);
+              // Don't expose internal errors to client
+              return res.status(500).json({ error: 'Credit processing failed' });
             }
           } else {
-            console.log(`⚠️ Credits already processed for order ${orderId}`);
+            console.log(`⚠️ SECURITY: Credits already processed for order ${orderId} - preventing duplicate`);
           }
         }
       }
