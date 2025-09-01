@@ -185,7 +185,24 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user?.walletAddress}`] });
+        // Invalidate and refetch user data
+        await queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user?.walletAddress}`] });
+        
+        // Update localStorage cache with new displayName
+        if (user?.walletAddress) {
+          const authKey = `auth_${user.walletAddress.toLowerCase()}`
+          const storedAuth = localStorage.getItem(authKey)
+          if (storedAuth) {
+            try {
+              const authData = JSON.parse(storedAuth)
+              authData.user.displayName = displayName.trim()
+              localStorage.setItem(authKey, JSON.stringify(authData))
+            } catch (error) {
+              console.warn('Failed to update localStorage cache:', error)
+            }
+          }
+        }
+        
         setIsEditingDisplayName(false);
         // Update the local state to reflect the change immediately
         setDisplayName(displayName.trim());

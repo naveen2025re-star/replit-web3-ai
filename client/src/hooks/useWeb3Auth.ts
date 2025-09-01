@@ -29,7 +29,8 @@ export function useWeb3Auth() {
         // Check if stored auth is not expired (24 hours)
         if (authData.timestamp && Date.now() - authData.timestamp < 24 * 60 * 60 * 1000) {
           setHasAttemptedAuth(true)
-          queryClient.setQueryData([`/api/auth/user/${address}`], authData.user)
+          // Don't set cached data immediately - let query fetch fresh data
+          // This ensures we always get the latest user data including displayName
           return
         }
       } catch (error) {
@@ -57,18 +58,34 @@ export function useWeb3Auth() {
       })
       return response.json()
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setHasAttemptedAuth(true)
       queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${address}`] })
       queryClient.setQueryData([`/api/auth/user/${address}`], data.user)
       
-      // Store authentication in localStorage
+      // Store authentication in localStorage with fresh user data
       if (address) {
         const authKey = `auth_${address.toLowerCase()}`
-        localStorage.setItem(authKey, JSON.stringify({
-          user: data.user,
-          timestamp: Date.now()
-        }))
+        try {
+          // Always fetch fresh user data after auth to get latest displayName
+          const freshUserResponse = await apiRequest('GET', `/api/auth/user/${address}`)
+          const freshUser = await freshUserResponse.json()
+          
+          localStorage.setItem(authKey, JSON.stringify({
+            user: freshUser,
+            timestamp: Date.now()
+          }))
+          
+          // Update query cache with fresh data
+          queryClient.setQueryData([`/api/auth/user/${address}`], freshUser)
+        } catch (error) {
+          console.warn('Failed to fetch fresh user data:', error)
+          // Fallback to original data
+          localStorage.setItem(authKey, JSON.stringify({
+            user: data.user,
+            timestamp: Date.now()
+          }))
+        }
       }
       
       toast({
