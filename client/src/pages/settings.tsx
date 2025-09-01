@@ -818,7 +818,7 @@ export default function SettingsPage() {
                     <FileText className="h-4 w-4 text-purple-400" />
                     <span className="text-sm text-slate-400">Transactions</span>
                   </div>
-                  <div className="text-xl font-bold text-white">{transactions?.length || 0}</div>
+                  <div className="text-xl font-bold text-white">{creditTransactions?.length || 0}</div>
                   <div className="text-xs text-slate-400">This month</div>
                 </div>
               </div>
@@ -853,13 +853,13 @@ export default function SettingsPage() {
               </div>
 
               {/* Recent Transactions */}
-              {transactions && transactions.length > 0 && (
+              {creditTransactions && creditTransactions.length > 0 && (
                 <div className="bg-slate-800/20 rounded-lg border border-slate-700/50">
                   <div className="p-4 border-b border-slate-700/50">
                     <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
                   </div>
                   <div className="p-4 space-y-3">
-                    {transactions.slice(0, 5).map((transaction) => (
+                    {creditTransactions.slice(0, 5).map((transaction) => (
                       <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
