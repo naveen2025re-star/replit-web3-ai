@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Removed problematic Select import that was causing infinite loops
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useLocation } from "wouter";
@@ -753,37 +754,22 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
                 Community
               </Button>
               <div className="h-6 w-px bg-slate-600"></div>
-              <Select 
+              <select 
                 value={selectValue}
-                onValueChange={handleVisibilityChange}
+                onChange={(e) => handleVisibilityChange(e.target.value)}
                 disabled={analysisState === "loading" || analysisState === "streaming"}
+                className="w-32 h-9 px-3 py-1 bg-slate-800 border border-slate-600 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                <SelectTrigger className="w-32 bg-slate-800 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem 
-                    value="private" 
-                    disabled={isFreePlan}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      Private
-                      {isFreePlan && (
-                        <Badge variant="outline" className="text-xs ml-2 border-amber-500 text-amber-600">
-                          Pro+
-                        </Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="public">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4" />
-                      Public
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <option 
+                  value="private" 
+                  disabled={isFreePlan}
+                >
+                  🔒 Private {isFreePlan ? "(Pro+)" : ""}
+                </option>
+                <option value="public">
+                  🌐 Public
+                </option>
+              </select>
             </div>
           </div>
         </div>
