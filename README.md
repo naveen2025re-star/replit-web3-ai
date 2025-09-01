@@ -1,367 +1,369 @@
-# AI-Based Web3 Smart Contract Auditor
+# SmartAudit AI - Advanced Smart Contract Security Analysis Platform
 
-A comprehensive, AI-powered smart contract security analysis platform featuring a ChatGPT-style interface, real-time streaming responses, Web3 authentication, and community features for blockchain developers.
+## Overview
 
-## 🚀 Features
+SmartAudit AI is a comprehensive, production-ready web application that provides AI-powered smart contract auditing services. The platform features a ChatGPT-like interface for real-time security analysis, GitHub integration for automated workflows, community sharing capabilities, and integrated payment processing for credit-based usage.
 
-### Core Functionality
-- **AI-Powered Analysis**: Advanced smart contract vulnerability detection using Shipable AI API
-- **Real-time Streaming**: ChatGPT-like interface with live analysis results
-- **Multi-Language Support**: Solidity, Rust, Go, and other blockchain languages
-- **File Upload**: Support for multiple contract files with drag-and-drop interface
-- **Export & Share**: Download audit reports as markdown files
+## 🚀 Key Features
 
-### Security Analysis Capabilities
-- **Vulnerability Detection**:
-  - Reentrancy attacks
-  - Integer overflow/underflow
-  - Access control issues
-  - Gas limit problems
-  - Front-running vulnerabilities
-  - Timestamp dependencies
-  - DoS attacks
+### Core Auditing Features
+- **AI-Powered Analysis**: Advanced smart contract vulnerability detection using Shipable AI
+- **Real-time Streaming**: ChatGPT-like interface with Server-Sent Events for live analysis
+- **Multi-Network Support**: Ethereum, Polygon, BSC, and other EVM-compatible networks
+- **Manual & GitHub Integration**: Direct contract input or automated GitHub repository analysis
+- **Comprehensive Reports**: Detailed security analysis with severity ratings and recommendations
 
-- **Gas Optimization**:
-  - Storage optimization strategies
-  - Function efficiency analysis
-  - Loop optimization recommendations
-  - Data packing strategies
-  - Cost reduction techniques
+### User Management & Authentication
+- **Web3 Authentication**: Secure wallet-based login system
+- **User Profiles**: Personalized dashboards with audit history
+- **Credit System**: Flexible credit-based pricing model
+- **Professional Settings**: Customizable analysis preferences and notifications
 
-- **Code Quality Assessment**:
-  - Best practices compliance
-  - Code structure analysis
-  - Documentation quality
-  - Upgrade patterns review
+### Payment & Billing
+- **Razorpay Integration**: Secure payment processing with multiple payment methods
+- **Automated Credit Addition**: Seamless credit top-ups with instant activation
+- **Enterprise Packages**: Scalable pricing tiers for different usage levels
+- **Payment Security**: HMAC signature verification and fraud prevention
 
-### User Experience
-- **Template Gallery**: Pre-built contract examples (ERC-20, DeFi, NFT marketplace)
-- **Smart Contract Templates**: Click-to-load vulnerable contract examples
-- **Visual Insights**: Automatic detection badges for security issues and optimizations
-- **Responsive Design**: Optimized for desktop and mobile devices
-- **Dark Theme**: Developer-friendly interface
+### Community & Collaboration
+- **Public Audit Sharing**: Community-driven security knowledge sharing
+- **Audit History**: Complete audit trail with downloadable reports
+- **Professional Network**: Connect with security researchers and developers
 
-### Web3 Integration
-- **Wallet Authentication**: MetaMask and WalletConnect support
-- **Session Management**: Persistent audit history per user
-- **Community Features**: Public/private audit sharing
-- **Audit History**: Complete analysis timeline with search
+### Developer Experience
+- **GitHub Integration**: Direct repository analysis and automated workflows
+- **API Access**: RESTful API for programmatic access
+- **Webhook Support**: Real-time notifications for audit completions
+- **Export Capabilities**: Multiple report formats (PDF, JSON, markdown)
 
-## 🏗️ Architecture
+## 🏗️ Technical Architecture
 
-### Frontend (React + TypeScript)
-```
-client/
-├── src/
-│   ├── components/           # Reusable UI components
-│   │   ├── sophisticated-sidebar.tsx
-│   │   └── ui/              # shadcn/ui components
-│   ├── pages/               # Main application pages
-│   │   ├── auditor.tsx      # Main audit interface
-│   │   ├── community.tsx    # Community audits
-│   │   ├── audit-history.tsx
-│   │   └── auth.tsx         # Web3 authentication
-│   ├── hooks/               # Custom React hooks
-│   │   ├── useWeb3Auth.ts   # Web3 authentication
-│   │   └── use-toast.ts     # Toast notifications
-│   ├── lib/                 # Utility libraries
-│   │   ├── shipable-api.ts  # AI API integration
-│   │   └── queryClient.ts   # React Query setup
-│   └── styles/              # Styling and themes
-```
-
-**Key Technologies:**
-- **React 18**: Latest React with hooks and concurrent features
+### Frontend Stack
+- **React 18**: Modern functional components with hooks
 - **TypeScript**: Full type safety across the application
-- **Vite**: Fast development and optimized builds
-- **Tailwind CSS**: Utility-first styling with custom design system
-- **shadcn/ui**: High-quality component library with Radix primitives
-- **React Query**: Server state management and caching
+- **Vite**: Fast build tool with Hot Module Replacement
 - **Wouter**: Lightweight client-side routing
-- **React Markdown**: Rich formatting for audit reports
+- **TanStack Query**: Advanced server state management with caching
+- **shadcn/ui + Radix UI**: Accessible component library with consistent design
+- **Tailwind CSS**: Utility-first styling with custom design system
+- **Framer Motion**: Smooth animations and transitions
 
-### Backend (Node.js + Express)
+### Backend Stack
+- **Node.js + Express**: Scalable server architecture
+- **TypeScript**: End-to-end type safety
+- **PostgreSQL**: Robust relational database with Neon hosting
+- **Drizzle ORM**: Type-safe database operations with migrations
+- **Passport.js**: Authentication middleware with Web3 support
+- **Express Session**: Secure session management with database storage
+
+### External Integrations
+- **Shipable AI API**: Core smart contract analysis engine
+- **GitHub API**: Repository access and webhook management
+- **Razorpay**: Payment processing and subscription management
+- **Etherscan/Polygonscan**: Blockchain data and contract verification
+- **Web3 Providers**: Multi-wallet support (MetaMask, WalletConnect, etc.)
+
+### Security & Performance
+- **HMAC Signature Verification**: Payment security and API authentication
+- **Rate Limiting**: API protection and abuse prevention
+- **Error Boundaries**: Comprehensive error handling and recovery
+- **Service Worker**: Offline support and performance caching
+- **SEO Optimization**: Meta tags, structured data, and accessibility
+- **PWA Support**: Mobile app-like experience with offline capabilities
+
+## 📁 Project Structure
+
 ```
-server/
-├── index.ts                 # Application entry point
-├── routes.ts               # API route definitions
-├── storage.ts              # Data persistence layer
-├── db.ts                   # Database configuration
-└── vite.ts                 # Development server integration
-```
-
-**API Endpoints:**
-```
-Authentication:
-POST /api/auth/generate-nonce    # Generate Web3 nonce
-POST /api/auth/web3              # Verify Web3 signature
-GET  /api/auth/user             # Get current user
-
-Audit Management:
-POST /api/audit/analyze          # Start new analysis
-GET  /api/audit/session/:id     # Get audit session
-PUT  /api/audit/session/:id     # Update session details
-DELETE /api/audit/session/:id   # Delete session
-GET  /api/audit/user-sessions/:userId # User's audit history
-
-Community Features:
-GET  /api/community/audits       # Public audits
-GET  /api/community/trending-tags # Popular tags
-POST /api/community/audit        # Share audit publicly
-```
-
-### Database Schema (PostgreSQL + Drizzle ORM)
-```sql
--- Users table for Web3 authentication
-users (
-  id: varchar (primary key)
-  wallet_address: varchar (unique)
-  created_at: timestamp
-  updated_at: timestamp
-)
-
--- Audit sessions
-audit_sessions (
-  id: varchar (primary key)
-  user_id: varchar (foreign key)
-  title: varchar
-  contract_language: varchar
-  visibility: enum ('private', 'public')
-  created_at: timestamp
-  updated_at: timestamp
-)
-
--- Audit results and analysis data
-audit_results (
-  id: varchar (primary key)
-  session_id: varchar (foreign key)
-  analysis_content: text
-  vulnerability_count: integer
-  severity_level: varchar
-  created_at: timestamp
-)
-```
-
-## 🤖 AI Analysis Integration
-
-### Shipable AI API Integration
-The application uses a sophisticated two-step process for AI-powered analysis:
-
-**Step 1: Session Creation**
-```typescript
-// Create analysis session
-const response = await fetch('https://api.shipable.ai/v2/chat/sessions', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    source: 'website',
-    context: 'smart_contract_security_analysis'
-  })
-});
+├── client/                     # Frontend React application
+│   ├── src/
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── ui/            # shadcn/ui components
+│   │   │   ├── CreditDisplay.tsx
+│   │   │   ├── SimpleRazorpayButton.tsx
+│   │   │   ├── ErrorBoundary.tsx
+│   │   │   └── ...
+│   │   ├── pages/             # Route components
+│   │   │   ├── landing.tsx
+│   │   │   ├── auditor.tsx
+│   │   │   ├── settings.tsx
+│   │   │   └── ...
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── lib/               # Utilities and configurations
+│   │   │   ├── queryClient.ts
+│   │   │   └── utils.ts
+│   │   └── App.tsx            # Main application component
+│   ├── public/                # Static assets and PWA files
+│   │   ├── manifest.json
+│   │   └── sw.js              # Service worker
+│   └── index.html             # Main HTML template
+├── server/                     # Backend Express application
+│   ├── routes.ts              # API route definitions
+│   ├── db.ts                  # Database connection
+│   ├── storage.ts             # Data access layer
+│   ├── razorpay.ts           # Payment processing
+│   ├── creditService.ts      # Credit management
+│   └── index.ts              # Server entry point
+├── shared/                     # Shared types and schemas
+│   └── schema.ts              # Drizzle database schema
+└── README.md                  # This file
 ```
 
-**Step 2: Streaming Analysis**
-```typescript
-// Stream real-time analysis results
-const eventSource = new EventSource(
-  `https://api.shipable.ai/v2/chat/sessions/${sessionId}/stream?message=${encodeURIComponent(contractCode)}`
-);
-
-eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  // Update UI with streaming analysis
-  updateAnalysisDisplay(data.content);
-};
-```
-
-### Analysis Capabilities
-
-**Security Vulnerability Detection:**
-- Static code analysis for common smart contract vulnerabilities
-- Pattern recognition for known attack vectors
-- Compliance checking against security standards
-- Risk assessment and severity scoring
-
-**Gas Optimization Analysis:**
-- Storage layout optimization
-- Function call optimization
-- Loop and iteration improvements
-- Data structure recommendations
-
-**Code Quality Assessment:**
-- Best practices compliance
-- Documentation quality
-- Upgrade pattern analysis
-- Maintainability scoring
-
-## 🛠️ Setup and Installation
+## 🛠️ Development Setup
 
 ### Prerequisites
-- Node.js 18+ (with npm)
+- Node.js 18+ 
 - PostgreSQL database
-- Shipable AI API key
+- Razorpay account for payments
+- GitHub OAuth app (optional)
 
 ### Environment Variables
-```bash
-# Database Configuration
-DATABASE_URL=postgresql://username:password@localhost:5432/smartaudit_db
+Create a `.env` file with the following variables:
+
+```env
+# Database
+DATABASE_URL=postgresql://username:password@host:port/database
 PGHOST=localhost
 PGPORT=5432
-PGUSER=your_username
+PGUSER=your_user
 PGPASSWORD=your_password
-PGDATABASE=smartaudit_db
+PGDATABASE=your_database
 
-# AI API Configuration
-SHIPABLE_AI_API_KEY=your_shipable_ai_key
+# Payment Processing
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_secret_key
 
-# Application Configuration
-NODE_ENV=development
-PORT=5000
+# Blockchain APIs (optional)
+ETHERSCAN_API_KEY=your_etherscan_key
+POLYGONSCAN_API_KEY=your_polygonscan_key
+
+# Session Secret
+SESSION_SECRET=your_secure_session_secret
 ```
 
-### Installation Steps
+### Installation & Running
 
-1. **Clone and Install Dependencies**
-```bash
-git clone <repository-url>
-cd smart-contract-auditor
-npm install
-```
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
 2. **Database Setup**
+   ```bash
+   npm run db:push
+   ```
+
+3. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+   The application will be available at `http://localhost:5000`
+
+### Build for Production
+
 ```bash
-# Create database
-createdb smartaudit_db
-
-# Run migrations
-npm run db:push
-```
-
-3. **Development Server**
-```bash
-# Start development server (frontend + backend)
-npm run dev
-
-# The application will be available at http://localhost:5000
-```
-
-4. **Production Build**
-```bash
-# Build for production
 npm run build
-
-# Start production server
 npm start
 ```
 
-## 🔧 Development
+## 🗄️ Database Schema
 
-### Project Structure
-```
-├── client/                 # Frontend React application
-├── server/                 # Backend Express server
-├── shared/                 # Shared types and schemas
-├── package.json           # Dependencies and scripts
-├── vite.config.ts         # Vite configuration
-├── tailwind.config.ts     # Tailwind CSS configuration
-├── drizzle.config.ts      # Database configuration
-└── tsconfig.json          # TypeScript configuration
-```
+### Core Tables
 
-### Available Scripts
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run db:push      # Push schema changes to database
-npm run db:studio    # Open database studio
-npm run type-check   # Run TypeScript type checking
-npm run lint         # Run ESLint
-```
+#### Users
+- `id`: Primary key (UUID)
+- `walletAddress`: Unique wallet identifier
+- `email`: User email (optional)
+- `username`: Display name
+- `profileImage`: Avatar URL
+- `createdAt`, `updatedAt`: Timestamps
 
-### Development Workflow
-1. **Frontend Development**: Hot reload with Vite
-2. **Backend Development**: Auto-restart with tsx
-3. **Database Changes**: Use Drizzle ORM migrations
-4. **Type Safety**: Shared types between frontend and backend
+#### Credits
+- `id`: Primary key
+- `userId`: Foreign key to users
+- `balance`: Current credit amount
+- `totalPurchased`: Lifetime credit purchases
+- `lastUpdated`: Timestamp
 
-## 📊 Performance
+#### AuditSessions
+- `id`: Primary key (UUID)
+- `userId`: Foreign key to users
+- `contractAddress`: Smart contract address
+- `network`: Blockchain network
+- `status`: Analysis status
+- `isPublic`: Community sharing flag
+- `createdAt`: Timestamp
 
-### Optimization Features
-- **Code Splitting**: Lazy loading of components
-- **Caching**: React Query for API response caching
-- **Bundle Optimization**: Tree shaking and minification
-- **Image Optimization**: Optimized asset loading
-- **Database Indexing**: Optimized queries for audit history
+#### AuditResults
+- `id`: Primary key
+- `sessionId`: Foreign key to audit sessions
+- `analysis`: JSON analysis results
+- `vulnerabilities`: Structured vulnerability data
+- `recommendations`: Security recommendations
+- `severity`: Risk level assessment
 
-### Monitoring
-- Real-time performance metrics
-- Error tracking and logging
-- Database query optimization
-- API response time monitoring
+#### PaymentTransactions
+- `id`: Primary key
+- `userId`: Foreign key to users
+- `razorpayOrderId`: Payment gateway reference
+- `amount`: Payment amount
+- `creditsAdded`: Credits granted
+- `status`: Transaction status
+- `createdAt`: Timestamp
 
-## 🔐 Security
+## 🔌 API Documentation
 
-### Authentication
-- **Web3 Wallet Integration**: MetaMask, WalletConnect
-- **Signature Verification**: Cryptographic proof of ownership
-- **Session Management**: Secure session handling
-- **CSRF Protection**: Cross-site request forgery prevention
+### Authentication Endpoints
+- `POST /api/auth/login` - Web3 wallet authentication
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/user` - Get current user info
+
+### Audit Endpoints
+- `POST /api/audits` - Create new audit session
+- `GET /api/audits` - Get user audit history
+- `GET /api/audits/:id` - Get specific audit details
+- `DELETE /api/audits/:id` - Delete audit session
+
+### Credit Management
+- `GET /api/credits` - Get user credit balance
+- `POST /api/credits/purchase` - Purchase credits
+- `GET /api/credits/history` - Credit transaction history
+
+### Payment Processing
+- `POST /api/payments/create-order` - Create Razorpay order
+- `POST /api/payments/verify` - Verify payment completion
+- `GET /api/payments/history` - Payment transaction history
+
+### Community Features
+- `GET /api/community/audits` - Get public audits
+- `POST /api/audits/:id/share` - Share audit publicly
+- `GET /api/community/stats` - Community statistics
+
+## 🔒 Security Features
+
+### Payment Security
+- HMAC SHA-256 signature verification for all payments
+- Duplicate transaction prevention
+- Amount manipulation protection
+- Secure webhook handling
+
+### API Security
+- Rate limiting on all endpoints
+- Input validation and sanitization
+- SQL injection prevention
+- XSS protection headers
+- CSRF token validation
 
 ### Data Protection
-- **Input Validation**: All user inputs sanitized
-- **SQL Injection Prevention**: Parameterized queries
-- **XSS Protection**: Content Security Policy
-- **Rate Limiting**: API endpoint protection
+- Encrypted session storage
+- Secure cookie configuration
+- Environment variable protection
+- Database connection encryption
 
-## 🌐 Deployment
+## 📱 Progressive Web App (PWA)
+
+The application includes full PWA support:
+- **Offline Functionality**: Core features work without internet
+- **App-like Experience**: Can be installed on mobile devices
+- **Background Sync**: Queued actions when connection returns
+- **Push Notifications**: Real-time audit completion alerts
+- **Responsive Design**: Optimized for all screen sizes
+
+## 🚀 Deployment
+
+### Production Checklist
+- [ ] Environment variables configured
+- [ ] Database migrations applied
+- [ ] SSL certificates installed
+- [ ] Domain DNS configured
+- [ ] Payment webhooks configured
+- [ ] Monitoring setup
+- [ ] Backup strategy implemented
 
 ### Replit Deployment
-The application is optimized for Replit deployment with:
-- Automatic environment configuration
-- Integrated database hosting
-- Zero-config deployment
-- Automatic HTTPS and custom domains
+The application is optimized for Replit deployment with automatic configuration for:
+- Database provisioning
+- Environment management
+- SSL termination
+- Continuous deployment
 
-### Production Considerations
-- Environment variable management
-- Database backup and recovery
-- Monitoring and alerting
-- Performance optimization
-- Security hardening
+## 📊 Performance Optimizations
 
-## 🤝 Contributing
+### Frontend Optimizations
+- Code splitting with dynamic imports
+- Image optimization and lazy loading
+- Bundle size optimization
+- React Query caching strategies
+- Service worker caching
 
-### Development Guidelines
-1. Follow TypeScript strict mode
-2. Use functional components with hooks
-3. Implement proper error handling
-4. Write comprehensive tests
-5. Follow the existing code style
+### Backend Optimizations
+- Database connection pooling
+- Query optimization with indexing
+- Response compression
+- Static asset serving
+- Memory usage monitoring
 
-### Code Quality
-- **ESLint**: Code linting and formatting
-- **TypeScript**: Strict type checking
-- **Prettier**: Code formatting
-- **Husky**: Pre-commit hooks
+## 🧪 Testing
+
+### Testing Strategy
+- Unit tests for critical functions
+- Integration tests for API endpoints
+- End-to-end tests for user workflows
+- Payment flow testing
+- Security vulnerability scanning
+
+### Running Tests
+```bash
+npm test              # Run unit tests
+npm run test:e2e      # Run end-to-end tests
+npm run test:security # Security scanning
+```
+
+## 📈 Monitoring & Analytics
+
+### Application Monitoring
+- Error tracking and reporting
+- Performance metrics
+- User analytics
+- Payment transaction monitoring
+- API usage statistics
+
+### Health Checks
+- Database connectivity
+- External API availability
+- Payment gateway status
+- Memory and CPU usage
+
+## 🔧 Configuration
+
+### Feature Flags
+The application supports feature flags for gradual rollouts:
+- Community features
+- Payment methods
+- Experimental AI models
+- Beta features
+
+### Customization
+- Branding and theming
+- Payment gateway selection
+- AI model configuration
+- Rate limiting adjustments
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is proprietary software. All rights reserved.
 
-## 🔗 Links
+## 🤝 Contributing
 
-- [Shipable AI API Documentation](https://docs.shipable.ai)
-- [Web3 Authentication Guide](https://wagmi.sh)
-- [React Query Documentation](https://tanstack.com/query)
-- [Tailwind CSS](https://tailwindcss.com)
-- [shadcn/ui Components](https://ui.shadcn.com)
+For contribution guidelines and development standards, please contact the development team.
+
+## 📞 Support
+
+For technical support or questions:
+- Email: support@smartaudit.ai
+- Documentation: [docs.smartaudit.ai](https://docs.smartaudit.ai)
+- Status Page: [status.smartaudit.ai](https://status.smartaudit.ai)
 
 ---
 
-**Built with ❤️ for the Web3 community**
-
-This comprehensive smart contract auditor provides developers with the tools they need to build secure, efficient, and reliable blockchain applications. Whether you're working on DeFi protocols, NFT marketplaces, or custom smart contracts, our AI-powered analysis helps you identify vulnerabilities and optimize your code before deployment.
+**SmartAudit AI** - Securing the future of Web3 with advanced AI-powered smart contract analysis.
