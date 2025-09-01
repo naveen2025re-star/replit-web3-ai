@@ -23,7 +23,9 @@ function useDocumentTitle(title: string, description?: string) {
     if (document.title !== title) {
       document.title = title;
     }
-    
+  }, [title]);
+
+  useEffect(() => {
     if (description) {
       let metaDescription = document.querySelector('meta[name="description"]');
       if (!metaDescription) {
@@ -36,7 +38,7 @@ function useDocumentTitle(title: string, description?: string) {
         metaDescription.setAttribute('content', description);
       }
     }
-  }, [title, description]);
+  }, [description]);
 }
 
 // Page components with title setting
