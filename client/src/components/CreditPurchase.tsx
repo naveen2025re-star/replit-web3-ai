@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Check, Star, Zap, Shield, Users, AlertCircle, Sparkles, Crown, Gift } from "lucide-react";
+import { Coins, Check, Star, Zap, Shield, Users, AlertCircle, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -99,20 +99,14 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
   });
 
   const getPackageIcon = (name: string) => {
-    if (name.includes('Free')) return <Gift className="h-6 w-6" />;
-    if (name.includes('Pro+')) return <Crown className="h-6 w-6" />;
-    if (name.includes('Pro')) return <Sparkles className="h-6 w-6" />;
     if (name.includes('Enterprise')) return <Users className="h-6 w-6" />;
-    return <Star className="h-6 w-6" />;
+    return <Coins className="h-6 w-6" />;
   };
 
   const getPackageGradient = (name: string, isPopular: boolean) => {
-    if (isPopular) return 'from-emerald-500/20 via-emerald-600/10 to-emerald-700/20 border-emerald-500/30';
-    if (name.includes('Free')) return 'from-gray-500/20 via-gray-600/10 to-gray-700/20 border-gray-500/30';
-    if (name.includes('Pro+')) return 'from-purple-500/20 via-purple-600/10 to-purple-700/20 border-purple-500/30';
-    if (name.includes('Pro')) return 'from-blue-500/20 via-blue-600/10 to-blue-700/20 border-blue-500/30';
-    if (name.includes('Enterprise')) return 'from-gold-500/20 via-gold-600/10 to-gold-700/20 border-gold-500/30';
-    return 'from-slate-500/20 via-slate-600/10 to-slate-700/20 border-slate-500/30';
+    if (name.includes('Enterprise')) return 'from-slate-700/50 via-slate-800/30 to-slate-900/50 border-slate-600/50';
+    if (isPopular) return 'from-slate-700/40 via-slate-800/20 to-slate-900/40 border-slate-600/40';
+    return 'from-slate-800/30 via-slate-900/20 to-slate-800/30 border-slate-700/30';
   };
 
   const handleQuickPurchase = (packageId: string) => {
@@ -139,9 +133,9 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
     <Dialog open={open} onOpenChange={(newOpen) => {
       if (!newOpen) {
         setSelectedPackage(null);
+        if (onClose) onClose();
       }
       if (onOpenChange) onOpenChange(newOpen);
-      if (!newOpen && onClose) onClose();
     }}>
       <DialogContent className="bg-slate-900/98 border-slate-700/50 max-w-6xl max-h-[95vh] overflow-y-auto shadow-2xl backdrop-blur-lg" data-testid="dialog-credit-purchase">
         <DialogHeader className="pb-6 text-center">
@@ -165,20 +159,13 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
               } ${selectedPackage === pkg.id ? 'ring-2 ring-emerald-400/60 scale-[1.02]' : ''}`}
               data-testid={`card-package-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 flex gap-2">
-                <EmojiTierBadge 
-                  tier={pkg.name} 
-                  size="md" 
-                  animated={true}
-                  className="shadow-lg"
-                />
-                {pkg.popular && (
-                  <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 shadow-lg shadow-emerald-500/30 text-sm font-bold animate-pulse">
-                    <Star className="h-4 w-4 mr-2 fill-current" />
-                    POPULAR
+              {pkg.savings > 0 && (
+                <div className="absolute -top-2 right-2 z-20">
+                  <Badge variant="secondary" className="bg-slate-700 text-slate-200 text-xs">
+                    Save {pkg.savings}%
                   </Badge>
-                )}
-              </div>
+                </div>
+              )}
 
               <CardHeader className="text-center pb-4 pt-8">
                 <div className="flex justify-center mb-4">
