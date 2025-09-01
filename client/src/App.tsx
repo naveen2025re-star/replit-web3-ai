@@ -19,7 +19,10 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 // Set document title and meta information on route changes
 function useDocumentTitle(title: string, description?: string) {
   useEffect(() => {
-    document.title = title;
+    // Only update if different to prevent unnecessary DOM manipulation
+    if (document.title !== title) {
+      document.title = title;
+    }
     
     if (description) {
       let metaDescription = document.querySelector('meta[name="description"]');
@@ -28,7 +31,10 @@ function useDocumentTitle(title: string, description?: string) {
         metaDescription.setAttribute('name', 'description');
         document.head.appendChild(metaDescription);
       }
-      metaDescription.setAttribute('content', description);
+      // Only update if different
+      if (metaDescription.getAttribute('content') !== description) {
+        metaDescription.setAttribute('content', description);
+      }
     }
   }, [title, description]);
 }

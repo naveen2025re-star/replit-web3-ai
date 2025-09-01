@@ -86,9 +86,9 @@ const AuditorPage = React.memo(() => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
-  const [auditVisibility, setAuditVisibility] = useState<AuditVisibilityOptions>({
+  const [auditVisibility, setAuditVisibility] = useState<AuditVisibilityOptions>(() => ({
     isPublic: true // Default to public for Free users
-  });
+  }));
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles | null>(null);
   const [showFileUploader, setShowFileUploader] = useState(false);
   const [showContractFetcher, setShowContractFetcher] = useState(false);
@@ -208,6 +208,30 @@ const AuditorPage = React.memo(() => {
     return !credits?.planTier || credits.planTier === 'Free';
   }, [credits?.planTier]);
 
+  // Stable toast callback
+  const stableToast = useCallback(toast, []);
+
+  // Memoize Select value to prevent infinite re-renders
+  const selectValue = useMemo(() => {
+    return auditVisibility.isPublic ? "public" : "private";
+  }, [auditVisibility.isPublic]);
+
+  // Stable onValueChange handler
+  const handleVisibilityChange = useCallback((value: string) => {
+    const isPublic = value === "public";
+    // Prevent Free users from selecting private
+    if (!isPublic && isFreePlan) {
+      stableToast({
+        title: "Upgrade Required",
+        description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
+        variant: "destructive",
+      });
+      setShowCreditPurchase(true);
+      return;
+    }
+    setAuditVisibility(prev => ({...prev, isPublic}));
+  }, [isFreePlan, stableToast]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -215,8 +239,6 @@ const AuditorPage = React.memo(() => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const stableToast = useCallback(toast, []);
   
   const handleFilesProcessed = useCallback((combinedContent: string, contractLanguage: string, fileInfo: {fileCount: number, totalSize: number}) => {
     // Validate file content
@@ -728,21 +750,8 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
               </Button>
               <div className="h-6 w-px bg-slate-600"></div>
               <Select 
-                value={auditVisibility.isPublic ? "public" : "private"}
-                onValueChange={(value) => {
-                  const isPublic = value === "public";
-                  // Prevent Free users from selecting private
-                  if (!isPublic && isFreePlan) {
-                    stableToast({
-                      title: "Upgrade Required",
-                      description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
-                      variant: "destructive",
-                    });
-                    setShowCreditPurchase(true);
-                    return;
-                  }
-                  setAuditVisibility(prev => ({...prev, isPublic}));
-                }}
+                value={selectValue}
+                onValueChange={handleVisibilityChange}
                 disabled={analysisState === "loading" || analysisState === "streaming"}
               >
                 <SelectTrigger className="w-32 bg-slate-800 border-slate-600 text-white">
