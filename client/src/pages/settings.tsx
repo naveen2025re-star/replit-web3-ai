@@ -89,8 +89,12 @@ export default function SettingsPage() {
   React.useEffect(() => {
     if (user?.displayName) {
       setDisplayName(user.displayName);
+    } else if (user?.ensName) {
+      setDisplayName(user.ensName);
+    } else if (user?.githubUsername) {
+      setDisplayName(user.githubUsername);
     }
-  }, [user?.displayName]);
+  }, [user?.displayName, user?.ensName, user?.githubUsername]);
   
   // Notification preferences
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -251,11 +255,11 @@ export default function SettingsPage() {
         <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold">
-              {(user.displayName || user.ensName || user.githubUsername || user.walletAddress)?.slice(0, 2).toUpperCase()}
+              {(displayName || user.displayName || user.ensName || user.githubUsername || user.walletAddress)?.slice(0, 2).toUpperCase() || 'U'}
             </div>
             <div className="space-y-1">
               <div className="text-lg font-semibold text-white">
-                {user.displayName || user.ensName || user.githubUsername || 'Anonymous'}
+                {displayName || user.displayName || user.ensName || user.githubUsername || user.walletAddress?.slice(0, 12) || 'User'}
               </div>
               <Button size="sm" variant="outline" className="text-xs border-slate-600 text-slate-300">
                 Update profile
@@ -300,7 +304,7 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <div className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-md text-white">
-                      {displayName || user?.displayName || user?.ensName || user?.githubUsername || 'Not set'}
+                      {displayName || user?.displayName || user?.ensName || user?.githubUsername || user?.walletAddress?.slice(0, 12) || 'Not set'}
                     </div>
                     <Button
                       size="sm"
@@ -741,7 +745,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm text-white truncate">
-                {user.displayName || user.ensName || user.githubUsername || 'Anonymous'}
+                {user.displayName || user.ensName || user.githubUsername || user.walletAddress?.slice(0, 12) || 'User'}
               </div>
             </div>
           </div>
