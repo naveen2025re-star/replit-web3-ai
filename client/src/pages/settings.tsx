@@ -28,7 +28,8 @@ import {
   TrendingDown,
   Gift,
   Globe,
-  Key
+  Key,
+  Coins
 } from 'lucide-react';
 import { Link } from 'wouter';
 import CreditDisplay from '@/components/CreditDisplay';
@@ -775,7 +776,14 @@ export default function SettingsPage() {
                 <h2 className="text-2xl font-bold text-white mb-2">Referral Program</h2>
                 <p className="text-slate-400">Invite friends and earn credits together.</p>
               </div>
-              <ReferralCard userId={user?.walletAddress || "demo-user"} />
+              {/* <ReferralCard userId={user?.walletAddress || "demo-user"} /> */}
+              <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                <div className="text-center">
+                  <Gift className="h-12 w-12 text-teal-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Coming Soon</h3>
+                  <p className="text-slate-400">Referral program will be available soon.</p>
+                </div>
+              </div>
             </div>
           )}
           {activeSection === 'billing' && (
