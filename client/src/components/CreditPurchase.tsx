@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { EnterpriseContactModal } from "./EnterpriseContactModal";
 import SimpleRazorpayButton from "./SimpleRazorpayButton";
+import { ConfettiEffect } from "./ConfettiEffect";
+import { CoinDropAnimation } from "./CoinDropAnimation";
+import { EmojiTierBadge } from "./EmojiTierBadge";
 
 interface CreditPackage {
   id: string;
@@ -37,6 +40,10 @@ interface CreditPurchaseProps {
 export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: CreditPurchaseProps) {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showCoinDrop, setShowCoinDrop] = useState(false);
+  const [lastCreditsAdded, setLastCreditsAdded] = useState(0);
+  const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -62,13 +69,24 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
       } else if (data.requiresPayment) {
         // Payment will be handled by the button
       } else {
+        // Trigger celebrations for successful credit addition
+        setLastCreditsAdded(data.creditsAdded || 0);
+        setIsPaymentSuccess(true);
+        setShowConfetti(true);
+        setShowCoinDrop(true);
+        
         toast({
-          title: "Credits Added!",
+          title: "🎉 Credits Added!",
           description: `Successfully added ${data.creditsAdded} credits to your account.`,
         });
+        
         queryClient.invalidateQueries({ queryKey: ['/api/credits/balance'] });
-        if (onOpenChange) onOpenChange(false);
-        if (onClose) onClose();
+        
+        // Close modal after celebration
+        setTimeout(() => {
+          if (onOpenChange) onOpenChange(false);
+          if (onClose) onClose();
+        }, 2500);
       }
     },
     onError: (error: any) => {
@@ -147,14 +165,20 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
               } ${selectedPackage === pkg.id ? 'ring-2 ring-emerald-400/60 scale-[1.02]' : ''}`}
               data-testid={`card-package-${pkg.name.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              {pkg.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
-                  <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-2 shadow-lg shadow-emerald-500/30 text-sm font-bold">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 flex gap-2">
+                <EmojiTierBadge 
+                  tier={pkg.name} 
+                  size="md" 
+                  animated={true}
+                  className="shadow-lg"
+                />
+                {pkg.popular && (
+                  <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 shadow-lg shadow-emerald-500/30 text-sm font-bold animate-pulse">
                     <Star className="h-4 w-4 mr-2 fill-current" />
-                    MOST POPULAR
+                    POPULAR
                   </Badge>
-                </div>
-              )}
+                )}
+              </div>
 
               <CardHeader className="text-center pb-4 pt-8">
                 <div className="flex justify-center mb-4">
@@ -385,6 +409,19 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
           open={showEnterpriseModal}
           onOpenChange={setShowEnterpriseModal}
           userId={userId}
+        />
+        
+        {/* Celebration Animations */}
+        <ConfettiEffect 
+          trigger={showConfetti} 
+          onComplete={() => setShowConfetti(false)}
+          intensity="high"
+          type="payment"
+        />
+        <CoinDropAnimation 
+          trigger={showCoinDrop}
+          creditsAdded={lastCreditsAdded}
+          onComplete={() => setShowCoinDrop(false)}
         />
       </DialogContent>
     </Dialog>

@@ -52,6 +52,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { CreditPurchase } from './CreditPurchase';
+import { EmojiTierBadge } from './EmojiTierBadge';
 
 interface CreditStats {
   balance: number;
@@ -258,10 +259,18 @@ export function CreditTracker({
                 <div className="text-xs text-slate-400">Credits Available</div>
               </div>
             </div>
-            <Badge variant={balanceStatus.variant} className="gap-1">
-              <balanceStatus.icon className="h-3 w-3" />
-              {credits.planTier || 'Free'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={balanceStatus.variant} className="gap-1">
+                <balanceStatus.icon className="h-3 w-3" />
+                {balanceStatus.variant === 'default' ? 'Healthy' : 
+                 balanceStatus.variant === 'secondary' ? 'Low' : 'Critical'}
+              </Badge>
+              <EmojiTierBadge 
+                tier={credits.planTier || 'Free'} 
+                size="sm" 
+                animated={true}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -355,8 +364,12 @@ export function CreditTracker({
                 <Sparkles className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-slate-500">
-              Plan: {credits.planTier || 'Free'}
+            <div className="mt-2 flex justify-start">
+              <EmojiTierBadge 
+                tier={credits.planTier || 'Free'} 
+                size="sm" 
+                animated={true}
+              />
             </div>
           </CardContent>
         </Card>
