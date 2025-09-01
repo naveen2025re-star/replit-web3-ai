@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -294,7 +294,8 @@ export default function AuditorPage() {
       return fetch(`/api/audit/user-sessions/${user.id}?page=1&pageSize=50`).then(res => res.json()).then(data => data.sessions || []);
     },
     enabled: !!user?.id && isAuthenticated,
-    refetchInterval: 30000, // Refetch every 30 seconds to get latest audits
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Fetch community audits
@@ -308,7 +309,8 @@ export default function AuditorPage() {
       }
       return response.json();
     },
-    refetchInterval: 60000, // Refetch every minute
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Fetch user credits and plan tier
@@ -322,8 +324,14 @@ export default function AuditorPage() {
       return response.json();
     },
     enabled: !!user?.id,
-    refetchInterval: 30000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
+
+  // Memoize plan tier check to prevent Select re-renders
+  const isFreePlan = useMemo(() => {
+    return !credits?.planTier || credits.planTier === 'Free';
+  }, [credits?.planTier]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -847,7 +855,7 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
                 onValueChange={(value) => {
                   const isPublic = value === "public";
                   // Prevent Free users from selecting private
-                  if (!isPublic && (!credits?.planTier || credits.planTier === 'Free')) {
+                  if (!isPublic && isFreePlan) {
                     toast({
                       title: "Upgrade Required",
                       description: "Private audits require Pro or Pro+ plan. Upgrade to unlock private audit features.",
@@ -866,12 +874,12 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
                 <SelectContent>
                   <SelectItem 
                     value="private" 
-                    disabled={!credits?.planTier || credits.planTier === 'Free'}
+                    disabled={isFreePlan}
                   >
                     <div className="flex items-center gap-2">
                       <Lock className="h-4 w-4" />
                       Private
-                      {(!credits?.planTier || credits.planTier === 'Free') && (
+                      {isFreePlan && (
                         <Badge variant="outline" className="text-xs ml-2 border-amber-500 text-amber-600">
                           Pro+
                         </Badge>
