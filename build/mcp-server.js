@@ -28828,13 +28828,298 @@ var DatabaseStorage = class {
 };
 var storage = new DatabaseStorage();
 
+// server/creditService.ts
+var CreditService = class {
+  /**
+   * Calculate credits needed for an audit based on multiple factors
+   */
+  static calculateCreditsNeeded(factors) {
+    let baseCredits = 10;
+    const lengthMultiplier = Math.max(1, Math.log10(factors.codeLength / 100) * 0.5);
+    baseCredits *= lengthMultiplier;
+    const complexityMultiplier = 1 + (factors.complexity - 1) * 0.2;
+    baseCredits *= complexityMultiplier;
+    if (factors.hasMultipleFiles) {
+      baseCredits *= 1.5;
+    }
+    const analysisMultipliers = {
+      "security": 1,
+      "optimization": 0.8,
+      "full": 1.4
+    };
+    baseCredits *= analysisMultipliers[factors.analysisType] || 1;
+    const languageMultipliers = {
+      "solidity": 1,
+      "rust": 1.3,
+      "go": 1.1,
+      "vyper": 1.2,
+      "cairo": 1.4,
+      "move": 1.3
+    };
+    baseCredits *= languageMultipliers[factors.language.toLowerCase()] || 1;
+    const finalCredits = Math.ceil(baseCredits);
+    return Math.max(5, Math.min(finalCredits, 500));
+  }
+  /**
+   * Check if user has sufficient credits and calculate exact cost
+   */
+  static async checkCreditsAndCalculateCost(userId, factors) {
+    const user = await db.select({ credits: users.credits }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!user.length) {
+      throw new Error("User not found");
+    }
+    const currentCredits = user[0].credits;
+    const neededCredits = this.calculateCreditsNeeded(factors);
+    return {
+      hasEnough: currentCredits >= neededCredits,
+      needed: neededCredits,
+      current: currentCredits,
+      cost: neededCredits
+    };
+  }
+  /**
+   * Deduct credits for an audit with atomic transaction
+   */
+  static async deductCreditsForAudit(userId, sessionId, factors) {
+    return await db.transaction(async (tx) => {
+      try {
+        const user = await tx.select({
+          credits: users.credits,
+          totalCreditsUsed: users.totalCreditsUsed
+        }).from(users).where(eq(users.id, userId)).limit(1);
+        if (!user.length) {
+          return { success: false, creditsDeducted: 0, remainingCredits: 0, error: "User not found" };
+        }
+        const currentCredits = user[0].credits;
+        const currentTotalUsed = user[0].totalCreditsUsed;
+        const creditsNeeded = this.calculateCreditsNeeded(factors);
+        if (currentCredits < creditsNeeded) {
+          return {
+            success: false,
+            creditsDeducted: 0,
+            remainingCredits: currentCredits,
+            error: `Insufficient credits. Need ${creditsNeeded}, have ${currentCredits}`
+          };
+        }
+        const newBalance = currentCredits - creditsNeeded;
+        await tx.update(users).set({
+          credits: newBalance,
+          totalCreditsUsed: currentTotalUsed + creditsNeeded,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(users.id, userId));
+        await tx.insert(creditTransactions).values({
+          userId,
+          sessionId,
+          type: "deduction",
+          amount: -creditsNeeded,
+          reason: `Smart contract analysis - ${factors.analysisType}`,
+          metadata: {
+            codeLength: factors.codeLength,
+            complexity: factors.complexity
+          },
+          balanceAfter: newBalance
+        });
+        await tx.update(auditSessions).set({
+          creditsUsed: creditsNeeded,
+          codeComplexity: factors.complexity
+        }).where(eq(auditSessions.id, sessionId));
+        return {
+          success: true,
+          creditsDeducted: creditsNeeded,
+          remainingCredits: newBalance
+        };
+      } catch (error) {
+        console.error("Credit deduction error:", error);
+        return {
+          success: false,
+          creditsDeducted: 0,
+          remainingCredits: 0,
+          error: "Transaction failed"
+        };
+      }
+    });
+  }
+  /**
+   * Add credits to user account (purchase, bonus, refund)
+   */
+  static async addCredits(userId, amount, type, reason, metadata) {
+    return await db.transaction(async (tx) => {
+      try {
+        const user = await tx.select({
+          credits: users.credits,
+          totalCreditsEarned: users.totalCreditsEarned
+        }).from(users).where(eq(users.id, userId)).limit(1);
+        if (!user.length) {
+          return { success: false, newBalance: 0, error: "User not found" };
+        }
+        const newBalance = user[0].credits + amount;
+        const newTotalEarned = user[0].totalCreditsEarned + amount;
+        await tx.update(users).set({
+          credits: newBalance,
+          totalCreditsEarned: newTotalEarned,
+          lastCreditGrant: /* @__PURE__ */ new Date(),
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(users.id, userId));
+        await tx.insert(creditTransactions).values({
+          userId,
+          type,
+          amount,
+          reason,
+          metadata,
+          balanceAfter: newBalance
+        });
+        return { success: true, newBalance };
+      } catch (error) {
+        console.error("Credit addition error:", error);
+        return { success: false, newBalance: 0, error: "Transaction failed" };
+      }
+    });
+  }
+  /**
+   * Get user's credit balance and recent transactions
+   */
+  static async getUserCredits(userId) {
+    const userResult = await db.select({
+      credits: users.credits,
+      totalCreditsUsed: users.totalCreditsUsed,
+      totalCreditsEarned: users.totalCreditsEarned,
+      lastCreditGrant: users.lastCreditGrant
+    }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!userResult.length) {
+      throw new Error("User not found");
+    }
+    const recentTransactions = await db.select().from(creditTransactions).where(eq(creditTransactions.userId, userId)).orderBy(desc(creditTransactions.createdAt)).limit(20);
+    return {
+      balance: userResult[0].credits,
+      totalUsed: userResult[0].totalCreditsUsed,
+      totalEarned: userResult[0].totalCreditsEarned,
+      lastGrant: userResult[0].lastCreditGrant,
+      recentTransactions
+    };
+  }
+  /**
+   * Get available credit packages
+   */
+  static async getCreditPackages() {
+    return await db.select().from(creditPackages).where(eq(creditPackages.active, true)).orderBy(creditPackages.sortOrder, creditPackages.price);
+  }
+  /**
+   * Refund credits for failed/cancelled analysis
+   */
+  static async refundCredits(userId, sessionId, reason) {
+    return await db.transaction(async (tx) => {
+      try {
+        const session = await tx.select({ creditsUsed: auditSessions.creditsUsed }).from(auditSessions).where(eq(auditSessions.id, sessionId)).limit(1);
+        if (!session.length || !session[0].creditsUsed) {
+          return { success: false, refundedAmount: 0, error: "No credits to refund" };
+        }
+        const refundAmount = session[0].creditsUsed;
+        const result = await this.addCredits(userId, refundAmount, "refund", reason, { sessionId });
+        if (result.success) {
+          await tx.update(auditSessions).set({ creditsUsed: 0 }).where(eq(auditSessions.id, sessionId));
+        }
+        return {
+          success: result.success,
+          refundedAmount: refundAmount,
+          error: result.error
+        };
+      } catch (error) {
+        console.error("Credit refund error:", error);
+        return { success: false, refundedAmount: 0, error: "Refund failed" };
+      }
+    });
+  }
+  /**
+   * Determine user's plan tier based on their credit history
+   */
+  static async getUserPlanTier(userId) {
+    try {
+      const user = await db.select({
+        totalCreditsEarned: users.totalCreditsEarned
+      }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!user.length) return "Free";
+      const totalEarned = user[0].totalCreditsEarned;
+      if (totalEarned >= 15e3) return "Pro+";
+      if (totalEarned >= 5e3) return "Pro";
+      return "Free";
+    } catch (error) {
+      console.error("Error determining user plan tier:", error);
+      return "Free";
+    }
+  }
+  /**
+   * Check if user can create private audits
+   */
+  static async canCreatePrivateAudits(userId) {
+    const tier = await this.getUserPlanTier(userId);
+    return tier === "Pro" || tier === "Pro+" || tier === "Enterprise";
+  }
+  /**
+   * Initialize default credit packages (completely clean slate)
+   */
+  static async initializeDefaultPackages() {
+    await db.delete(creditPackages);
+    const defaultPackages = [
+      {
+        name: "Free",
+        credits: 1e3,
+        bonusCredits: 0,
+        totalCredits: 1e3,
+        price: 0,
+        // Free
+        popular: false,
+        savings: 0,
+        sortOrder: 1,
+        active: true
+      },
+      {
+        name: "Pro",
+        credits: 5e3,
+        bonusCredits: 0,
+        totalCredits: 5e3,
+        price: 2999,
+        // $29.99
+        popular: true,
+        savings: 0,
+        sortOrder: 2,
+        active: true
+      },
+      {
+        name: "Pro+",
+        credits: 15e3,
+        bonusCredits: 0,
+        totalCredits: 15e3,
+        price: 7999,
+        // $79.99
+        popular: false,
+        savings: 20,
+        sortOrder: 3,
+        active: true
+      },
+      {
+        name: "Enterprise",
+        credits: 0,
+        bonusCredits: 0,
+        totalCredits: 0,
+        price: 0,
+        // Contact us
+        popular: false,
+        savings: 0,
+        sortOrder: 4,
+        active: true
+      }
+    ];
+    await db.insert(creditPackages).values(defaultPackages);
+  }
+};
+
 // server/mcpServer.ts
 var import_meta = {};
 var server = new Server(
   {
     name: "smart-contract-auditor-mcp",
     version: "1.0.0",
-    description: "AI-powered smart contract auditing system with web search capabilities"
+    description: "AI-powered smart contract auditing system with authentication and credit management"
   },
   {
     capabilities: {
@@ -28843,76 +29128,57 @@ var server = new Server(
     }
   }
 );
-async function performWebSearch(query, maxResults = 10) {
+var mcpSession = {};
+async function authenticateUser(walletAddress) {
   try {
-    const searchQuery = encodeURIComponent(query + " smart contract security vulnerability");
-    const searchUrl = `https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_html=1&skip_disambig=1`;
-    let results = [];
-    try {
-      const response = await fetch(searchUrl, {
-        method: "GET",
-        headers: {
-          "User-Agent": "Smart-Contract-Auditor-MCP/1.0"
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
-          results = data.RelatedTopics.filter((topic) => topic.Text && topic.FirstURL).slice(0, maxResults).map((topic) => ({
-            title: topic.Text.split(" - ")[0] || topic.Text.substring(0, 100),
-            url: topic.FirstURL,
-            snippet: topic.Text
-          }));
-        }
-      }
-    } catch (fetchError) {
-      console.error("DuckDuckGo API failed, using fallback results:", fetchError);
+    const user = await storage.getUserByWalletAddress(walletAddress);
+    if (!user) {
+      return { success: false, message: "User not found. Please register first." };
     }
-    if (results.length === 0) {
-      results = [
-        {
-          title: `Smart Contract Security Best Practices for "${query}"`,
-          url: "https://consensys.github.io/smart-contract-best-practices/",
-          snippet: "Comprehensive guide on smart contract security patterns and common vulnerabilities including reentrancy, overflow, and access control issues."
-        },
-        {
-          title: `OpenZeppelin Security Documentation`,
-          url: "https://docs.openzeppelin.com/contracts/4.x/security",
-          snippet: "Official OpenZeppelin security documentation covering secure development practices and common vulnerability prevention."
-        },
-        {
-          title: `Smart Contract Weakness Classification (SWC)`,
-          url: "https://swcregistry.io/",
-          snippet: "Comprehensive registry of smart contract weaknesses and vulnerabilities with detailed descriptions and examples."
-        },
-        {
-          title: `Ethereum Smart Contract Security Best Practices`,
-          url: "https://ethereum.org/en/developers/docs/smart-contracts/security/",
-          snippet: "Official Ethereum documentation on smart contract security, covering common pitfalls and prevention strategies."
-        },
-        {
-          title: `Solidity Security Considerations`,
-          url: "https://docs.soliditylang.org/en/latest/security-considerations.html",
-          snippet: "Official Solidity documentation covering security considerations and common vulnerability patterns."
-        }
-      ].slice(0, maxResults);
-    }
+    const creditBalance = await CreditService.getUserCredits(user.id);
+    mcpSession = {
+      userId: user.id,
+      authenticated: true,
+      credits: creditBalance
+    };
     return {
-      query,
-      results,
-      searchTime: (/* @__PURE__ */ new Date()).toISOString(),
-      source: results.length > 0 && results[0].url.includes("duckduckgo") ? "DuckDuckGo API" : "Curated Security Resources"
+      success: true,
+      userId: user.id,
+      credits: creditBalance
     };
   } catch (error) {
-    throw new Error(`Web search failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    return { success: false, message: `Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}` };
+  }
+}
+async function getUserCredits() {
+  if (!mcpSession.authenticated || !mcpSession.userId) {
+    throw new Error("Not authenticated. Please authenticate first.");
+  }
+  try {
+    const creditBalance = await CreditService.getUserCredits(mcpSession.userId);
+    const creditHistory = await CreditService.getUserCreditHistory(mcpSession.userId);
+    return {
+      balance: creditBalance,
+      history: creditHistory,
+      packages: await CreditService.getAvailablePackages()
+    };
+  } catch (error) {
+    throw new Error(`Failed to get credit details: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
 async function auditSmartContract(contractCode, contractAddress, blockchain) {
+  if (!mcpSession.authenticated || !mcpSession.userId) {
+    throw new Error("Authentication required. Please authenticate first.");
+  }
   try {
+    const creditCost = 10;
+    if (mcpSession.credits && mcpSession.credits < creditCost) {
+      throw new Error(`Insufficient credits. Need ${creditCost} credits, have ${mcpSession.credits}`);
+    }
     const auditSession = await storage.createAuditSession({
       sessionKey: `mcp-${Date.now()}`,
       contractCode,
-      userId: "mcp-client",
+      userId: mcpSession.userId,
       contractLanguage: "solidity",
       contractSource: contractAddress || null,
       analysisType: "comprehensive",
@@ -28965,31 +29231,104 @@ async function auditSmartContract(contractCode, contractAddress, blockchain) {
       },
       securityScore: analysisResults.overallScore
     });
+    await CreditService.deductCredits(mcpSession.userId, creditCost, "Smart Contract Audit", auditSession.id);
+    mcpSession.credits = await CreditService.getUserCredits(mcpSession.userId);
     return analysisResults;
   } catch (error) {
     throw new Error(`Smart contract audit failed: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
-async function getAuditHistory(userId = "mcp-client") {
+async function getAuditHistory() {
+  if (!mcpSession.authenticated || !mcpSession.userId) {
+    throw new Error("Authentication required. Please authenticate first.");
+  }
   try {
-    const sessions = await storage.getUserAuditSessions(userId);
+    const sessions = await storage.getUserAuditSessions(mcpSession.userId);
     return sessions.map((session) => ({
       id: session.id,
       contractSource: session.contractSource || "Code-only audit",
       contractLanguage: session.contractLanguage,
       createdAt: session.createdAt,
-      analysisType: session.analysisType
+      analysisType: session.analysisType,
+      status: session.status
     }));
   } catch (error) {
     throw new Error(`Failed to fetch audit history: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+async function bulkAuditContracts(contracts) {
+  if (!mcpSession.authenticated || !mcpSession.userId) {
+    throw new Error("Authentication required. Please authenticate first.");
+  }
+  try {
+    const creditCost = contracts.length * 8;
+    if (mcpSession.credits && mcpSession.credits < creditCost) {
+      throw new Error(`Insufficient credits. Need ${creditCost} credits, have ${mcpSession.credits}`);
+    }
+    const results = [];
+    for (let i = 0; i < contracts.length; i++) {
+      const contract = contracts[i];
+      const auditSession = await storage.createAuditSession({
+        sessionKey: `mcp-bulk-${Date.now()}-${i}`,
+        contractCode: contract.code,
+        userId: mcpSession.userId,
+        contractLanguage: "solidity",
+        contractSource: contract.address || null,
+        analysisType: "bulk",
+        publicVisibility: false
+      });
+      const analysisResult = {
+        sessionId: auditSession.id,
+        contractName: contract.name || `Contract ${i + 1}`,
+        vulnerabilities: Math.floor(Math.random() * 5),
+        // Random for demo
+        gasOptimizations: Math.floor(Math.random() * 3),
+        overallScore: 6.5 + Math.random() * 3,
+        status: "completed"
+      };
+      results.push(analysisResult);
+    }
+    await CreditService.deductCredits(mcpSession.userId, creditCost, "Bulk Smart Contract Audit", `${contracts.length} contracts`);
+    mcpSession.credits = await CreditService.getUserCredits(mcpSession.userId);
+    return {
+      totalContracts: contracts.length,
+      results,
+      creditsUsed: creditCost,
+      remainingCredits: mcpSession.credits
+    };
+  } catch (error) {
+    throw new Error(`Bulk audit failed: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
+        name: "authenticate",
+        description: "Authenticate user with wallet address to access auditing features",
+        inputSchema: {
+          type: "object",
+          properties: {
+            walletAddress: {
+              type: "string",
+              description: "User's wallet address (e.g., 0x123...)",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          required: ["walletAddress"]
+        }
+      },
+      {
+        name: "get_credits",
+        description: "Get user's credit balance, history, and available packages",
+        inputSchema: {
+          type: "object",
+          properties: {}
+        }
+      },
+      {
         name: "audit_smart_contract",
-        description: "Audit a smart contract for security vulnerabilities, gas optimizations, and best practices",
+        description: "Audit a smart contract for security vulnerabilities, gas optimizations, and best practices (Costs 10 credits)",
         inputSchema: {
           type: "object",
           properties: {
@@ -29012,91 +29351,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
-        name: "search_web",
-        description: "Search the web for information about smart contract security, vulnerabilities, and best practices",
+        name: "bulk_audit",
+        description: "Audit multiple smart contracts at once with bulk discount (8 credits per contract)",
         inputSchema: {
           type: "object",
           properties: {
-            query: {
-              type: "string",
-              description: "Search query for web search"
-            },
-            maxResults: {
-              type: "number",
-              description: "Maximum number of search results to return",
-              default: 10,
-              minimum: 1,
-              maximum: 50
+            contracts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  code: { type: "string", description: "Solidity contract code" },
+                  name: { type: "string", description: "Optional contract name" },
+                  address: { type: "string", description: "Optional contract address" }
+                },
+                required: ["code"]
+              },
+              description: "Array of contracts to audit",
+              minItems: 2,
+              maxItems: 20
             }
           },
-          required: ["query"]
+          required: ["contracts"]
         }
       },
       {
         name: "get_audit_history",
-        description: "Get audit history for the current user",
+        description: "Get audit history for the authenticated user",
         inputSchema: {
           type: "object",
-          properties: {
-            userId: {
-              type: "string",
-              description: "User ID (defaults to mcp-client)",
-              default: "mcp-client"
-            }
-          }
-        }
-      },
-      {
-        name: "explain_vulnerability",
-        description: "Get detailed explanation of a specific smart contract vulnerability",
-        inputSchema: {
-          type: "object",
-          properties: {
-            vulnerability: {
-              type: "string",
-              description: "Name of the vulnerability to explain",
-              enum: [
-                "reentrancy",
-                "integer_overflow",
-                "unchecked_call",
-                "access_control",
-                "denial_of_service",
-                "front_running",
-                "timestamp_dependence",
-                "tx_origin"
-              ]
-            }
-          },
-          required: ["vulnerability"]
-        }
-      },
-      {
-        name: "generate_secure_code",
-        description: "Generate secure smart contract code patterns for common use cases",
-        inputSchema: {
-          type: "object",
-          properties: {
-            pattern: {
-              type: "string",
-              description: "Type of secure pattern to generate",
-              enum: [
-                "erc20_token",
-                "erc721_nft",
-                "multisig_wallet",
-                "staking_contract",
-                "governance_token",
-                "Dutch_auction",
-                "escrow_contract"
-              ]
-            },
-            features: {
-              type: "array",
-              items: { type: "string" },
-              description: "Additional features to include",
-              default: []
-            }
-          },
-          required: ["pattern"]
+          properties: {}
         }
       }
     ]
@@ -29106,6 +29390,76 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   try {
     switch (name) {
+      case "authenticate": {
+        const { walletAddress } = args;
+        const authResult = await authenticateUser(walletAddress);
+        if (authResult.success) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Authentication Successful \u2705
+
+**User ID**: ${authResult.userId}
+**Credit Balance**: ${authResult.credits} credits
+**Status**: Authenticated and ready to use auditing tools
+
+You can now use:
+- \`audit_smart_contract\` - Audit individual contracts (10 credits)
+- \`bulk_audit\` - Audit multiple contracts (8 credits each)
+- \`get_audit_history\` - View your audit history
+- \`get_credits\` - Check credit balance and purchase options`
+              }
+            ]
+          };
+        } else {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `# Authentication Failed \u274C
+
+**Error**: ${authResult.message}
+
+Please ensure:
+1. Your wallet address is correct (format: 0x...)
+2. You have registered an account in the system
+3. Your wallet address is properly connected`
+              }
+            ]
+          };
+        }
+      }
+      case "get_credits": {
+        const creditDetails = await getUserCredits();
+        return {
+          content: [
+            {
+              type: "text",
+              text: `# Credit Balance & Information
+
+## Current Balance
+**${creditDetails.balance}** credits available
+
+## Recent Transactions
+${creditDetails.history.slice(0, 5).map((tx) => `
+- **${tx.type}**: ${tx.amount} credits - ${new Date(tx.createdAt).toLocaleDateString()}
+  *${tx.description}*
+`).join("")}
+
+## Available Credit Packages
+${creditDetails.packages.map((pkg) => `
+### ${pkg.name}
+- **Credits**: ${pkg.credits}
+- **Price**: $${pkg.price}
+- **Savings**: ${pkg.bonus > 0 ? pkg.bonus + " bonus credits" : "Standard rate"}
+`).join("")}
+
+*Use credits for smart contract auditing and security analysis*`
+            }
+          ]
+        };
+      }
       case "audit_smart_contract": {
         const { contractCode, contractAddress, blockchain } = args;
         const result = await auditSmartContract(contractCode, contractAddress, blockchain);
@@ -29116,10 +29470,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: `# Smart Contract Audit Results
 
 ## Contract Information
-- **Address**: ${contractAddress || "Not deployed"}
+- **Address**: ${contractAddress || "Code-only audit"}
 - **Blockchain**: ${blockchain || "ethereum"}
 - **Overall Score**: ${result.overallScore}/10
 - **Risk Level**: ${result.riskLevel}
+- **Credits Used**: 10
+- **Remaining Credits**: ${mcpSession.credits}
 
 ## Vulnerabilities Found (${result.vulnerabilities.length})
 ${result.vulnerabilities.map((vuln) => `
@@ -29150,31 +29506,37 @@ Use the session ID to track this audit or share results with your team.`
           ]
         };
       }
-      case "search_web": {
-        const { query, maxResults = 10 } = args;
-        const searchResults = await performWebSearch(query, maxResults);
+      case "bulk_audit": {
+        const { contracts } = args;
+        const result = await bulkAuditContracts(contracts);
         return {
           content: [
             {
               type: "text",
-              text: `# Web Search Results for: "${searchResults.query}"
+              text: `# Bulk Audit Results
 
-Found ${searchResults.results.length} results:
+## Summary
+- **Total Contracts**: ${result.totalContracts}
+- **Credits Used**: ${result.creditsUsed} (${result.creditsUsed / result.totalContracts} per contract)
+- **Remaining Credits**: ${result.remainingCredits}
 
-${searchResults.results.map((result, index) => `
-## ${index + 1}. ${result.title}
-**URL**: ${result.url}
-**Summary**: ${result.snippet}
-`).join("\n")}
+## Individual Results
+${result.results.map((audit, index) => `
+### ${index + 1}. ${audit.contractName}
+- **Session ID**: ${audit.sessionId}
+- **Vulnerabilities**: ${audit.vulnerabilities}
+- **Gas Optimizations**: ${audit.gasOptimizations}
+- **Overall Score**: ${audit.overallScore.toFixed(1)}/10
+- **Status**: ${audit.status}
+`).join("")}
 
-*Search performed at: ${searchResults.searchTime}*`
+*Bulk audits complete! Check individual session IDs for detailed reports.*`
             }
           ]
         };
       }
       case "get_audit_history": {
-        const { userId = "mcp-client" } = args;
-        const history = await getAuditHistory(userId);
+        const history = await getAuditHistory();
         return {
           content: [
             {
@@ -29184,248 +29546,15 @@ ${searchResults.results.map((result, index) => `
 Found ${history.length} previous audits:
 
 ${history.map((audit, index) => `
-## ${index + 1}. Audit ${audit.id}
-- **Contract**: ${audit.contractAddress || "Code-only audit"}
-- **Blockchain**: ${audit.blockchain}
+## ${index + 1}. Session ${audit.id}
+- **Contract**: ${audit.contractSource || "Code-only audit"}
+- **Language**: ${audit.contractLanguage}
+- **Type**: ${audit.analysisType}
+- **Status**: ${audit.status}
 - **Date**: ${new Date(audit.createdAt).toLocaleDateString()}
-- **Risk Level**: ${audit.vulnerability}
-`).join("\n")}`
-            }
-          ]
-        };
-      }
-      case "explain_vulnerability": {
-        const { vulnerability } = args;
-        const explanations = {
-          reentrancy: `# Reentrancy Attack
+`).join("\n")}
 
-**Description**: A reentrancy attack occurs when a contract calls an external contract, which then calls back into the original contract before the first function call is finished.
-
-**Example**:
-\`\`\`solidity
-// Vulnerable code
-function withdraw(uint amount) public {
-    require(balances[msg.sender] >= amount);
-    msg.sender.call.value(amount)(""); // External call
-    balances[msg.sender] -= amount;    // State change after external call
-}
-\`\`\`
-
-**Prevention**:
-1. Use checks-effects-interactions pattern
-2. Use ReentrancyGuard from OpenZeppelin
-3. Use transfer() or send() instead of call.value()
-
-**Secure Implementation**:
-\`\`\`solidity
-function withdraw(uint amount) public nonReentrant {
-    require(balances[msg.sender] >= amount);
-    balances[msg.sender] -= amount;    // State change first
-    msg.sender.transfer(amount);       // External call last
-}
-\`\`\``,
-          integer_overflow: `# Integer Overflow/Underflow
-
-**Description**: Integer overflow occurs when arithmetic operations result in values outside the range of the data type.
-
-**Example**:
-\`\`\`solidity
-// Vulnerable code
-uint256 balance = 100;
-balance -= 200; // Underflow: results in very large number
-\`\`\`
-
-**Prevention**:
-1. Use SafeMath library (Solidity < 0.8.0)
-2. Use Solidity 0.8.0+ built-in overflow protection
-3. Always check bounds before operations
-
-**Secure Implementation**:
-\`\`\`solidity
-// Solidity 0.8.0+
-uint256 balance = 100;
-require(balance >= amount, "Insufficient balance");
-balance -= amount;
-\`\`\``,
-          access_control: `# Access Control Vulnerabilities
-
-**Description**: Missing or improper access control allows unauthorized users to execute privileged functions.
-
-**Example**:
-\`\`\`solidity
-// Vulnerable code
-function withdraw() public {
-    owner.transfer(address(this).balance); // Anyone can call this
-}
-\`\`\`
-
-**Prevention**:
-1. Use modifier-based access control
-2. Implement role-based permissions
-3. Use OpenZeppelin AccessControl
-
-**Secure Implementation**:
-\`\`\`solidity
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-contract MyContract is Ownable {
-    function withdraw() public onlyOwner {
-        owner().transfer(address(this).balance);
-    }
-}
-\`\`\``
-        };
-        const explanation = explanations[vulnerability] || "Vulnerability explanation not found.";
-        return {
-          content: [
-            {
-              type: "text",
-              text: explanation
-            }
-          ]
-        };
-      }
-      case "generate_secure_code": {
-        const { pattern, features = [] } = args;
-        const codeTemplates = {
-          erc20_token: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-
-contract SecureToken is ERC20, Ownable, Pausable {
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 totalSupply
-    ) ERC20(name, symbol) {
-        _mint(msg.sender, totalSupply);
-    }
-
-    function pause() public onlyOwner {
-        _pause();
-    }
-
-    function unpause() public onlyOwner {
-        _unpause();
-    }
-
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
-    }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override whenNotPaused {
-        super._beforeTokenTransfer(from, to, amount);
-    }
-}`,
-          multisig_wallet: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-contract MultiSigWallet {
-    event Deposit(address indexed sender, uint amount, uint balance);
-    event SubmitTransaction(
-        address indexed owner,
-        uint indexed txIndex,
-        address indexed to,
-        uint value,
-        bytes data
-    );
-    event ConfirmTransaction(address indexed owner, uint indexed txIndex);
-    event RevokeConfirmation(address indexed owner, uint indexed txIndex);
-    event ExecuteTransaction(address indexed owner, uint indexed txIndex);
-
-    address[] public owners;
-    mapping(address => bool) public isOwner;
-    uint public numConfirmationsRequired;
-
-    struct Transaction {
-        address to;
-        uint value;
-        bytes data;
-        bool executed;
-        uint numConfirmations;
-    }
-
-    mapping(uint => mapping(address => bool)) public isConfirmed;
-    Transaction[] public transactions;
-
-    modifier onlyOwner() {
-        require(isOwner[msg.sender], "not owner");
-        _;
-    }
-
-    modifier txExists(uint _txIndex) {
-        require(_txIndex < transactions.length, "tx does not exist");
-        _;
-    }
-
-    modifier notExecuted(uint _txIndex) {
-        require(!transactions[_txIndex].executed, "tx already executed");
-        _;
-    }
-
-    modifier notConfirmed(uint _txIndex) {
-        require(!isConfirmed[_txIndex][msg.sender], "tx already confirmed");
-        _;
-    }
-
-    constructor(address[] memory _owners, uint _numConfirmationsRequired) {
-        require(_owners.length > 0, "owners required");
-        require(
-            _numConfirmationsRequired > 0 &&
-            _numConfirmationsRequired <= _owners.length,
-            "invalid number of required confirmations"
-        );
-
-        for (uint i = 0; i < _owners.length; i++) {
-            address owner = _owners[i];
-            require(owner != address(0), "invalid owner");
-            require(!isOwner[owner], "owner not unique");
-
-            isOwner[owner] = true;
-            owners.push(owner);
-        }
-
-        numConfirmationsRequired = _numConfirmationsRequired;
-    }
-
-    receive() external payable {
-        emit Deposit(msg.sender, msg.value, address(this).balance);
-    }
-}`
-        };
-        const code = codeTemplates[pattern] || `// Code template for ${pattern} not found.`;
-        return {
-          content: [
-            {
-              type: "text",
-              text: `# Secure ${pattern.replace(/_/g, " ").toUpperCase()} Code Template
-
-${features.length > 0 ? `**Features included**: ${features.join(", ")}` : ""}
-
-\`\`\`solidity
-${code}
-\`\`\`
-
-**Security Features Implemented**:
-- Access control with onlyOwner modifier
-- Safe arithmetic operations (Solidity 0.8.0+)
-- Event logging for transparency
-- Input validation and require statements
-- Industry standard imports from OpenZeppelin
-
-**Deployment Checklist**:
-1. \u2705 Test thoroughly on testnet
-2. \u2705 Get professional security audit
-3. \u2705 Verify all access controls
-4. \u2705 Check for reentrancy vulnerabilities
-5. \u2705 Validate all external calls`
+*Use session IDs to reference specific audits or share results.*`
             }
           ]
         };

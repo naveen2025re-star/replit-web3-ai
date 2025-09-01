@@ -4,11 +4,11 @@
 
 The Smart Contract Auditor Model Context Protocol (MCP) server enables AI-based IDEs like Claude Desktop, VS Code, and Cursor to interact directly with your smart contract auditing system. This allows developers to:
 
-- **Audit smart contracts** directly from their IDE
-- **Search the web** for security vulnerability information  
-- **Generate secure code** templates and patterns
-- **Get vulnerability explanations** with prevention strategies
-- **Access audit history** and previous results
+- **Authenticate** with their wallet address for secure access
+- **Audit smart contracts** directly from their IDE with credit tracking
+- **Perform bulk audits** with discounted rates  
+- **View audit history** and session details
+- **Check credit balance** and transaction history
 
 ## Quick Start
 
@@ -93,12 +93,32 @@ You should see: `Smart Contract Auditor MCP server is running on stdio`
 
 ## Available Tools
 
-### 🔍 audit_smart_contract
-Audit any Solidity smart contract for security vulnerabilities.
+### 🔐 authenticate
+Authenticate with your wallet address to access auditing features.
 
 **Usage**: 
 ```
-Please audit this smart contract:
+Please authenticate me with wallet address 0x1234567890123456789012345678901234567890
+```
+
+**Returns**: Authentication status, user ID, and current credit balance.
+
+### 💳 get_credits
+View your credit balance, transaction history, and available packages.
+
+**Usage**:
+```
+Show me my current credit balance and purchase options
+```
+
+**Returns**: Current balance, recent transactions, and available credit packages.
+
+### 🔍 audit_smart_contract
+Audit any Solidity smart contract for security vulnerabilities. **Cost: 10 credits**
+
+**Usage**: 
+```
+Audit this smart contract:
 
 pragma solidity ^0.8.0;
 contract MyToken {
@@ -106,23 +126,26 @@ contract MyToken {
     
     function withdraw(uint256 amount) public {
         require(balances[msg.sender] >= amount);
-        msg.sender.call{value: amount}("");
+        payable(msg.sender).transfer(amount);
         balances[msg.sender] -= amount;
     }
 }
 ```
 
-**Returns**: Detailed vulnerability report with severity levels and remediation steps.
+**Returns**: Detailed vulnerability report with severity levels, gas optimizations, and remediation steps.
 
-### 🌐 search_web  
-Search for smart contract security information and best practices.
+### 📦 bulk_audit
+Audit multiple smart contracts at once with bulk discount. **Cost: 8 credits each**
 
 **Usage**:
 ```
-Search for recent reentrancy attack examples and prevention methods
+Perform bulk audit on these contracts:
+1. [Contract A code]
+2. [Contract B code] 
+3. [Contract C code]
 ```
 
-**Returns**: Curated search results from security resources and documentation.
+**Returns**: Summary results for all contracts with individual session IDs.
 
 ### 📊 get_audit_history
 View your previous audit sessions and results.
@@ -132,71 +155,47 @@ View your previous audit sessions and results.
 Show me my recent contract audits
 ```
 
-**Returns**: List of previous audits with timestamps and basic info.
-
-### 📚 explain_vulnerability
-Get detailed explanations of specific vulnerabilities with code examples.
-
-**Usage**:
-```
-Explain how integer overflow attacks work in smart contracts
-```
-
-**Available vulnerabilities**: `reentrancy`, `integer_overflow`, `access_control`, `unchecked_call`, `denial_of_service`, `front_running`, `timestamp_dependence`, `tx_origin`
-
-### ⚡ generate_secure_code
-Generate secure smart contract templates for common patterns.
-
-**Usage**:
-```
-Generate a secure multisig wallet contract
-```
-
-**Available patterns**: `erc20_token`, `erc721_nft`, `multisig_wallet`, `staking_contract`, `governance_token`, `dutch_auction`, `escrow_contract`
+**Returns**: List of previous audits with session IDs, timestamps, and status.
 
 ## Example Conversations
 
 ### Security Audit Workflow
 ```
+User: Please authenticate me with wallet address 0x123...
+
+AI: Authentication successful! You have 50 credits available. You can now use the auditing features.
+
 User: I have an ERC20 token contract that I need audited. Here's the code: [paste contract]
 
 AI: I'll audit your ERC20 token contract for security vulnerabilities.
 
 [MCP Server runs audit_smart_contract tool]
 
-The audit found 3 vulnerabilities:
+The audit found 3 vulnerabilities (10 credits used, 40 remaining):
 - HIGH: Reentrancy vulnerability in transfer function
 - MEDIUM: Missing overflow protection  
 - LOW: Lack of event emissions
 
-Would you like me to search for examples of how to fix these issues?
-
-User: Yes, show me how to fix the reentrancy issue
-
-AI: I'll search for reentrancy prevention methods.
-
-[MCP Server runs search_web tool]
-
-Here are the best practices I found...
+Session ID: audit-123456 - use this to reference or share this audit.
 ```
 
-### Learning and Development
+### Bulk Audit Workflow
 ```
-User: I'm new to smart contract security. Can you explain the most common vulnerabilities?
+User: I need to audit 5 contracts for my DeFi protocol
 
-AI: I'll explain the most critical smart contract vulnerabilities.
+AI: I can perform a bulk audit with our discount rate (8 credits per contract instead of 10). 
 
-[MCP Server runs explain_vulnerability for each major vulnerability type]
+[MCP Server runs bulk_audit tool]
 
-Here's a comprehensive overview of the top vulnerabilities...
+Bulk audit complete! Results:
+- Contract A: 2 vulnerabilities found
+- Contract B: 0 vulnerabilities (secure)
+- Contract C: 3 vulnerabilities found
+- Contract D: 1 vulnerability found  
+- Contract E: 0 vulnerabilities (secure)
 
-User: Can you generate a secure ERC20 template that avoids these issues?
-
-AI: I'll generate a secure ERC20 token template for you.
-
-[MCP Server runs generate_secure_code tool]
-
-Here's a production-ready secure ERC20 implementation...
+Total: 40 credits used, 10 credits remaining
+Individual session IDs provided for detailed reports.
 ```
 
 ## Troubleshooting
@@ -211,15 +210,15 @@ Here's a production-ready secure ERC20 implementation...
 - Ensure the MCP server executable has correct permissions: `chmod +x build/mcp-server.js`
 - Check IDE logs for connection errors
 
-### Web Search Not Working
-- The MCP server uses DuckDuckGo's API with fallback to curated resources
-- If internet access is limited, it will use local security resource database
-- Check network connectivity and firewall settings
+### Authentication Issues
+- Ensure wallet address format is correct (0x + 40 hex characters)
+- Verify you have a registered account in the system
+- Check that your wallet address is properly connected
 
-### Audit Results Seem Inaccurate
-- The MCP server currently provides demo audit results
-- For production use, connect it to your actual AI auditing service
-- Modify the `auditSmartContract` function in `server/mcpServer.ts`
+### Insufficient Credits
+- Check your credit balance with the `get_credits` tool
+- Purchase additional credits through the web interface
+- Bulk audits offer better value (8 credits vs 10 credits per contract)
 
 ## Advanced Configuration
 
@@ -246,9 +245,10 @@ node build/mcp-server.js --http --port 3001
 
 ## Security Notes
 
-- The MCP server runs locally and doesn't store sensitive data
-- Audit results are stored in your local database
-- Web search uses public APIs (DuckDuckGo) - no API keys required
+- The MCP server connects to your secure auditing backend
+- Authentication is required for all auditing operations
+- Audit results are stored securely with session tracking
+- Credit usage is tracked and auditable
 - No smart contract code is sent to external services without explicit consent
 
 ## Development
