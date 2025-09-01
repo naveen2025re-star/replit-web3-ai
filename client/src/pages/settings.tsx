@@ -1067,16 +1067,12 @@ export default function SettingsPage() {
       </div>
       
       {/* Credit Purchase Modal */}
-      {showCreditPurchase && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-900 rounded-lg p-1 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <CreditPurchase 
-              userId={user?.id || ''} 
-              onClose={() => setShowCreditPurchase(false)}
-            />
-          </div>
-        </div>
-      )}
+      <CreditPurchase 
+        open={showCreditPurchase}
+        onOpenChange={setShowCreditPurchase}
+        userId={user?.id || ''} 
+        onClose={() => setShowCreditPurchase(false)}
+      />
     </div>
   );
 }
