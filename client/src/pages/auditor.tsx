@@ -211,14 +211,18 @@ const AuditorPage = React.memo(() => {
   // Remove stableToast to prevent infinite loop
   // Use toast directly
 
-  // Memoize Select value to prevent infinite re-renders
-  const selectValue = useMemo(() => {
-    return auditVisibility.isPublic ? "public" : "private";
-  }, [auditVisibility.isPublic]);
+  // Direct value calculation to prevent memoization loops
+  const selectValue = auditVisibility.isPublic ? "public" : "private";
 
   // Stable onValueChange handler
   const handleVisibilityChange = useCallback((value: string) => {
     const isPublic = value === "public";
+    
+    // Prevent update if value hasn't changed
+    if (isPublic === auditVisibility.isPublic) {
+      return;
+    }
+    
     // Prevent Free users from selecting private
     if (!isPublic && isFreePlan) {
       toast({
@@ -230,7 +234,7 @@ const AuditorPage = React.memo(() => {
       return;
     }
     setAuditVisibility(prev => ({...prev, isPublic}));
-  }, [isFreePlan]);
+  }, [isFreePlan, auditVisibility.isPublic]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

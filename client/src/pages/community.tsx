@@ -204,7 +204,11 @@ export default function Community() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2">
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select value={sortBy} onValueChange={(value) => {
+                if (value !== sortBy) {
+                  setSortBy(value);
+                }
+              }}>
                 <SelectTrigger className="w-full sm:w-[140px] bg-gray-800/50 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
