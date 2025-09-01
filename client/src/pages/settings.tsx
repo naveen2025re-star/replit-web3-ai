@@ -185,7 +185,7 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/auth/user/${user?.walletAddress}`] });
         setIsEditingDisplayName(false);
         // Update the local state to reflect the change immediately
         setDisplayName(displayName.trim());

@@ -188,6 +188,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
           id: user.id,
           walletAddress: user.walletAddress,
           username: user.username,
+          displayName: user.displayName,
           ensName: user.ensName,
           profileImageUrl: user.profileImageUrl,
           createdAt: user.createdAt
@@ -220,6 +221,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         id: user.id,
         walletAddress: user.walletAddress,
         username: user.username,
+        displayName: user.displayName,
         ensName: user.ensName,
         profileImageUrl: user.profileImageUrl,
         createdAt: user.createdAt
