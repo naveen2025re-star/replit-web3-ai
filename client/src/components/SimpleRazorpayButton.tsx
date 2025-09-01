@@ -66,7 +66,7 @@ export default function SimpleRazorpayButton({
         });
       }
 
-      // Razorpay options with minimal fingerprinting
+      // Ultra-minimal Razorpay configuration
       const options = {
         key: orderData.key_id,
         amount: orderData.amount,
@@ -74,14 +74,9 @@ export default function SimpleRazorpayButton({
         order_id: orderData.order_id,
         name: 'Smart Contract Auditor',
         description: packageName,
+        image: '', // Empty to prevent image loading issues
         theme: {
-          color: '#3b82f6',
-          hide_topbar: false
-        },
-        readonly: {
-          email: false,
-          contact: false,
-          name: false
+          color: '#3b82f6'
         },
         handler: async function (response: any) {
           try {
@@ -118,60 +113,26 @@ export default function SimpleRazorpayButton({
             });
             if (onError) onError(error);
           } finally {
-            // Re-enable body scroll with delay
-            setTimeout(() => {
-              document.body.style.overflow = 'unset';
-            }, 100);
+            document.body.style.overflow = '';
             setIsLoading(false);
           }
         },
         modal: {
           ondismiss: function() {
-            console.log('Razorpay modal dismissed by user');
-            // Re-enable body scroll with small delay
-            setTimeout(() => {
-              document.body.style.overflow = 'unset';
-            }, 100);
+            console.log('Razorpay modal dismissed');
+            document.body.style.overflow = '';
             setIsLoading(false);
-          },
-          escape: true,
-          backdropclose: true,
-          confirm_close: false,
-          animation: false,
-          handle_frame_messages: false
-        },
-        config: {
-          display: {
-            language: 'en',
-            blocks: {
-              banks: {
-                name: 'Pay via Bank Account',
-                instruments: [
-                  {
-                    method: 'netbanking'
-                  },
-                  {
-                    method: 'upi'
-                  }
-                ]
-              }
-            }
           }
-        },
-        send_sms_hash: false,
-        allow_rotation: false
+        }
       };
 
       // Open payment with error handling
       const rzp = new window.Razorpay(options);
       
-      // Add error handling for Razorpay instance
+      // Simple error handling
       rzp.on('payment.failed', function (response: any) {
-        console.error('Razorpay payment failed:', response.error);
-        // Re-enable body scroll with delay
-        setTimeout(() => {
-          document.body.style.overflow = 'unset';
-        }, 100);
+        console.error('Payment failed:', response.error);
+        document.body.style.overflow = '';
         setIsLoading(false);
         toast({
           title: "Payment Failed",
@@ -181,21 +142,11 @@ export default function SimpleRazorpayButton({
         if (onError) onError(new Error(response.error.description));
       });
       
-      try {
-        // Prevent body scroll when modal opens with delay
-        setTimeout(() => {
-          document.body.style.overflow = 'hidden';
-        }, 50);
-        
-        // Open with iframe prevention
-        rzp.open();
-      } catch (error) {
-        console.error('Failed to open Razorpay:', error);
-        // Re-enable body scroll on error
-        document.body.style.overflow = 'unset';
-        setIsLoading(false);
-        throw error;
-      }
+      // Prevent background scroll
+      document.body.style.overflow = 'hidden';
+      
+      // Open Razorpay
+      rzp.open();
 
     } catch (error: any) {
       console.error('Payment error:', error);
