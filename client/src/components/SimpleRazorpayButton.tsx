@@ -95,7 +95,7 @@ export default function SimpleRazorpayButton({
 
       const orderData = await orderResponse.json();
 
-      // Bare minimum Razorpay configuration - NO PREFILL, NO COMPLEX MODAL
+      // Official Razorpay configuration following their docs
       const options = {
         key: orderData.key_id,
         amount: orderData.amount,
@@ -103,6 +103,20 @@ export default function SimpleRazorpayButton({
         order_id: orderData.order_id,
         name: 'Smart Contract Auditor',
         description: packageName,
+        image: '', // Empty to prevent image loading
+        // NO PREFILL - users must enter their own data
+        theme: {
+          color: '#3b82f6'
+        },
+        modal: {
+          backdropclose: false, // Don't close on backdrop click
+          escape: true, // Allow escape key to close
+          confirm_close: false, // No confirmation dialog
+          ondismiss: function() {
+            console.log('Payment cancelled by user');
+            setIsLoading(false);
+          }
+        },
         handler: async function (response: any) {
           try {
             // Verify payment
@@ -136,12 +150,6 @@ export default function SimpleRazorpayButton({
             });
             if (onError) onError(error);
           } finally {
-            setIsLoading(false);
-          }
-        },
-        modal: {
-          ondismiss: function() {
-            console.log('Payment cancelled by user');
             setIsLoading(false);
           }
         }
