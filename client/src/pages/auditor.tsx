@@ -97,6 +97,7 @@ export default function AuditorPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const processedSessionRef = useRef<string | null>(null);
 
   // Redirect to auth page if not authenticated
   useEffect(() => {
@@ -112,7 +113,8 @@ export default function AuditorPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get('session');
         
-        if (sessionId && sessionId !== currentSessionId) {
+        if (sessionId && sessionId !== processedSessionRef.current) {
+          processedSessionRef.current = sessionId;
           
           try {
             // Load session directly using the same logic as loadAuditSession
@@ -282,7 +284,7 @@ export default function AuditorPage() {
     };
     
     handleSessionFromUrl();
-  }, [isAuthenticated, user?.id, currentSessionId, toast, queryClient]);
+  }, [isAuthenticated, user?.id, toast, queryClient]);
 
   // Fetch user's audit history
   const { data: auditHistory = [] } = useQuery({
