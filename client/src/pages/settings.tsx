@@ -804,7 +804,7 @@ export default function SettingsPage() {
                     ${creditTransactions ? 
                       creditTransactions
                         .filter((t: any) => t.type === 'purchase')
-                        .reduce((sum: number, t: any) => sum + (t.usdAmount || 0), 0)
+                        .reduce((sum: number, t: any) => sum + (t.metadata?.amount || 0), 0) / 100
                         .toFixed(2) 
                       : '0.00'}
                   </div>
