@@ -190,11 +190,81 @@ export const liveScannedContracts = pgTable("live_scanned_contracts", {
   scannedAt: timestamp("scanned_at"),
 });
 
+// API Keys for third-party integrations
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  keyId: text("key_id").notNull().unique(), // Public identifier like "sa_..."
+  hashedKey: text("hashed_key").notNull(), // Hashed full key for verification
+  name: text("name").notNull(), // User-friendly name
+  permissions: jsonb("permissions").$type<string[]>().default(["audit:read", "audit:write"]), // Scoped permissions
+  lastUsed: timestamp("last_used"),
+  usageCount: integer("usage_count").default(0).notNull(),
+  rateLimit: integer("rate_limit").default(1000).notNull(), // Requests per hour
+  active: boolean("active").default(true).notNull(),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Webhook endpoints for real-time notifications
+export const webhooks = pgTable("webhooks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  secret: text("secret").notNull(), // For HMAC signature verification
+  events: jsonb("events").$type<string[]>().default(["audit.completed", "audit.failed"]), // Event subscriptions
+  active: boolean("active").default(true).notNull(),
+  lastTriggered: timestamp("last_triggered"),
+  successCount: integer("success_count").default(0).notNull(),
+  failureCount: integer("failure_count").default(0).notNull(),
+  retryCount: integer("retry_count").default(3).notNull(), // Max retry attempts
+  timeoutSeconds: integer("timeout_seconds").default(30).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Webhook delivery logs for debugging and monitoring
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  webhookId: varchar("webhook_id").notNull().references(() => webhooks.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  httpStatus: integer("http_status"),
+  responseBody: text("response_body"),
+  responseHeaders: jsonb("response_headers").$type<Record<string, string>>(),
+  attemptNumber: integer("attempt_number").default(1).notNull(),
+  success: boolean("success").default(false).notNull(),
+  errorMessage: text("error_message"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// CI/CD integration configurations
+export const cicdConfigurations = pgTable("cicd_configurations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  repositoryId: varchar("repository_id").references(() => githubRepositories.id),
+  name: text("name").notNull(),
+  provider: text("provider").notNull(), // github_actions, jenkins, gitlab_ci, custom
+  configuration: jsonb("configuration").notNull(), // Provider-specific config
+  webhookUrl: text("webhook_url"), // Webhook URL for triggers
+  triggers: jsonb("triggers").$type<string[]>().default(["push", "pull_request"]), // When to trigger
+  active: boolean("active").default(true).notNull(),
+  lastTriggered: timestamp("last_triggered"),
+  triggerCount: integer("trigger_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   auditSessions: many(auditSessions),
   githubRepositories: many(githubRepositories),
   creditTransactions: many(creditTransactions),
+  apiKeys: many(apiKeys),
+  webhooks: many(webhooks),
+  cicdConfigurations: many(cicdConfigurations),
 }));
 
 export const githubRepositoriesRelations = relations(githubRepositories, ({ one, many }) => ({
@@ -247,6 +317,39 @@ export const liveScannedContractsRelations = relations(liveScannedContracts, ({ 
   auditSession: one(auditSessions, {
     fields: [liveScannedContracts.auditSessionId],
     references: [auditSessions.id],
+  }),
+}));
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  user: one(users, {
+    fields: [apiKeys.userId],
+    references: [users.id],
+  }),
+}));
+
+export const webhooksRelations = relations(webhooks, ({ one, many }) => ({
+  user: one(users, {
+    fields: [webhooks.userId],
+    references: [users.id],
+  }),
+  deliveries: many(webhookDeliveries),
+}));
+
+export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one }) => ({
+  webhook: one(webhooks, {
+    fields: [webhookDeliveries.webhookId],
+    references: [webhooks.id],
+  }),
+}));
+
+export const cicdConfigurationsRelations = relations(cicdConfigurations, ({ one }) => ({
+  user: one(users, {
+    fields: [cicdConfigurations.userId],
+    references: [users.id],
+  }),
+  repository: one(githubRepositories, {
+    fields: [cicdConfigurations.repositoryId],
+    references: [githubRepositories.id],
   }),
 }));
 
@@ -362,6 +465,48 @@ export const insertLiveScannedContractSchema = createInsertSchema(liveScannedCon
   explorerUrl: true,
 });
 
+export const insertApiKeySchema = createInsertSchema(apiKeys).pick({
+  userId: true,
+  keyId: true,
+  hashedKey: true,
+  name: true,
+  permissions: true,
+  rateLimit: true,
+  expiresAt: true,
+});
+
+export const insertWebhookSchema = createInsertSchema(webhooks).pick({
+  userId: true,
+  url: true,
+  secret: true,
+  events: true,
+  retryCount: true,
+  timeoutSeconds: true,
+});
+
+export const insertWebhookDeliverySchema = createInsertSchema(webhookDeliveries).pick({
+  webhookId: true,
+  eventType: true,
+  payload: true,
+  httpStatus: true,
+  responseBody: true,
+  responseHeaders: true,
+  attemptNumber: true,
+  success: true,
+  errorMessage: true,
+  deliveredAt: true,
+});
+
+export const insertCicdConfigurationSchema = createInsertSchema(cicdConfigurations).pick({
+  userId: true,
+  repositoryId: true,
+  name: true,
+  provider: true,
+  configuration: true,
+  webhookUrl: true,
+  triggers: true,
+});
+
 export const insertReferralSchema = createInsertSchema(referrals).pick({
   referrerId: true,
   referredUserId: true,
@@ -392,3 +537,11 @@ export type InsertLiveScannedContract = z.infer<typeof insertLiveScannedContract
 export type LiveScannedContract = typeof liveScannedContracts.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
+export type Webhook = typeof webhooks.$inferSelect;
+export type InsertWebhookDelivery = z.infer<typeof insertWebhookDeliverySchema>;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type InsertCicdConfiguration = z.infer<typeof insertCicdConfigurationSchema>;
+export type CicdConfiguration = typeof cicdConfigurations.$inferSelect;

@@ -2,9 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ReferralService } from "./referralService";
-import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema, liveScannedContracts, auditSessions } from "@shared/schema";
+import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, updateAuditVisibilitySchema, creditTransactions, enterpriseContacts, insertEnterpriseContactSchema, liveScannedContracts, auditSessions, apiKeys, webhooks } from "@shared/schema";
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { BlockchainScanner } from "./blockchainScanner";
+import { ApiService, WebhookService } from "./apiService";
+import { authenticateApiKey, requirePermission, createAudit, getAudit, createBatchAudit, listAudits } from "./auditApi";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createRazorpayOrder, verifyRazorpayPayment, getRazorpayPaymentDetails, handleRazorpayWebhook } from "./razorpay";
@@ -2507,6 +2509,203 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   // PayPal client ID endpoint for frontend
   app.get("/api/paypal/client-id", (req, res) => {
     res.json({ clientId: process.env.PAYPAL_CLIENT_ID });
+  });
+
+  // ======= PUBLIC API v1 ENDPOINTS =======
+  // These endpoints use API key authentication for external integrations
+
+  // Create single audit via API
+  app.post("/api/v1/audit", authenticateApiKey, requirePermission("audit:write"), createAudit);
+
+  // Get audit result via API  
+  app.get("/api/v1/audit/:auditId", authenticateApiKey, requirePermission("audit:read"), getAudit);
+
+  // Create batch audit via API
+  app.post("/api/v1/batch-audit", authenticateApiKey, requirePermission("audit:write"), createBatchAudit);
+
+  // List user's audits via API
+  app.get("/api/v1/audits", authenticateApiKey, requirePermission("audit:read"), listAudits);
+
+  // ======= API KEY MANAGEMENT ENDPOINTS =======
+  
+  // Get user's API keys
+  app.get("/api/integrations/api-keys", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const apiKeysList = await ApiService.getUserApiKeys(userId);
+      res.json({ success: true, apiKeys: apiKeysList });
+    } catch (error) {
+      console.error("Get API keys error:", error);
+      res.status(500).json({ message: "Failed to retrieve API keys" });
+    }
+  });
+
+  // Create new API key
+  app.post("/api/integrations/api-keys", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { name, permissions, rateLimit } = req.body;
+      
+      const validationSchema = z.object({
+        name: z.string().min(1, "Name is required").max(100, "Name too long"),
+        permissions: z.array(z.string()).default(["audit:read", "audit:write"]),
+        rateLimit: z.number().min(100).max(10000).default(1000),
+      });
+      
+      const validatedData = validationSchema.parse({ name, permissions, rateLimit });
+      const newApiKey = await ApiService.createApiKey(
+        userId, 
+        validatedData.name, 
+        validatedData.permissions, 
+        validatedData.rateLimit
+      );
+      
+      res.json({ 
+        success: true, 
+        apiKey: newApiKey,
+        warning: "Store this API key securely. It won't be shown again." 
+      });
+    } catch (error) {
+      console.error("Create API key error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create API key" });
+    }
+  });
+
+  // Delete API key
+  app.delete("/api/integrations/api-keys/:keyId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { keyId } = req.params;
+      
+      const deleted = await ApiService.deleteApiKey(userId, keyId);
+      if (deleted) {
+        res.json({ success: true, message: "API key deleted successfully" });
+      } else {
+        res.status(404).json({ message: "API key not found" });
+      }
+    } catch (error) {
+      console.error("Delete API key error:", error);
+      res.status(500).json({ message: "Failed to delete API key" });
+    }
+  });
+
+  // Toggle API key status
+  app.patch("/api/integrations/api-keys/:keyId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { keyId } = req.params;
+      const { active } = req.body;
+      
+      const updated = await ApiService.toggleApiKey(userId, keyId, active);
+      if (updated) {
+        res.json({ success: true, message: `API key ${active ? 'activated' : 'deactivated'} successfully` });
+      } else {
+        res.status(404).json({ message: "API key not found" });
+      }
+    } catch (error) {
+      console.error("Toggle API key error:", error);
+      res.status(500).json({ message: "Failed to update API key" });
+    }
+  });
+
+  // ======= WEBHOOK MANAGEMENT ENDPOINTS =======
+
+  // Get user webhooks
+  app.get("/api/integrations/webhooks", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const userWebhooks = await WebhookService.getUserWebhooks(userId);
+      res.json({ success: true, webhooks: userWebhooks });
+    } catch (error) {
+      console.error("Get webhooks error:", error);
+      res.status(500).json({ message: "Failed to retrieve webhooks" });
+    }
+  });
+
+  // Create webhook
+  app.post("/api/integrations/webhooks", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { url, events } = req.body;
+      
+      const validationSchema = z.object({
+        url: z.string().url("Invalid webhook URL"),
+        events: z.array(z.string()).default(["audit.completed", "audit.failed"]),
+      });
+      
+      const validatedData = validationSchema.parse({ url, events });
+      const newWebhook = await WebhookService.createWebhook(userId, validatedData.url, validatedData.events);
+      
+      res.json({ success: true, webhook: newWebhook });
+    } catch (error) {
+      console.error("Create webhook error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create webhook" });
+    }
+  });
+
+  // Update webhook
+  app.patch("/api/integrations/webhooks/:webhookId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { webhookId } = req.params;
+      const updates = req.body;
+      
+      const updated = await WebhookService.updateWebhook(userId, webhookId, updates);
+      if (updated) {
+        res.json({ success: true, webhook: updated });
+      } else {
+        res.status(404).json({ message: "Webhook not found" });
+      }
+    } catch (error) {
+      console.error("Update webhook error:", error);
+      res.status(500).json({ message: "Failed to update webhook" });
+    }
+  });
+
+  // Delete webhook
+  app.delete("/api/integrations/webhooks/:webhookId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { webhookId } = req.params;
+      
+      const deleted = await WebhookService.deleteWebhook(userId, webhookId);
+      if (deleted) {
+        res.json({ success: true, message: "Webhook deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Webhook not found" });
+      }
+    } catch (error) {
+      console.error("Delete webhook error:", error);
+      res.status(500).json({ message: "Failed to delete webhook" });
+    }
+  });
+
+  // Get webhook delivery logs
+  app.get("/api/integrations/webhooks/:webhookId/deliveries", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { webhookId } = req.params;
+      
+      // Verify webhook belongs to user
+      const userWebhooks = await WebhookService.getUserWebhooks(userId);
+      const webhook = userWebhooks.find(w => w.id === webhookId);
+      
+      if (!webhook) {
+        return res.status(404).json({ message: "Webhook not found" });
+      }
+      
+      const deliveries = await WebhookService.getWebhookDeliveries(webhookId);
+      res.json({ success: true, deliveries });
+    } catch (error) {
+      console.error("Get webhook deliveries error:", error);
+      res.status(500).json({ message: "Failed to retrieve webhook deliveries" });
+    }
   });
 
   const httpServer = createServer(app);
