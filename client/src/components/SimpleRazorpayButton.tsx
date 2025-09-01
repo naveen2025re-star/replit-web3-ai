@@ -33,8 +33,8 @@ export default function SimpleRazorpayButton({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const loadRazorpayScript = () => {
-    return new Promise<boolean>((resolve) => {
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
       if (window.Razorpay) {
         resolve(true);
         return;
@@ -45,7 +45,7 @@ export default function SimpleRazorpayButton({
       script.async = true;
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
-      document.body.appendChild(script);
+      document.head.appendChild(script);
     });
   };
 
@@ -58,7 +58,7 @@ export default function SimpleRazorpayButton({
       // Load Razorpay script
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        throw new Error('Razorpay SDK failed to load. Please check your internet connection.');
+        throw new Error('Failed to load payment gateway. Please check your internet connection.');
       }
 
       // Create purchase session
@@ -95,31 +95,20 @@ export default function SimpleRazorpayButton({
 
       const orderData = await orderResponse.json();
 
-      // Official Razorpay configuration following their docs
+      // Clean Razorpay configuration following official docs
       const options = {
+        // Essential options only
         key: orderData.key_id,
         amount: orderData.amount,
         currency: orderData.currency,
         order_id: orderData.order_id,
         name: 'Smart Contract Auditor',
         description: packageName,
-        image: '', // Empty to prevent image loading
-        // NO PREFILL - users must enter their own data
-        theme: {
-          color: '#3b82f6'
-        },
-        modal: {
-          backdropclose: false, // Don't close on backdrop click
-          escape: true, // Allow escape key to close
-          confirm_close: false, // No confirmation dialog
-          ondismiss: function() {
-            console.log('Payment cancelled by user');
-            setIsLoading(false);
-          }
-        },
+        
+        // Handler for successful payment
         handler: async function (response: any) {
           try {
-            // Verify payment
+            // Verify payment on backend
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -152,25 +141,37 @@ export default function SimpleRazorpayButton({
           } finally {
             setIsLoading(false);
           }
+        },
+
+        // Minimal theme
+        theme: {
+          color: '#3b82f6'
+        },
+
+        // Simple modal config - no complex options
+        modal: {
+          ondismiss: function() {
+            setIsLoading(false);
+          }
         }
       };
 
-      // Create and open Razorpay instance
+      // Create and open Razorpay checkout
       const rzp = new window.Razorpay(options);
       
       // Handle payment failures
       rzp.on('payment.failed', function (response: any) {
-        console.error('Payment failed:', response.error);
         setIsLoading(false);
+        const errorMsg = response.error?.description || "Payment failed. Please try again.";
         toast({
           title: "Payment Failed",
-          description: response.error?.description || "Payment failed. Please try again.",
+          description: errorMsg,
           variant: "destructive",
         });
-        if (onError) onError(new Error(response.error?.description));
+        if (onError) onError(new Error(errorMsg));
       });
 
-      // Open the payment modal
+      // Open the modal
       rzp.open();
 
     } catch (error: any) {
