@@ -1076,6 +1076,139 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.post("/api/razorpay/verify-payment", verifyRazorpayPayment);
   app.get("/api/razorpay/payment/:paymentId", getRazorpayPaymentDetails);
   app.post("/api/razorpay/webhook", handleRazorpayWebhook);
+
+  // Payment status endpoint for monitoring
+  app.get('/api/razorpay/payment-status/:orderId', async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      
+      // Fetch order details from Razorpay
+      const orderDetails = await getRazorpayPaymentDetails(orderId);
+      
+      res.json({
+        status: orderDetails.status,
+        amount_paid: orderDetails.amount_paid,
+        amount_due: orderDetails.amount_due
+      });
+    } catch (error: any) {
+      console.error('Error fetching payment status:', error);
+      res.status(500).json({ 
+        error: error.message || 'Failed to fetch payment status' 
+      });
+    }
+  });
+
+  // Payment callback endpoint (for hosted checkout)
+  app.get('/payment-callback', async (req, res) => {
+    try {
+      const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.query;
+      
+      if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
+        // Verify the payment
+        const isValid = await verifyRazorpayPayment(
+          razorpay_order_id as string, 
+          razorpay_payment_id as string, 
+          razorpay_signature as string
+        );
+        
+        if (isValid) {
+          res.send(`
+            <html>
+              <head>
+                <title>Payment Successful</title>
+                <style>
+                  body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                  .success { color: #28a745; }
+                </style>
+              </head>
+              <body>
+                <h2 class="success">Payment Successful!</h2>
+                <p>Your payment has been processed successfully. You can close this tab.</p>
+                <script>
+                  setTimeout(() => {
+                    window.close();
+                  }, 3000);
+                </script>
+              </body>
+            </html>
+          `);
+        } else {
+          res.send(`
+            <html>
+              <head>
+                <title>Payment Verification Failed</title>
+                <style>
+                  body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                  .error { color: #dc3545; }
+                </style>
+              </head>
+              <body>
+                <h2 class="error">Payment Verification Failed</h2>
+                <p>There was an issue verifying your payment. Please contact support.</p>
+              </body>
+            </html>
+          `);
+        }
+      } else {
+        res.send(`
+          <html>
+            <head>
+              <title>Payment Cancelled</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .warning { color: #ffc107; }
+              </style>
+            </head>
+            <body>
+              <h2 class="warning">Payment Cancelled</h2>
+              <p>Your payment was cancelled. You can close this tab and try again.</p>
+            </body>
+          </html>
+        `);
+      }
+    } catch (error: any) {
+      console.error('Payment callback error:', error);
+      res.status(500).send(`
+        <html>
+          <head>
+            <title>Error</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: #dc3545; }
+            </style>
+          </head>
+          <body>
+            <h2 class="error">Error</h2>
+            <p>An error occurred processing your payment. Please contact support.</p>
+          </body>
+        </html>
+      `);
+    }
+  });
+
+  // Payment cancel endpoint
+  app.get('/payment-cancel', (req, res) => {
+    res.send(`
+      <html>
+        <head>
+          <title>Payment Cancelled</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .warning { color: #ffc107; }
+          </style>
+        </head>
+        <body>
+          <h2 class="warning">Payment Cancelled</h2>
+          <p>Your payment was cancelled. You can close this tab and try again.</p>
+          <script>
+            setTimeout(() => {
+              window.close();
+            }, 3000);
+          </script>
+        </body>
+      </html>
+    `);
+  });
   
   // Test successful payment simulation
   app.get("/api/paypal/test-success", async (req, res) => {

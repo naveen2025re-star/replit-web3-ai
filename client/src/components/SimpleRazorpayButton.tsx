@@ -3,12 +3,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { Loader, CreditCard } from "lucide-react";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 interface SimpleRazorpayButtonProps {
   amount: number;
   currency?: string;
@@ -33,37 +27,12 @@ export default function SimpleRazorpayButton({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      script.defer = true; // Defer loading to avoid conflicts
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      
-      // Add to head to avoid body conflicts
-      document.head.appendChild(script);
-    });
-  };
-
   const handlePayment = async () => {
     if (isLoading) return;
     
     setIsLoading(true);
 
     try {
-      // Load Razorpay script with proper error handling
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error('Failed to load payment gateway. Please check your internet connection.');
-      }
-
       // Create purchase session
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
@@ -98,122 +67,73 @@ export default function SimpleRazorpayButton({
 
       const orderData = await orderResponse.json();
 
-      // Ultra-clean Razorpay configuration to avoid RTB tracking issues
-      const options = {
-        // Core payment options only
-        key: orderData.key_id,
+      // Create a form and submit to Razorpay hosted checkout
+      // This bypasses the problematic modal entirely
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://api.razorpay.com/v1/checkout/embedded';
+      form.target = '_blank'; // Open in new tab
+      
+      // Add form fields
+      const fields = {
+        key_id: orderData.key_id,
         amount: orderData.amount,
         currency: orderData.currency,
         order_id: orderData.order_id,
         name: 'Smart Contract Auditor',
         description: packageName,
-        
-        // Success handler
-        handler: async function (response: any) {
-          try {
-            // Verify payment on backend
-            const verifyResponse = await fetch('/api/razorpay/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                packageId: packageId,
-                userId: userId
-              }),
-            });
+        callback_url: `${window.location.origin}/payment-callback`,
+        cancel_url: `${window.location.origin}/payment-cancel`
+      };
 
-            if (verifyResponse.ok) {
+      // Add hidden input fields to form
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
+      });
+
+      // Add form to document and submit
+      document.body.appendChild(form);
+      form.submit();
+      
+      // Clean up
+      document.body.removeChild(form);
+      
+      // Show success message
+      toast({
+        title: "Payment Window Opened",
+        description: "Complete your payment in the new tab. This page will update automatically.",
+      });
+
+      // Set up payment monitoring
+      const checkPaymentStatus = async () => {
+        try {
+          const statusResponse = await fetch(`/api/razorpay/payment-status/${orderData.order_id}`);
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            if (statusData.status === 'captured') {
               toast({
                 title: "Payment Successful!",
                 description: "Credits have been added to your account.",
               });
-              if (onSuccess) onSuccess(response);
-            } else {
-              throw new Error('Payment verification failed');
-            }
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            toast({
-              title: "Payment Error",
-              description: "Payment verification failed. Please contact support.",
-              variant: "destructive",
-            });
-            if (onError) onError(error);
-          } finally {
-            setIsLoading(false);
-          }
-        },
-
-        // Minimal theme to avoid conflicts
-        theme: {
-          color: '#3b82f6'
-        },
-
-        // Clean modal config - no complex options that trigger RTB
-        modal: {
-          ondismiss: function() {
-            setIsLoading(false);
-          }
-        },
-
-        // Disable analytics and tracking to avoid fingerprint errors
-        config: {
-          display: {
-            hide: {
-              analytics: true // Hide analytics to prevent tracking errors
+              if (onSuccess) onSuccess(statusData);
+              setIsLoading(false);
+              return;
             }
           }
+        } catch (error) {
+          console.error('Error checking payment status:', error);
         }
+        
+        // Check again in 3 seconds
+        setTimeout(checkPaymentStatus, 3000);
       };
 
-      // Create Razorpay instance with error suppression
-      const originalConsoleError = console.error;
-      const originalConsoleWarn = console.warn;
-      
-      // Temporarily suppress Razorpay console errors about fingerprinting
-      console.error = function(...args) {
-        const message = args.join(' ');
-        if (message.includes('x-rtb-fingerprint-id') || 
-            message.includes('fingerprint') || 
-            message.includes('unsafe header')) {
-          return; // Suppress these specific errors
-        }
-        originalConsoleError.apply(console, args);
-      };
-      
-      console.warn = function(...args) {
-        const message = args.join(' ');
-        if (message.includes('x-rtb-fingerprint-id') || 
-            message.includes('fingerprint')) {
-          return; // Suppress these specific warnings
-        }
-        originalConsoleWarn.apply(console, args);
-      };
-
-      const rzp = new window.Razorpay(options);
-      
-      // Handle payment failures
-      rzp.on('payment.failed', function (response: any) {
-        setIsLoading(false);
-        const errorMsg = response.error?.description || "Payment failed. Please try again.";
-        toast({
-          title: "Payment Failed",
-          description: errorMsg,
-          variant: "destructive",
-        });
-        if (onError) onError(new Error(errorMsg));
-      });
-
-      // Open the modal
-      rzp.open();
-
-      // Restore console functions after a delay
-      setTimeout(() => {
-        console.error = originalConsoleError;
-        console.warn = originalConsoleWarn;
-      }, 5000);
+      // Start monitoring after a delay
+      setTimeout(checkPaymentStatus, 5000);
 
     } catch (error: any) {
       console.error('Payment error:', error);
@@ -237,7 +157,7 @@ export default function SimpleRazorpayButton({
       {isLoading ? (
         <div className="flex items-center gap-2">
           <Loader className="h-4 w-4 animate-spin" />
-          Processing...
+          Opening Payment...
         </div>
       ) : (
         <div className="flex items-center gap-2">
