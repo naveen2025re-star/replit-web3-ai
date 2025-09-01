@@ -106,7 +106,7 @@ const AuditorPage = React.memo(() => {
       authRedirectRef.current = true;
       setLocation('/auth');
     }
-  }, [isConnected, isAuthenticated, setLocation]);
+  }, [isConnected, isAuthenticated]); // Remove setLocation from dependencies
 
   // Handle session URL parameter for direct links from GitHub integration - run only once
   useEffect(() => {

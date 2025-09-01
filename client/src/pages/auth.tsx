@@ -19,7 +19,7 @@ export default function AuthPage() {
     if (isAuthenticated && user) {
       setLocation("/auditor");
     }
-  }, [isAuthenticated, user, setLocation]);
+  }, [isAuthenticated, user]); // Remove setLocation from dependencies
 
   if (isConnected && !isAuthenticated) {
     return (
