@@ -1123,8 +1123,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         if (isValid) {
           // Extract package info from order notes and add credits
           try {
+            console.log(`🔍 Fetching order details for: ${razorpay_order_id}`);
             const order = await razorpay.orders.fetch(razorpay_order_id as string);
+            console.log(`📦 Order notes:`, order.notes);
             const { packageId, userId } = order.notes || {};
+            
+            console.log(`👤 Package ID: ${packageId}, User ID: ${userId}`);
             
             if (packageId && userId) {
               const packages = await CreditService.getCreditPackages();
@@ -1132,14 +1136,14 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               
               if (selectedPackage) {
                 await CreditService.addCredits(
-                  userId,
+                  String(userId),
                   selectedPackage.totalCredits,
                   "purchase",
                   `Payment for ${selectedPackage.name} package`,
                   { 
-                    packageId, 
-                    razorpay_payment_id, 
-                    razorpay_order_id,
+                    packageId: String(packageId), 
+                    razorpay_payment_id: String(razorpay_payment_id), 
+                    razorpay_order_id: String(razorpay_order_id),
                     amount: selectedPackage.price 
                   }
                 );

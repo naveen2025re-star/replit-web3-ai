@@ -3,6 +3,12 @@ import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { Loader, CreditCard } from "lucide-react";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 interface SimpleRazorpayButtonProps {
   amount: number;
   currency?: string;
@@ -27,13 +33,30 @@ export default function SimpleRazorpayButton({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      
+      document.head.appendChild(script);
+    });
+  };
+
   const handlePayment = async () => {
     if (isLoading) return;
     
     setIsLoading(true);
 
     try {
-      // Create purchase session
+      // Create purchase session first
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,61 +89,55 @@ export default function SimpleRazorpayButton({
       }
 
       const orderData = await orderResponse.json();
+      console.log('💳 Order created:', orderData);
 
-      // Create a form and submit to Razorpay hosted checkout
-      // This bypasses the problematic modal entirely
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = 'https://api.razorpay.com/v1/checkout/embedded';
-      form.target = '_blank'; // Open in new tab
-      
-      // Add form fields
-      const fields = {
-        key_id: orderData.key_id,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        order_id: orderData.order_id,
-        name: 'Smart Contract Auditor',
-        description: packageName,
-        callback_url: `${window.location.origin}/payment-callback`,
-        cancel_url: `${window.location.origin}/payment-cancel`
-      };
+      // Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error('Failed to load payment gateway');
+      }
 
-      // Add hidden input fields to form
-      Object.entries(fields).forEach(([key, value]) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(value);
-        form.appendChild(input);
-      });
+      // Use direct URL redirect to Razorpay's hosted page
+      const paymentUrl = `https://api.razorpay.com/v1/checkout/embedded?` +
+        `key_id=${encodeURIComponent(orderData.key_id)}&` +
+        `amount=${encodeURIComponent(orderData.amount)}&` +
+        `currency=${encodeURIComponent(orderData.currency)}&` +
+        `order_id=${encodeURIComponent(orderData.order_id)}&` +
+        `name=${encodeURIComponent('Smart Contract Auditor')}&` +
+        `description=${encodeURIComponent(packageName)}&` +
+        `callback_url=${encodeURIComponent(window.location.origin + '/payment-callback')}&` +
+        `cancel_url=${encodeURIComponent(window.location.origin + '/payment-cancel')}`;
 
-      // Add form to document and submit
-      document.body.appendChild(form);
-      form.submit();
+      console.log('🔗 Opening payment URL:', paymentUrl);
+
+      // Open payment page in new tab
+      const paymentWindow = window.open(paymentUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
       
-      // Clean up
-      document.body.removeChild(form);
-      
-      // Show success message
+      if (!paymentWindow) {
+        throw new Error('Please allow popups to complete payment');
+      }
+
       toast({
         title: "Payment Window Opened",
         description: "Complete your payment in the new tab. This page will update automatically.",
       });
 
-      // Set up payment monitoring
+      // Monitor payment status
       const checkPaymentStatus = async () => {
         try {
           const statusResponse = await fetch(`/api/razorpay/payment-status/${orderData.order_id}`);
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();
-            if (statusData.status === 'captured') {
+            console.log('📊 Payment status:', statusData);
+            
+            if (statusData.status === 'paid' || statusData.amount_paid > 0) {
               toast({
                 title: "Payment Successful!",
                 description: "Credits have been added to your account.",
               });
               if (onSuccess) onSuccess(statusData);
               setIsLoading(false);
+              paymentWindow?.close();
               return;
             }
           }
@@ -128,8 +145,13 @@ export default function SimpleRazorpayButton({
           console.error('Error checking payment status:', error);
         }
         
-        // Check again in 3 seconds
-        setTimeout(checkPaymentStatus, 3000);
+        // Continue monitoring if payment window is still open
+        if (!paymentWindow?.closed) {
+          setTimeout(checkPaymentStatus, 3000);
+        } else {
+          console.log('Payment window closed by user');
+          setIsLoading(false);
+        }
       };
 
       // Start monitoring after a delay
@@ -157,7 +179,7 @@ export default function SimpleRazorpayButton({
       {isLoading ? (
         <div className="flex items-center gap-2">
           <Loader className="h-4 w-4 animate-spin" />
-          Opening Payment...
+          Processing Payment...
         </div>
       ) : (
         <div className="flex items-center gap-2">
