@@ -37,7 +37,7 @@ interface CreditPurchaseProps {
   onClose?: () => void;
 }
 
-export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: CreditPurchaseProps) {
+export function CreditPurchase({ open = false, onOpenChange, userId, onClose }: CreditPurchaseProps) {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -131,11 +131,11 @@ export function CreditPurchase({ open = true, onOpenChange, userId, onClose }: C
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
+      if (onOpenChange) onOpenChange(newOpen);
       if (!newOpen) {
         setSelectedPackage(null);
         if (onClose) onClose();
       }
-      if (onOpenChange) onOpenChange(newOpen);
     }}>
       <DialogContent className="bg-slate-900/98 border-slate-700/50 max-w-6xl max-h-[95vh] overflow-y-auto shadow-2xl backdrop-blur-lg" data-testid="dialog-credit-purchase">
         <DialogHeader className="pb-6 text-center">

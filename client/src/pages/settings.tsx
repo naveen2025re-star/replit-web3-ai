@@ -859,7 +859,7 @@ export default function SettingsPage() {
                     <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
                   </div>
                   <div className="p-4 space-y-3">
-                    {creditTransactions.slice(0, 5).map((transaction) => (
+                    {creditTransactions.slice(0, 5).map((transaction: any) => (
                       <div key={transaction.id} className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
