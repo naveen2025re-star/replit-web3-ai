@@ -186,6 +186,7 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  transition: opacity 0.3s ease-out;
 }
 
 .loading-spinner {
@@ -195,6 +196,7 @@
   border-top: 3px solid #3b82f6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));
 }
 
 .loading-content {
@@ -237,4 +239,80 @@
 
 .markdown-content strong {
   @apply font-semibold text-foreground;
+}
+
+/* Production Optimizations */
+.page-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+.card-hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced Focus States */
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .mobile-padding {
+    @apply px-4 py-3;
+  }
+  
+  .mobile-text {
+    @apply text-sm;
+  }
+  
+  .mobile-hidden {
+    @apply hidden;
+  }
+}
+
+/* Error States */
+.error-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Success States */
+.success-pulse {
+  animation: successPulse 0.6s ease-in-out;
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Improved Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground));
 }
