@@ -1059,18 +1059,6 @@ export default function SettingsPage() {
                 <h2 className="text-2xl font-bold text-white mb-2">Billing</h2>
                 <p className="text-slate-400">Manage your billing and subscription.</p>
               </div>
-              <div className="space-y-4">
-                <div className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
-                  <h3 className="text-lg font-semibold text-white mb-2">Pay-as-you-go</h3>
-                  <p className="text-slate-400 mb-4">You're currently on our flexible credit system.</p>
-                  <Button 
-                    onClick={() => setShowCreditPurchase(true)}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Purchase Credits
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
         </div>
