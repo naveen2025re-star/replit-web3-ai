@@ -26,7 +26,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    this.setState({ error, errorInfo });
+    
+    // Prevent infinite loops by checking if we already have an error state
+    if (!this.state.hasError) {
+      this.setState({ error, errorInfo });
+    }
     
     // Log to analytics if needed
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
