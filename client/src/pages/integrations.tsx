@@ -873,7 +873,7 @@ export default function IntegrationsPage() {
                         <Badge variant="outline" className="text-green-400 border-green-500/30">Live</Badge>
                       </div>
                       <div className="flex items-center justify-between bg-slate-700/30 p-2 rounded">
-                        <span className="text-gray-300">GET /api/v1/audit/{id}</span>
+                        <span className="text-gray-300">GET /api/v1/audit/&#123;id&#125;</span>
                         <Badge variant="outline" className="text-green-400 border-green-500/30">Live</Badge>
                       </div>
                       <div className="flex items-center justify-between bg-slate-700/30 p-2 rounded">
