@@ -332,9 +332,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
   
-  // MCP info endpoint (GET) - moved to avoid vite middleware conflict
-  app.get("/api/mcp-info", (req, res) => {
-    res.json({
+  // MCP info endpoint (GET) - with explicit JSON headers
+  // Alternative endpoint that works in browser
+  app.get("/api/mcp/info", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('X-API-Response', 'true');
+    return res.status(200).json({
       name: "SmartAudit AI MCP Server",
       description: "Model Context Protocol server for smart contract auditing",
       version: "1.0.0",
@@ -346,7 +349,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         stdio: "Use the standalone MCP server: node build/mcp-server.js",
         http: "POST requests to /api/mcp with MCP protocol format"
       },
-      standalone_server: "build/mcp-server.js"
+      standalone_server: "build/mcp-server.js",
+      status: "active",
+      timestamp: new Date().toISOString()
     });
   });
 
