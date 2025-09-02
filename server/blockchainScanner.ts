@@ -76,30 +76,30 @@ export class BlockchainScanner {
   // Expanded list of interesting verified contracts across multiple chains
   private static INTERESTING_CONTRACTS = [
     // Ethereum mainnet - Popular DeFi and tokens
-    { address: "0xA0b86a33E6441a1563b3d6ee8E203C4bb5dDBBB6", network: "ethereum", type: "DEX" },
-    { address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", network: "ethereum", type: "Token" },
-    { address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", network: "ethereum", type: "Token" },
-    { address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", network: "ethereum", type: "Token" },
-    { address: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72", network: "ethereum", type: "Token" },
-    { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", network: "ethereum", type: "Stablecoin" },
-    { address: "0xA0b73E1Ff0B80914AB6fe0444E65848C4C34450b", network: "ethereum", type: "Token" },
+    { address: "0xA0b86a33E6441a1563b3d6ee8E203C4bb5dDBBB6", network: "ethereum", type: "DEX", name: "Curve Finance" },
+    { address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", network: "ethereum", type: "Token", name: "Chainlink Token" },
+    { address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", network: "ethereum", type: "Token", name: "Uniswap Token" },
+    { address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", network: "ethereum", type: "Token", name: "Aave Token" },
+    { address: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72", network: "ethereum", type: "Token", name: "Ethereum Name Service" },
+    { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", network: "ethereum", type: "Stablecoin", name: "Dai Stablecoin" },
+    { address: "0xA0b73E1Ff0B80914AB6fe0444E65848C4C34450b", network: "ethereum", type: "Token", name: "Cronos Token" },
     
     // Polygon - Major tokens and DeFi
-    { address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", network: "polygon", type: "Stablecoin" },
-    { address: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", network: "polygon", type: "Token" },
-    { address: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", network: "polygon", type: "Token" },
+    { address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", network: "polygon", type: "Stablecoin", name: "USD Coin (PoS)" },
+    { address: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", network: "polygon", type: "Token", name: "Wrapped BTC (PoS)" },
+    { address: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", network: "polygon", type: "Token", name: "Dai Stablecoin (PoS)" },
     
     // Arbitrum - L2 popular contracts
-    { address: "0x912CE59144191C1204E64559FE8253a0e49E6548", network: "arbitrum", type: "Token" },
-    { address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", network: "arbitrum", type: "Stablecoin" },
+    { address: "0x912CE59144191C1204E64559FE8253a0e49E6548", network: "arbitrum", type: "Token", name: "Arbitrum Token" },
+    { address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", network: "arbitrum", type: "Stablecoin", name: "Tether USD" },
     
     // Base - Emerging ecosystem
-    { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", network: "base", type: "Stablecoin" },
-    { address: "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed", network: "base", type: "Token" },
+    { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", network: "base", type: "Stablecoin", name: "USD Coin" },
+    { address: "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed", network: "base", type: "Token", name: "Degen Token" },
     
     // Optimism - L2 scaling
-    { address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", network: "optimism", type: "Token" },
-    { address: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", network: "optimism", type: "Stablecoin" },
+    { address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", network: "optimism", type: "Token", name: "Optimism Token" },
+    { address: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", network: "optimism", type: "Stablecoin", name: "USD Coin" },
   ];
 
   public static async fetchContractFromExplorer(
@@ -500,5 +500,66 @@ export class BlockchainScanner {
         vulnerabilityCount,
       })
       .where(eq(liveScannedContracts.contractAddress, contractAddress));
+  }
+
+  public static async getInterestingContracts(): Promise<VerifiedContract[]> {
+    const contracts: VerifiedContract[] = [];
+    
+    for (const contractInfo of this.INTERESTING_CONTRACTS.slice(0, 12)) { // Show 12 contracts
+      try {
+        const contract = await this.fetchContractFromExplorer(contractInfo.address, contractInfo.network);
+        if (contract) {
+          contract.type = contractInfo.type;
+          contract.name = contractInfo.name;
+          contracts.push(contract);
+        }
+      } catch (error) {
+        console.error(`Failed to fetch ${contractInfo.address}:`, error);
+        // Continue with next contract even if one fails
+      }
+    }
+    
+    return contracts;
+  }
+
+  public static getSupportedNetworks(): Array<{name: string, chainId: number, displayName: string}> {
+    return this.NETWORKS.map(network => ({
+      name: network.name,
+      chainId: network.chainId,
+      displayName: this.getNetworkDisplayName(network.name)
+    }));
+  }
+
+  private static getNetworkDisplayName(networkName: string): string {
+    const displayNames: Record<string, string> = {
+      ethereum: 'Ethereum Mainnet',
+      polygon: 'Polygon',
+      arbitrum: 'Arbitrum One',
+      optimism: 'Optimism',
+      base: 'Base',
+      bsc: 'BSC'
+    };
+    return displayNames[networkName] || networkName;
+  }
+
+  public static async validateContractAddress(address: string, network: string): Promise<boolean> {
+    try {
+      // Basic address format validation
+      if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        return false;
+      }
+
+      // Check if network is supported
+      const networkConfig = this.NETWORKS.find(n => n.name === network);
+      if (!networkConfig) {
+        return false;
+      }
+
+      // Try to fetch basic contract info to validate existence
+      const contract = await this.fetchContractFromExplorer(address, network);
+      return contract !== null;
+    } catch (error) {
+      return false;
+    }
   }
 }
