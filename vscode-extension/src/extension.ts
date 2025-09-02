@@ -165,20 +165,30 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function auditDocument(document: vscode.TextDocument) {
+    // Show immediate feedback that audit has started
+    const statusMessage = vscode.window.setStatusBarMessage('🔍 SmartAudit AI: Starting analysis...', 3000);
+    
     const config = vscode.workspace.getConfiguration('smartaudit');
     const apiKey = config.get<string>('apiKey');
     
     if (!apiKey) {
         const action = await vscode.window.showWarningMessage(
-            'SmartAudit AI API key not configured.',
+            '⚠️ SmartAudit AI requires an API key to function. Would you like to configure it now?',
             'Configure Now',
-            'Get API Key'
+            'Get Free API Key',
+            'Try Demo Mode'
         );
         
         if (action === 'Configure Now') {
             vscode.commands.executeCommand('workbench.action.openSettings', 'smartaudit.apiKey');
-        } else if (action === 'Get API Key') {
+            vscode.window.showInformationMessage('💡 Tip: Set your API key in the SmartAudit AI settings to start auditing!');
+        } else if (action === 'Get Free API Key') {
             vscode.env.openExternal(vscode.Uri.parse('https://smartaudit.ai/settings'));
+            vscode.window.showInformationMessage('🌐 Visit smartaudit.ai to get your free API key!');
+        } else if (action === 'Try Demo Mode') {
+            // Show demo mode with sample results
+            await showDemoAuditResults(document);
+            return;
         }
         return;
     }
@@ -205,12 +215,15 @@ async function auditDocument(document: vscode.TextDocument) {
     // Generate audit configuration
     const auditConfig = BlockchainLanguageDetector.generateAuditConfig(detectedLang);
     
-    // Show progress
+    // Show the sidebar when audit starts
+    vscode.commands.executeCommand('setContext', 'workspaceHasSmartContracts', true);
+    
+    // Show progress with better visibility  
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: `Auditing ${detectedLang.language.name} - ${fileName}...`,
-        cancellable: false
-    }, async (progress) => {
+        title: `🛡️ SmartAudit AI: Analyzing ${detectedLang.language.name}`,
+        cancellable: true
+    }, async (progress, token) => {
         try {
             progress.report({ 
                 message: `Starting ${detectedLang?.language.name || 'code'} analysis...` 
@@ -264,8 +277,24 @@ async function auditDocument(document: vscode.TextDocument) {
             throw new Error('Audit timed out');
             
         } catch (error) {
-            vscode.window.showErrorMessage(`Audit failed: ${error}`);
-            console.error('Audit error:', error);
+            // Show detailed error with helpful actions
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            const action = await vscode.window.showErrorMessage(
+                `❌ SmartAudit AI audit failed: ${errorMsg}`,
+                'Check Settings',
+                'Try Demo',
+                'Get Help'
+            );
+            
+            if (action === 'Check Settings') {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'smartaudit');
+            } else if (action === 'Try Demo') {
+                await showDemoAuditResults(document);
+            } else if (action === 'Get Help') {
+                vscode.env.openExternal(vscode.Uri.parse('https://smartaudit.ai/help'));
+            }
+            
+            console.error('SmartAudit AI Error:', error);
         }
     });
 }
@@ -277,6 +306,43 @@ async function checkForSmartContracts() {
         .join(',');
     const files = await vscode.workspace.findFiles(`{${supportedExts}}`, '**/node_modules/**', 1);
     vscode.commands.executeCommand('setContext', 'workspaceHasSmartContracts', files.length > 0);
+}
+
+// Demo mode - show sample audit results
+async function showDemoAuditResults(document: vscode.TextDocument) {
+    const fileName = document.fileName.split('/').pop() || 'contract.sol';
+    
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `🎭 Demo Mode: Analyzing ${fileName}`,
+        cancellable: false
+    }, async (progress) => {
+        progress.report({ message: 'Simulating security analysis...' });
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        progress.report({ message: 'Checking for vulnerabilities...' });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Show sample results
+        const results = {
+            high: 1,
+            medium: 2, 
+            low: 3,
+            info: 5
+        };
+        
+        vscode.window.showInformationMessage(
+            `🎭 Demo Results: Found ${results.high} high, ${results.medium} medium, ${results.low} low severity issues. Click 'Get Real Analysis' for actual results.`,
+            'Get Real Analysis',
+            'Configure API Key'
+        ).then(action => {
+            if (action === 'Get Real Analysis') {
+                vscode.env.openExternal(vscode.Uri.parse('https://smartaudit.ai/pricing'));
+            } else if (action === 'Configure API Key') {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'smartaudit.apiKey');
+            }
+        });
+    });
 }
 
 export function deactivate() {
