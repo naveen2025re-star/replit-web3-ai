@@ -2619,6 +2619,216 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // ======= VSCODE EXTENSION ENDPOINTS =======
+
+  // VS Code authentication - verify API key and return user info
+  app.get("/api/vscode/auth", authenticateApiKey, async (req: any, res) => {
+    try {
+      const userId = req.apiUser?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Invalid API key" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          displayName: user.displayName || user.ensName || user.githubUsername,
+          walletAddress: user.walletAddress,
+          credits: user.credits,
+          permissions: req.apiUser.permissions
+        }
+      });
+    } catch (error) {
+      console.error("VS Code auth error:", error);
+      res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
+  // VS Code audit endpoint with enhanced diagnostics
+  app.post("/api/vscode/audit", authenticateApiKey, requirePermission("audit:write"), async (req: any, res) => {
+    try {
+      const userId = req.apiUser?.userId;
+      const { contractCode, language = "solidity", fileName } = req.body;
+
+      if (!contractCode) {
+        return res.status(400).json({ error: "Contract code is required" });
+      }
+
+      // Create audit session
+      const sessionData = {
+        userId,
+        contractCode,
+        contractLanguage: language,
+        contractSource: "vscode",
+        isPublic: false, // VS Code audits are always private
+        publicTitle: fileName ? `VS Code: ${fileName}` : "VS Code Audit"
+      };
+
+      const session = await storage.insertAuditSession(sessionData);
+      
+      // Start audit analysis
+      const auditResponse = await fetch(`${SHIPABLE_API_BASE}/chat/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${JWT_TOKEN}`
+        },
+        body: JSON.stringify({
+          websiteUrl: 'https://smartaudit.ai',
+          question: `Please analyze this ${language} smart contract for security vulnerabilities. For each issue found, please include the line number where it occurs.\n\n\`\`\`${language}\n${contractCode}\n\`\`\``,
+          generateTitle: false
+        })
+      });
+
+      if (!auditResponse.ok) {
+        throw new Error(`Audit API error: ${auditResponse.status}`);
+      }
+
+      const auditData = await auditResponse.json();
+      
+      // Return session info for VS Code to poll for results
+      res.json({
+        success: true,
+        sessionId: session.id,
+        sessionKey: auditData.sessionKey,
+        status: "analyzing",
+        message: "Analysis started. Use /api/vscode/audit/status to check progress."
+      });
+
+    } catch (error) {
+      console.error("VS Code audit error:", error);
+      res.status(500).json({ error: "Failed to start audit analysis" });
+    }
+  });
+
+  // VS Code audit status endpoint
+  app.get("/api/vscode/audit/status/:sessionId", authenticateApiKey, async (req: any, res) => {
+    try {
+      const userId = req.apiUser?.userId;
+      const { sessionId } = req.params;
+
+      const session = await storage.getAuditSession(sessionId);
+      if (!session || session.userId !== userId) {
+        return res.status(404).json({ error: "Audit session not found" });
+      }
+
+      const result = await storage.getAuditResult(sessionId);
+      
+      if (!result) {
+        return res.json({
+          success: true,
+          status: session.status,
+          sessionId: sessionId
+        });
+      }
+
+      // Parse vulnerabilities for VS Code diagnostics
+      const diagnostics = extractVSCodeDiagnostics(result.rawResponse || result.formattedReport || "");
+
+      res.json({
+        success: true,
+        status: "completed",
+        sessionId: sessionId,
+        report: result.formattedReport || result.rawResponse,
+        diagnostics: diagnostics,
+        vulnerabilityCount: result.vulnerabilityCount,
+        creditsUsed: session.creditsUsed || 0
+      });
+
+    } catch (error) {
+      console.error("VS Code status check error:", error);
+      res.status(500).json({ error: "Failed to check audit status" });
+    }
+  });
+
+  // VS Code audit history
+  app.get("/api/vscode/audit/history", authenticateApiKey, async (req: any, res) => {
+    try {
+      const userId = req.apiUser?.userId;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      
+      const sessions = await storage.getUserAuditSessions(userId, limit);
+      
+      const history = sessions.map(session => ({
+        id: session.id,
+        title: session.publicTitle || "Unnamed Audit",
+        status: session.status,
+        language: session.contractLanguage,
+        source: session.contractSource,
+        creditsUsed: session.creditsUsed || 0,
+        createdAt: session.createdAt,
+        completedAt: session.completedAt
+      }));
+      
+      res.json({ success: true, history });
+    } catch (error) {
+      console.error("VS Code history error:", error);
+      res.status(500).json({ error: "Failed to fetch audit history" });
+    }
+  });
+
+  // Helper function to extract VS Code diagnostics from audit results
+  function extractVSCodeDiagnostics(reportText: string) {
+    const diagnostics = [];
+    const lines = reportText.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Look for line number references in various formats
+      const lineMatches = [
+        /line\s+(\d+)/gi,
+        /at\s+line\s+(\d+)/gi,
+        /on\s+line\s+(\d+)/gi,
+        /\bL(\d+)\b/g,
+        /:(\d+):/g
+      ];
+      
+      for (const regex of lineMatches) {
+        let match;
+        while ((match = regex.exec(line)) !== null) {
+          const lineNumber = parseInt(match[1]) - 1; // VS Code is 0-indexed
+          
+          // Determine severity based on keywords
+          let severity = 'warning';
+          const lowerLine = line.toLowerCase();
+          if (lowerLine.includes('critical') || lowerLine.includes('high') || lowerLine.includes('severe')) {
+            severity = 'error';
+          } else if (lowerLine.includes('info') || lowerLine.includes('note') || lowerLine.includes('suggestion')) {
+            severity = 'information';
+          }
+          
+          // Extract the issue description (next few lines or current line)
+          let message = line.replace(/line\s+\d+\s*:?\s*/gi, '').trim();
+          if (!message && i + 1 < lines.length) {
+            message = lines[i + 1].trim();
+          }
+          if (!message) {
+            message = 'Security issue detected';
+          }
+          
+          diagnostics.push({
+            line: lineNumber,
+            column: 0,
+            endLine: lineNumber,
+            endColumn: 100,
+            severity: severity,
+            message: message,
+            source: 'SmartAudit AI'
+          });
+        }
+      }
+    }
+    
+    return diagnostics;
+  }
+
   // ======= WEBHOOK MANAGEMENT ENDPOINTS =======
 
   // Get user webhooks
