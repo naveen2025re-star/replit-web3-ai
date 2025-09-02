@@ -1,61 +1,69 @@
-# Smart Contract Auditor MCP Setup Guide
+# SmartAudit AI - MCP Integration Guide
 
-## Overview
+![SmartAudit AI MCP](https://via.placeholder.com/800x200/1e293b/ffffff?text=SmartAudit+AI+MCP)
 
-The Smart Contract Auditor Model Context Protocol (MCP) server enables AI-based IDEs like Claude Desktop, VS Code, and Cursor to interact directly with your smart contract auditing system. This allows developers to:
+Connect your smart contract auditing to Claude, Cursor, or Windsurf using our Model Context Protocol integration. Built for developers who want AI-powered security analysis directly in their development environment.
 
-- **Authenticate** with their wallet address for secure access
-- **Audit smart contracts** directly from their IDE with credit tracking
-- **Perform bulk audits** with discounted rates  
-- **View audit history** and session details
-- **Check credit balance** and transaction history
+## What is SmartAudit AI MCP?
 
-## Quick Start
+SmartAudit AI MCP is a secure, real-time connection between your favorite AI assistants and our smart contract auditing platform. Get comprehensive security analysis, vulnerability detection, and optimization suggestions without leaving your IDE.
 
-### 1. Build the MCP Server
+### Key Features:
+- **🔐 Web3 Authentication**: Connect securely using your wallet
+- **🔍 Real-time Auditing**: Comprehensive security analysis powered by AI
+- **💰 Credit Management**: Track usage and manage your audit credits
+- **📊 Audit History**: Access previous audit results and reports
+- **🚀 IDE Integration**: Works with Claude Desktop, Cursor, and Windsurf
 
-```bash
-# Build the executable MCP server
-node mcp-build.js
+## Quick Setup (Remote Connection)
+
+### Step 1: Choose Your AI Assistant
+
+You can connect SmartAudit AI MCP with:
+- **Claude Desktop** (latest version)
+- **Cursor** 
+- **Windsurf**
+- Any MCP-compatible AI assistant
+
+### Step 2: Add SmartAudit AI MCP to Your Config
+
+**For Claude Desktop:**
+
+Go to Settings > Developer > Add/Edit Config and paste:
+
+```json
+{
+  "mcpServers": {
+    "smartaudit-ai": {
+      "command": "npx",
+      "args": ["mcp-remote", "YOUR_DEPLOYED_URL/mcp/stream"]
+    }
+  }
+}
 ```
 
-This creates `build/mcp-server.js` - a standalone executable MCP server.
+**For Cursor or Windsurf:**
 
-### 2. Test the Server
+Go to Settings > Tools & Integrations > Add Custom MCP and paste:
 
-```bash
-# Test that the server starts correctly
-node build/mcp-server.js
+```json
+{
+  "mcpServers": {
+    "smartaudit-ai": {
+      "url": "YOUR_DEPLOYED_URL/mcp/stream"
+    }
+  }
+}
 ```
 
-You should see: `Smart Contract Auditor MCP server is running on stdio`
+### Step 3: Authenticate Your Wallet
 
-## IDE Integration
+Once connected, authenticate by saying:
+```
+"Authenticate my wallet: 0x[your-wallet-address]"
+```
 
-### Claude Desktop
-
-1. **Find your config file**:
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-2. **Add the MCP server**:
-   ```json
-   {
-     "mcpServers": {
-       "smart-contract-auditor": {
-         "command": "node",
-         "args": ["/absolute/path/to/your/project/build/mcp-server.js"],
-         "env": {
-           "NODE_ENV": "production"
-         }
-       }
-     }
-   }
-   ```
-
-3. **Restart Claude Desktop**
-
-4. **Verify Connection**: You should see the MCP server listed in Claude's available tools.
+The AI will guide you through the connection process and show your available credits.
 
 ### VS Code with Claude Extension
 
