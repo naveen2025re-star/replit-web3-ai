@@ -413,6 +413,56 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     });
   });
 
+  // OAuth userinfo endpoints that Windsurf tries
+  app.all("/oauth/userinfo", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(401).json({
+      error: "oauth_not_required",
+      error_description: "This MCP server does not require OAuth authentication. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  app.all("/api/oauth/userinfo", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(401).json({
+      error: "oauth_not_required", 
+      error_description: "This MCP server does not require OAuth authentication. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  // SSE endpoints that Windsurf expects for legacy support
+  app.all("/sse", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(301).json({
+      message: "SSE transport deprecated. Use Streamable HTTP instead.",
+      redirect_to: "/api/mcp",
+      transport: "streamable-http"
+    });
+  });
+
+  app.all("/api/sse", (req, res) => {
+    res.setHeader('Content-Type', 'application/json'); 
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(301).json({
+      message: "SSE transport deprecated. Use Streamable HTTP instead.",
+      redirect_to: "/api/mcp", 
+      transport: "streamable-http"
+    });
+  });
+
   // Catch-all for MCP metadata endpoints that Windsurf might try
   app.all("/api/mcp-*", (req, res) => {
     res.setHeader('Content-Type', 'application/json');

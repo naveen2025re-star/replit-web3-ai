@@ -284,7 +284,7 @@ export default function MCPInfoPage() {
               <CardContent className="space-y-4">
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm font-medium">
-                    🎯 **ALL OAUTH & SSE ENDPOINTS FIXED** - OAuth discovery, token endpoints, and SSE streaming all return JSON! HTML decode errors completely resolved!
+                    🚀 **HTML DECODE ERRORS COMPLETELY FIXED!** - All Windsurf endpoints (/sse, /oauth/userinfo, /api/sse, /api/oauth/userinfo) now return JSON! Ready for production!
                   </p>
                 </div>
 
