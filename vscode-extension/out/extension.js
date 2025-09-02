@@ -30,6 +30,8 @@ const smartauditApi_1 = require("./api/smartauditApi");
 const enhancedDiagnosticProvider_1 = require("./providers/enhancedDiagnosticProvider");
 const marketplaceSidebarProvider_1 = require("./providers/marketplaceSidebarProvider");
 const secureStorage_1 = require("./security/secureStorage");
+const blockchainLanguageDetector_1 = require("./utils/blockchainLanguageDetector");
+const languageSelector_1 = require("./commands/languageSelector");
 let diagnosticCollection;
 let smartauditApi;
 let diagnosticProvider;
@@ -55,12 +57,17 @@ function activate(context) {
     const auditFileDisposable = vscode.commands.registerCommand('smartaudit.auditFile', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showWarningMessage('No active Solidity file to audit.');
+            vscode.window.showWarningMessage('No active blockchain file to audit.');
             return;
         }
         const document = editor.document;
-        if (document.languageId !== 'solidity') {
-            vscode.window.showWarningMessage('SmartAudit AI only supports Solidity files (.sol)');
+        // Check if it's a supported blockchain language
+        if (!blockchainLanguageDetector_1.BlockchainLanguageDetector.isSupportedFile(document)) {
+            const supportedExts = blockchainLanguageDetector_1.BlockchainLanguageDetector.getSupportedLanguages()
+                .flatMap(lang => lang.fileExtensions)
+                .slice(0, 8) // Show first 8 extensions
+                .join(', ');
+            vscode.window.showWarningMessage(`SmartAudit AI supports blockchain files: ${supportedExts} and more. This file type is not supported.`);
             return;
         }
         await auditDocument(document);
@@ -104,15 +111,43 @@ function activate(context) {
     const autoAuditDisposable = vscode.workspace.onDidSaveTextDocument(async (document) => {
         const config = vscode.workspace.getConfiguration('smartaudit');
         const autoAudit = config.get('autoAudit', false);
-        if (autoAudit && document.languageId === 'solidity') {
-            await auditDocument(document);
+        if (autoAudit && blockchainLanguageDetector_1.BlockchainLanguageDetector.isSupportedFile(document)) {
+            const detectedLang = blockchainLanguageDetector_1.BlockchainLanguageDetector.detectFromFile(document);
+            const supportedLanguages = config.get('supportedLanguages', []);
+            // Check if this language is enabled for auto-audit
+            if (detectedLang && (supportedLanguages.length === 0 ||
+                supportedLanguages.includes(detectedLang.language.name.toLowerCase()))) {
+                await auditDocument(document);
+            }
         }
     });
-    context.subscriptions.push(auditFileDisposable, showHistoryDisposable, showCreditsDisposable, autoAuditDisposable);
+    // Select blockchain language
+    const selectLanguageDisposable = vscode.commands.registerCommand('smartaudit.selectLanguage', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active file to set language for.');
+            return;
+        }
+        await languageSelector_1.LanguageSelector.showLanguageSelector(editor.document);
+    });
+    // Select target network
+    const selectNetworkDisposable = vscode.commands.registerCommand('smartaudit.selectNetwork', async () => {
+        const network = await languageSelector_1.LanguageSelector.showNetworkSelector();
+        if (network) {
+            const config = vscode.workspace.getConfiguration('smartaudit');
+            await config.update('preferredNetwork', network, vscode.ConfigurationTarget.Workspace);
+            vscode.window.showInformationMessage(`Target network set to: ${network}`);
+        }
+    });
+    context.subscriptions.push(auditFileDisposable, showHistoryDisposable, showCreditsDisposable, selectLanguageDisposable, selectNetworkDisposable, autoAuditDisposable);
     // Set context for workspace with smart contracts
     checkForSmartContracts();
-    // Watch for new .sol files
-    const watcher = vscode.workspace.createFileSystemWatcher('**/*.sol');
+    // Watch for blockchain files
+    const supportedExts = blockchainLanguageDetector_1.BlockchainLanguageDetector.getSupportedLanguages()
+        .flatMap(lang => lang.fileExtensions)
+        .map(ext => `**/*${ext}`)
+        .join(',');
+    const watcher = vscode.workspace.createFileSystemWatcher(`{${supportedExts}}`);
     watcher.onDidCreate(() => checkForSmartContracts());
     watcher.onDidDelete(() => checkForSmartContracts());
     context.subscriptions.push(watcher);
@@ -130,22 +165,35 @@ async function auditDocument(document) {
         }
         return;
     }
-    const fileName = document.fileName.split('/').pop() || 'contract.sol';
-    const contractCode = document.getText();
-    if (!contractCode.trim()) {
-        vscode.window.showWarningMessage('No contract code to audit.');
+    // Detect blockchain language (check for user override first)
+    const userOverride = languageSelector_1.LanguageSelector.getUserLanguageOverride(document);
+    let detectedLang = userOverride ?
+        { language: blockchainLanguageDetector_1.BlockchainLanguageDetector.getLanguageByName(userOverride), confidence: 1.0, reasons: ['User override'] } :
+        blockchainLanguageDetector_1.BlockchainLanguageDetector.detectFromFile(document);
+    if (!detectedLang || !detectedLang.language) {
+        vscode.window.showErrorMessage('Unable to detect blockchain language for this file.');
         return;
     }
+    const fileName = document.fileName.split('/').pop() || `contract${detectedLang.language.fileExtensions[0]}`;
+    const contractCode = document.getText();
+    if (!contractCode.trim()) {
+        vscode.window.showWarningMessage('No code to audit.');
+        return;
+    }
+    // Generate audit configuration
+    const auditConfig = blockchainLanguageDetector_1.BlockchainLanguageDetector.generateAuditConfig(detectedLang);
     // Show progress
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: `Auditing ${fileName}...`,
+        title: `Auditing ${detectedLang.language.name} - ${fileName}...`,
         cancellable: false
     }, async (progress) => {
         try {
-            progress.report({ message: 'Starting analysis...' });
-            // Start audit
-            const auditResponse = await smartauditApi.startAudit(contractCode, 'solidity', fileName);
+            progress.report({
+                message: `Starting ${detectedLang.language.name} analysis...`
+            });
+            // Start audit with language information
+            const auditResponse = await smartauditApi.startAudit(contractCode, auditConfig.language.toLowerCase(), fileName, auditConfig);
             progress.report({ message: 'Analyzing contract...' });
             // Poll for results
             let attempts = 0;
@@ -158,10 +206,13 @@ async function auditDocument(document) {
                     // Show enhanced diagnostics
                     const showInline = config.get('showInlineResults', true);
                     if (showInline && status.report) {
-                        await diagnosticProvider.showDiagnostics(document, status.report);
+                        await diagnosticProvider.showDiagnostics(document, status.report, detectedLang);
                     }
                     // Refresh sidebar
                     sidebarProvider.refresh();
+                    // Show completion message with language-specific info
+                    const networkInfo = auditConfig.networks.slice(0, 2).join(', ');
+                    vscode.window.showInformationMessage(`✅ ${detectedLang.language.name} audit completed! Compatible with: ${networkInfo}`);
                     return;
                 }
                 else if (status.status === 'failed') {
@@ -178,7 +229,11 @@ async function auditDocument(document) {
     });
 }
 async function checkForSmartContracts() {
-    const files = await vscode.workspace.findFiles('**/*.sol', '**/node_modules/**', 1);
+    const supportedExts = blockchainLanguageDetector_1.BlockchainLanguageDetector.getSupportedLanguages()
+        .flatMap(lang => lang.fileExtensions)
+        .map(ext => `**/*${ext}`)
+        .join(',');
+    const files = await vscode.workspace.findFiles(`{${supportedExts}}`, '**/node_modules/**', 1);
     vscode.commands.executeCommand('setContext', 'workspaceHasSmartContracts', files.length > 0);
 }
 function deactivate() {

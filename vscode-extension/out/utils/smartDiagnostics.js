@@ -5,7 +5,7 @@ class SmartDiagnosticsParser {
     /**
      * Parse audit report text and extract structured diagnostics
      */
-    static parseAuditReport(reportText, contractCode) {
+    static parseAuditReport(reportText, contractCode, detectedLang) {
         if (!reportText || !contractCode) {
             return [];
         }
@@ -14,7 +14,7 @@ class SmartDiagnosticsParser {
         const codeLines = contractCode.split('\n');
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const diagnostic = this.parseLine(line, i, lines, codeLines);
+            const diagnostic = this.parseLine(line, i, lines, codeLines, detectedLang);
             if (diagnostic) {
                 diagnostics.push(diagnostic);
             }
@@ -25,7 +25,7 @@ class SmartDiagnosticsParser {
     /**
      * Parse a single line for diagnostic information
      */
-    static parseLine(line, lineIndex, allLines, codeLines) {
+    static parseLine(line, lineIndex, allLines, codeLines, detectedLang) {
         const trimmed = line.trim();
         if (!trimmed || trimmed.length < 10) {
             return null;

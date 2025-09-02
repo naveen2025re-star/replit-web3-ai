@@ -163,7 +163,7 @@ class SmartAuditAPI {
             throw error;
         });
     }
-    async startAudit(contractCode, language, fileName) {
+    async startAudit(contractCode, language, fileName, auditConfig) {
         // Input validation
         if (!contractCode?.trim()) {
             throw new Error('Contract code is required');
@@ -176,11 +176,21 @@ class SmartAuditAPI {
         const sanitizedLanguage = language.toLowerCase().replace(/[^a-z]/g, '');
         const sanitizedFileName = fileName ? fileName.replace(/[^a-zA-Z0-9.-]/g, '') : undefined;
         return this.retryWithBackoff(async () => {
-            const response = await this.client.post('/api/vscode/audit', {
+            const payload = {
                 contractCode: sanitizedCode,
                 language: sanitizedLanguage,
                 fileName: sanitizedFileName
-            });
+            };
+            // Add language-specific configuration if provided
+            if (auditConfig) {
+                payload.languageConfig = {
+                    detectedLanguage: auditConfig.language,
+                    category: auditConfig.category,
+                    networks: auditConfig.networks,
+                    specialChecks: auditConfig.specialChecks
+                };
+            }
+            const response = await this.client.post('/api/vscode/audit', payload);
             return {
                 sessionId: response.data.sessionId,
                 sessionKey: response.data.sessionKey
