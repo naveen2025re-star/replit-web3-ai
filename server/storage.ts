@@ -105,11 +105,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db
+    const [user] = await db
       .insert(users)
       .values(insertUser)
       .returning();
-    return result[0];
+    return user;
   }
 
   async updateUser(id: string, updates: Partial<InsertUser>): Promise<User> {
@@ -171,11 +171,11 @@ export class DatabaseStorage implements IStorage {
 
   // Audit session operations
   async createAuditSession(insertSession: InsertAuditSession): Promise<AuditSession> {
-    const result = await db
+    const [session] = await db
       .insert(auditSessions)
       .values(insertSession)
       .returning();
-    return result[0];
+    return session;
   }
 
   async getAuditSession(id: string): Promise<AuditSession | undefined> {
@@ -280,15 +280,17 @@ export class DatabaseStorage implements IStorage {
     sortOrder?: 'asc' | 'desc';
     page?: number;
   }): Promise<AuditSession[]> {
-    // Build where conditions array
-    const whereConditions = [eq(auditSessions.userId, userId)];
+    let query = db
+      .select()
+      .from(auditSessions)
+      .where(eq(auditSessions.userId, userId));
 
     // Apply filters
     if (filters) {
       // Search filter
       if (filters.search && filters.search !== '') {
         const searchTerm = `%${filters.search.toLowerCase()}%`;
-        whereConditions.push(or(
+        query = query.where(or(
           sql`LOWER(${auditSessions.publicTitle}) LIKE ${searchTerm}`,
           sql`LOWER(${auditSessions.contractLanguage}) LIKE ${searchTerm}`
         ));
@@ -296,38 +298,30 @@ export class DatabaseStorage implements IStorage {
 
       // Status filter
       if (filters.status && filters.status !== 'all') {
-        whereConditions.push(eq(auditSessions.status, filters.status));
+        query = query.where(eq(auditSessions.status, filters.status));
       }
 
       // Visibility filter
       if (filters.visibility === 'public') {
-        whereConditions.push(eq(auditSessions.isPublic, true));
+        query = query.where(eq(auditSessions.isPublic, true));
       } else if (filters.visibility === 'private') {
-        whereConditions.push(eq(auditSessions.isPublic, false));
+        query = query.where(eq(auditSessions.isPublic, false));
       }
 
       // Language filter
       if (filters.language && filters.language !== 'all') {
-        whereConditions.push(eq(auditSessions.contractLanguage, filters.language));
+        query = query.where(eq(auditSessions.contractLanguage, filters.language));
       }
 
       // Date range filters
       if (filters.dateFrom) {
-        whereConditions.push(gte(auditSessions.createdAt, new Date(filters.dateFrom)));
+        query = query.where(gte(auditSessions.createdAt, new Date(filters.dateFrom)));
       }
       if (filters.dateTo) {
-        whereConditions.push(lte(auditSessions.createdAt, new Date(filters.dateTo)));
+        query = query.where(lte(auditSessions.createdAt, new Date(filters.dateTo)));
       }
-    }
 
-    // Build query with where conditions
-    let query = db
-      .select()
-      .from(auditSessions)
-      .where(and(...whereConditions));
-
-    // Apply sorting
-    if (filters?.sortBy && filters?.sortOrder) {
+      // Sorting
       const sortColumn = filters.sortBy === 'title' ? auditSessions.publicTitle
         : filters.sortBy === 'status' ? auditSessions.status
         : auditSessions.createdAt;
@@ -440,26 +434,24 @@ export class DatabaseStorage implements IStorage {
         eq(auditSessions.status, 'completed')
       ));
 
-    // Build additional where conditions for search and tags
-    let additionalConditions = [
-      eq(auditSessions.isPublic, true),
-      eq(auditSessions.status, 'completed')
-    ];
-    
     if (options.search) {
-      additionalConditions.push(like(auditSessions.publicTitle, `%${options.search}%`));
+      baseQuery = baseQuery.where(and(
+        eq(auditSessions.isPublic, true),
+        eq(auditSessions.status, 'completed'),
+        like(auditSessions.publicTitle, `%${options.search}%`)
+      ));
     }
 
     if (options.tags) {
       const tagArray = options.tags.split(',');
       for (const tag of tagArray) {
-        additionalConditions.push(
+        baseQuery = baseQuery.where(and(
+          eq(auditSessions.isPublic, true),
+          eq(auditSessions.status, 'completed'),
           sql`${auditSessions.tags} @> ${JSON.stringify([tag.trim()])}`
-        );
+        ));
       }
     }
-    
-    baseQuery = baseQuery.where(and(...additionalConditions));
 
     const audits = await baseQuery
       .orderBy(desc(auditSessions.createdAt))
@@ -518,15 +510,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAuditVisibility(auditId: string, updates: UpdateAuditVisibility): Promise<void> {
-    const updateData: any = {};
-    if (updates.isPublic !== undefined) updateData.isPublic = updates.isPublic;
-    if (updates.publicTitle !== undefined) updateData.publicTitle = updates.publicTitle;
-    if (updates.publicDescription !== undefined) updateData.publicDescription = updates.publicDescription;
-    if (updates.tags !== undefined) updateData.tags = updates.tags;
-    
     await db
       .update(auditSessions)
-      .set(updateData)
+      .set(updates)
       .where(eq(auditSessions.id, auditId));
   }
 
