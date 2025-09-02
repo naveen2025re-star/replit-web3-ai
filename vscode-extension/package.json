@@ -4,7 +4,6 @@
   "description": "AI-powered smart contract security analysis directly in VS Code",
   "version": "1.0.0",
   "publisher": "smartaudit-ai",
-  "icon": "resources/icon.png",
   "galleryBanner": {
     "color": "#1a1a2e",
     "theme": "dark"
