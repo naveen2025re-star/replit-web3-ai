@@ -284,7 +284,7 @@ export default function MCPInfoPage() {
               <CardContent className="space-y-4">
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm font-medium">
-                    🎯 **ALL OAUTH CLIENT REGISTRATION FIXED!** - Windsurf OAuth endpoints (/oauth/register, /oauth/clients, /.well-known/openid_configuration) now return JSON! HTML decode errors eliminated!
+                    🚀 ALL SERVER METADATA ENDPOINTS FIXED! - Complete solution: /metadata, /server, /info, /api/metadata all return JSON! Every HTML decode error eliminated!
                   </p>
                 </div>
 

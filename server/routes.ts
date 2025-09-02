@@ -488,6 +488,92 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     });
   });
 
+  // Server metadata endpoints that Windsurf tries for "get server metadata"
+  app.all("/metadata", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(200).json({
+      name: "SmartAudit AI",
+      description: "AI-powered smart contract auditing via Model Context Protocol",
+      version: "1.0.0",
+      protocolVersion: "2024-11-05",
+      capabilities: { tools: {} },
+      serverInfo: { name: "SmartAudit AI", version: "1.0.0" },
+      transport: "streamable-http",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  app.all("/api/metadata", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(200).json({
+      name: "SmartAudit AI",
+      description: "AI-powered smart contract auditing via Model Context Protocol",
+      version: "1.0.0",
+      protocolVersion: "2024-11-05",
+      capabilities: { tools: {} },
+      serverInfo: { name: "SmartAudit AI", version: "1.0.0" },
+      transport: "streamable-http",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  app.all("/server", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(200).json({
+      name: "SmartAudit AI",
+      description: "AI-powered smart contract auditing via Model Context Protocol",
+      version: "1.0.0",
+      protocolVersion: "2024-11-05",
+      capabilities: { tools: {} },
+      serverInfo: { name: "SmartAudit AI", version: "1.0.0" },
+      transport: "streamable-http",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  app.all("/api/server", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(200).json({
+      name: "SmartAudit AI",
+      description: "AI-powered smart contract auditing via Model Context Protocol",
+      version: "1.0.0",
+      protocolVersion: "2024-11-05",
+      capabilities: { tools: {} },
+      serverInfo: { name: "SmartAudit AI", version: "1.0.0" },
+      transport: "streamable-http",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  app.all("/info", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(200).json({
+      name: "SmartAudit AI",
+      description: "AI-powered smart contract auditing via Model Context Protocol",
+      version: "1.0.0",
+      protocolVersion: "2024-11-05",
+      capabilities: { tools: {} },
+      serverInfo: { name: "SmartAudit AI", version: "1.0.0" },
+      transport: "streamable-http",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
   // SSE endpoints that Windsurf expects for legacy support
   app.all("/sse", (req, res) => {
     res.setHeader('Content-Type', 'application/json');
