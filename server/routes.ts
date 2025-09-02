@@ -355,7 +355,65 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     });
   });
 
-  // Catch-all for MCP metadata endpoints that Windsurf might try (MUST be before main /api/mcp route)
+  // OAuth discovery endpoints that Windsurf tries (MUST be before MCP routes)
+  app.all("/.well-known/oauth-authorization-server", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.json({
+      issuer: `${req.protocol}://${req.get('host')}`,
+      authorization_endpoint: `${req.protocol}://${req.get('host')}/oauth/authorize`,
+      token_endpoint: `${req.protocol}://${req.get('host')}/oauth/token`,
+      response_types_supported: ["code"],
+      grant_types_supported: ["authorization_code"],
+      scopes_supported: ["mcp"]
+    });
+  });
+
+  app.all("/api/mcp/.well-known/oauth-authorization-server", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.json({
+      issuer: `${req.protocol}://${req.get('host')}/api/mcp`,
+      authorization_endpoint: `${req.protocol}://${req.get('host')}/oauth/authorize`,
+      token_endpoint: `${req.protocol}://${req.get('host')}/oauth/token`,
+      response_types_supported: ["code"],
+      grant_types_supported: ["authorization_code"],
+      scopes_supported: ["mcp"]
+    });
+  });
+
+  // OAuth token endpoint
+  app.all("/oauth/token", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    // For MCP without OAuth, return an error that indicates OAuth is not required
+    return res.status(400).json({
+      error: "oauth_not_required",
+      error_description: "This MCP server does not require OAuth authentication. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  // OAuth authorize endpoint  
+  app.all("/oauth/authorize", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(400).json({
+      error: "oauth_not_required",
+      error_description: "This MCP server does not require OAuth authentication. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  // Catch-all for MCP metadata endpoints that Windsurf might try
   app.all("/api/mcp-*", (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -386,6 +444,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         stream: "/api/mcp"
       }
     });
+  });
+
+  // MCP stream endpoint - handle within main MCP route now
+  app.all("/api/mcp/stream", (req, res) => {
+    // Redirect to main MCP endpoint which handles SSE
+    res.redirect(307, "/api/mcp");
   });
 
   // MCP server endpoint (API path to avoid frontend routing conflicts)

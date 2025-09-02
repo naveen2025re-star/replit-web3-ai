@@ -284,7 +284,7 @@ export default function MCPInfoPage() {
               <CardContent className="space-y-4">
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm font-medium">
-                    ✅ **HTML DECODE ERROR FIXED** - All MCP metadata endpoints now return JSON! Route ordering issue resolved. Complete Streamable HTTP transport working!
+                    🎯 **ALL OAUTH & SSE ENDPOINTS FIXED** - OAuth discovery, token endpoints, and SSE streaming all return JSON! HTML decode errors completely resolved!
                   </p>
                 </div>
 
