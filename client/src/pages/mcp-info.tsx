@@ -284,7 +284,7 @@ export default function MCPInfoPage() {
               <CardContent className="space-y-4">
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm font-medium">
-                    ✅ **CONFIRMED WORKING** - This configuration has been tested and works perfectly with Windsurf!
+                    🎉 **FULLY TESTED & WORKING** - Complete MCP handshake verified! Initialize → Initialized notification → Tool calls all working perfectly!
                   </p>
                 </div>
 

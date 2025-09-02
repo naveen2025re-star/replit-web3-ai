@@ -388,13 +388,23 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Parse JSON-RPC request
       const { id, jsonrpc, method, params } = req.body || {};
       
-      // Handle notifications first (they don't need id validation)
-      if (method === "initialized") {
-        // This is a notification - no response needed
+      // Handle notifications first (before validation) - JSON-RPC 2.0 spec
+      if (!("id" in (req.body || {}))) {
+        // This is a notification (no "id" field present)
+        if (jsonrpc !== "2.0" || !method) {
+          // Invalid notification - still return 204 per JSON-RPC spec (no error response for notifications)
+          return res.status(204).end();
+        }
+        
+        if (method === "notifications/initialized" || method === "initialized") {
+          // Initialized notification - no response needed per JSON-RPC 2.0
+          return res.status(204).end();
+        }
+        // Other notifications
         return res.status(204).end();
       }
       
-      // Validate JSON-RPC format for non-notification requests
+      // Validate JSON-RPC format for requests (has "id" field)
       if (jsonrpc !== "2.0" || !method) {
         return res.status(400).json({
           id: id || null,
