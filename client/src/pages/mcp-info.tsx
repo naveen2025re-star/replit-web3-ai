@@ -67,6 +67,21 @@ export default function MCPInfoPage() {
   }
 }`;
 
+  const windsurfStdioConfig = `{
+  "servers": {
+    "smartauditai": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "${mcpStreamUrl}"
+      ]
+    }
+  },
+  "inputs": []
+}`;
+
   const vscodeConfig = `{
   "mcpServers": {
     "smartauditai": {
@@ -295,18 +310,36 @@ export default function MCPInfoPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-white">2. Add SmartAudit AI Server</h4>
+                    <h4 className="font-medium text-white">2. Add SmartAudit AI Server (Direct Connection)</h4>
                     <Button 
                       size="sm" 
                       onClick={() => copyToClipboard(windsurfConfig, 'Windsurf config')}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       {copiedText === 'Windsurf config' ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                      Copy Working Config
+                      Copy Direct Config
                     </Button>
                   </div>
                   <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
                     <pre className="text-green-300 font-mono text-sm overflow-x-auto">{windsurfConfig}</pre>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-white">Alternative: Using mcp-remote (Stdio Format)</h4>
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(windsurfStdioConfig, 'Windsurf stdio config')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {copiedText === 'Windsurf stdio config' ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                      Copy Stdio Config
+                    </Button>
+                  </div>
+                  <p className="text-sm text-slate-400">Uses mcp-remote proxy for maximum compatibility (same as AgentLISA)</p>
+                  <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
+                    <pre className="text-blue-300 font-mono text-sm overflow-x-auto">{windsurfStdioConfig}</pre>
                   </div>
                 </div>
 
