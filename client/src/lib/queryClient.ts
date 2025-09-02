@@ -7,14 +7,45 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Helper function to get current user ID from localStorage
+function getCurrentUserId(): string | null {
+  try {
+    // Look through all auth entries in localStorage to find current user
+    const authKeys = Object.keys(localStorage).filter(key => key.startsWith('auth_'));
+    
+    for (const authKey of authKeys) {
+      const authData = localStorage.getItem(authKey);
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        // Check if auth is still valid (not expired)
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          return parsed.user?.id || null;
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.warn('Failed to get current user ID:', error);
+    return null;
+  }
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  
+  // Automatically include user ID header if available
+  const userId = getCurrentUserId();
+  if (userId) {
+    headers['x-user-id'] = userId;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,7 +60,16 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers: Record<string, string> = {};
+    
+    // Automatically include user ID header if available
+    const userId = getCurrentUserId();
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
+
     const res = await fetch(queryKey.join("/") as string, {
+      headers,
       credentials: "include",
     });
 
