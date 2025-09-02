@@ -797,6 +797,7 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
       <ChatGPTSidebar
         auditHistory={auditHistory}
         user={user}
+        currentSessionId={currentSessionId}
         onNewAudit={newAuditSession}
         onLoadSession={loadAuditSession}
         onEditAuditTitle={handleEditAuditTitle}

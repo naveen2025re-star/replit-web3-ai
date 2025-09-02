@@ -42,6 +42,7 @@ interface AuditSession {
 interface ChatGPTSidebarProps {
   auditHistory: AuditSession[];
   user: any;
+  currentSessionId?: string | null;
   onNewAudit: () => void;
   onLoadSession: (sessionId: string) => void;
   onEditAuditTitle?: (sessionId: string, newTitle: string) => void;
@@ -51,6 +52,7 @@ interface ChatGPTSidebarProps {
 export function ChatGPTSidebar({ 
   auditHistory, 
   user, 
+  currentSessionId,
   onNewAudit, 
   onLoadSession,
   onEditAuditTitle,
@@ -247,30 +249,50 @@ export function ChatGPTSidebar({
             {pinnedSessions.length > 0 && (
               <div className="mb-4">
                 <div className="text-xs text-slate-500 px-2 py-1 mb-2">Pinned</div>
-                {pinnedSessions.map((session: AuditSession) => (
-                  <div
-                    key={session.id}
-                    className="group relative flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-800/50 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors"
-                    onClick={() => onLoadSession(session.id)}
-                    onContextMenu={(e) => handleContextMenu(e, session.id)}
-                  >
-                    <Pin className="h-3 w-3 text-blue-400 flex-shrink-0" />
-                    <div className="flex-1 truncate">
-                      {session.publicTitle || `${session.contractLanguage} Audit`}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleContextMenu(e, session.id);
-                      }}
+                {pinnedSessions.map((session: AuditSession) => {
+                  const isActive = currentSessionId === session.id;
+                  const createdDate = new Date(session.createdAt);
+                  const timeString = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  const displayTitle = session.publicTitle || `${session.contractLanguage} Contract Analysis`;
+                  
+                  return (
+                    <div
+                      key={session.id}
+                      className={`group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm transition-all duration-200 ${
+                        isActive 
+                          ? 'bg-blue-600/20 border border-blue-500/30 text-blue-200 shadow-sm' 
+                          : 'hover:bg-slate-800/50 text-slate-300 hover:text-white'
+                      }`}
+                      onClick={() => onLoadSession(session.id)}
+                      onContextMenu={(e) => handleContextMenu(e, session.id)}
                     >
-                      <MoreVertical className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      <Pin className={`h-3 w-3 flex-shrink-0 ${
+                        isActive ? 'text-blue-400' : 'text-blue-400'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">
+                          {displayTitle}
+                        </div>
+                        <div className={`text-xs truncate ${
+                          isActive ? 'text-blue-300/70' : 'text-slate-500'
+                        }`}>
+                          {timeString} • {session.contractLanguage}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContextMenu(e, session.id);
+                        }}
+                      >
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -278,29 +300,47 @@ export function ChatGPTSidebar({
             {groupedSessions.recent.length > 0 && (
               <div className="mb-4">
                 <div className="text-xs text-slate-500 px-2 py-1 mb-2">Previous 7 days</div>
-                {groupedSessions.recent.map((session: AuditSession) => (
-                  <div
-                    key={session.id}
-                    className="group relative flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-800/50 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors"
-                    onClick={() => onLoadSession(session.id)}
-                    onContextMenu={(e) => handleContextMenu(e, session.id)}
-                  >
-                    <div className="flex-1 truncate">
-                      {session.publicTitle || `${session.contractLanguage} Audit`}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleContextMenu(e, session.id);
-                      }}
+                {groupedSessions.recent.map((session: AuditSession) => {
+                  const isActive = currentSessionId === session.id;
+                  const createdDate = new Date(session.createdAt);
+                  const timeString = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  const displayTitle = session.publicTitle || `${session.contractLanguage} Contract Analysis`;
+                  
+                  return (
+                    <div
+                      key={session.id}
+                      className={`group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm transition-all duration-200 ${
+                        isActive 
+                          ? 'bg-blue-600/20 border border-blue-500/30 text-blue-200 shadow-sm' 
+                          : 'hover:bg-slate-800/50 text-slate-300 hover:text-white'
+                      }`}
+                      onClick={() => onLoadSession(session.id)}
+                      onContextMenu={(e) => handleContextMenu(e, session.id)}
                     >
-                      <MoreVertical className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">
+                          {displayTitle}
+                        </div>
+                        <div className={`text-xs truncate ${
+                          isActive ? 'text-blue-300/70' : 'text-slate-500'
+                        }`}>
+                          {timeString} • {session.contractLanguage}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContextMenu(e, session.id);
+                        }}
+                      >
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
             
@@ -308,29 +348,47 @@ export function ChatGPTSidebar({
             {groupedSessions.previous30.length > 0 && (
               <div className="mb-4">
                 <div className="text-xs text-slate-500 px-2 py-1 mb-2">Previous 30 days</div>
-                {groupedSessions.previous30.map((session: AuditSession) => (
-                  <div
-                    key={session.id}
-                    className="group relative flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-800/50 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors"
-                    onClick={() => onLoadSession(session.id)}
-                    onContextMenu={(e) => handleContextMenu(e, session.id)}
-                  >
-                    <div className="flex-1 truncate">
-                      {session.publicTitle || `${session.contractLanguage} Audit`}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleContextMenu(e, session.id);
-                      }}
+                {groupedSessions.previous30.map((session: AuditSession) => {
+                  const isActive = currentSessionId === session.id;
+                  const createdDate = new Date(session.createdAt);
+                  const timeString = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  const displayTitle = session.publicTitle || `${session.contractLanguage} Contract Analysis`;
+                  
+                  return (
+                    <div
+                      key={session.id}
+                      className={`group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm transition-all duration-200 ${
+                        isActive 
+                          ? 'bg-blue-600/20 border border-blue-500/30 text-blue-200 shadow-sm' 
+                          : 'hover:bg-slate-800/50 text-slate-300 hover:text-white'
+                      }`}
+                      onClick={() => onLoadSession(session.id)}
+                      onContextMenu={(e) => handleContextMenu(e, session.id)}
                     >
-                      <MoreVertical className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">
+                          {displayTitle}
+                        </div>
+                        <div className={`text-xs truncate ${
+                          isActive ? 'text-blue-300/70' : 'text-slate-500'
+                        }`}>
+                          {timeString} • {session.contractLanguage}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContextMenu(e, session.id);
+                        }}
+                      >
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
             
@@ -338,29 +396,47 @@ export function ChatGPTSidebar({
             {groupedSessions.older.length > 0 && (
               <div>
                 <div className="text-xs text-slate-500 px-2 py-1 mb-2">Older</div>
-                {groupedSessions.older.map((session: AuditSession) => (
-                  <div
-                    key={session.id}
-                    className="group relative flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-800/50 cursor-pointer text-sm text-slate-300 hover:text-white transition-colors"
-                    onClick={() => onLoadSession(session.id)}
-                    onContextMenu={(e) => handleContextMenu(e, session.id)}
-                  >
-                    <div className="flex-1 truncate">
-                      {session.publicTitle || `${session.contractLanguage} Audit`}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleContextMenu(e, session.id);
-                      }}
+                {groupedSessions.older.map((session: AuditSession) => {
+                  const isActive = currentSessionId === session.id;
+                  const createdDate = new Date(session.createdAt);
+                  const timeString = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  const displayTitle = session.publicTitle || `${session.contractLanguage} Contract Analysis`;
+                  
+                  return (
+                    <div
+                      key={session.id}
+                      className={`group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-sm transition-all duration-200 ${
+                        isActive 
+                          ? 'bg-blue-600/20 border border-blue-500/30 text-blue-200 shadow-sm' 
+                          : 'hover:bg-slate-800/50 text-slate-300 hover:text-white'
+                      }`}
+                      onClick={() => onLoadSession(session.id)}
+                      onContextMenu={(e) => handleContextMenu(e, session.id)}
                     >
-                      <MoreVertical className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">
+                          {displayTitle}
+                        </div>
+                        <div className={`text-xs truncate ${
+                          isActive ? 'text-blue-300/70' : 'text-slate-500'
+                        }`}>
+                          {timeString} • {session.contractLanguage}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-slate-400 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContextMenu(e, session.id);
+                        }}
+                      >
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
