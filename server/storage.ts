@@ -99,6 +99,32 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserByAddress(walletAddress: string): Promise<User | undefined> {
+    return this.getUserByWallet(walletAddress);
+  }
+
+  async createOrUpdateUser(userData: { address: string; lastLogin: string }): Promise<User> {
+    // Check if user exists
+    let user = await this.getUserByWallet(userData.address);
+    
+    if (user) {
+      // Update existing user
+      return this.updateUser(user.id, {
+        lastLogin: new Date(userData.lastLogin),
+        updatedAt: new Date()
+      });
+    } else {
+      // Create new user
+      return this.createUser({
+        walletAddress: userData.address,
+        username: userData.address.slice(0, 6) + "..." + userData.address.slice(-4),
+        lastLogin: new Date(userData.lastLogin),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+  }
+
   async getUserByGithubId(githubId: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.githubId, githubId));
     return user || undefined;
