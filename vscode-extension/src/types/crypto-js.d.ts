@@ -8,6 +8,7 @@ declare module 'crypto-js' {
     padding?: any;
     blockSize?: number;
     formatter?: any;
+    toString(): string;
   }
 
   export interface WordArray {
@@ -21,9 +22,7 @@ declare module 'crypto-js' {
     function decrypt(encrypted: CipherParams | string, key: string | WordArray, cfg?: any): WordArray;
   }
 
-  export namespace SHA256 {
-    function hash(message: string | WordArray): WordArray;
-  }
+  export function SHA256(message: string | WordArray): WordArray;
 
   export namespace enc {
     namespace Utf8 {

@@ -190,7 +190,7 @@ async function auditDocument(document) {
     }, async (progress) => {
         try {
             progress.report({
-                message: `Starting ${detectedLang.language.name} analysis...`
+                message: `Starting ${detectedLang?.language.name || 'code'} analysis...`
             });
             // Start audit with language information
             const auditResponse = await smartauditApi.startAudit(contractCode, auditConfig.language.toLowerCase(), fileName, auditConfig);
@@ -212,7 +212,7 @@ async function auditDocument(document) {
                     sidebarProvider.refresh();
                     // Show completion message with language-specific info
                     const networkInfo = auditConfig.networks.slice(0, 2).join(', ');
-                    vscode.window.showInformationMessage(`✅ ${detectedLang.language.name} audit completed! Compatible with: ${networkInfo}`);
+                    vscode.window.showInformationMessage(`✅ ${detectedLang?.language.name || 'Code'} audit completed! Compatible with: ${networkInfo}`);
                     return;
                 }
                 else if (status.status === 'failed') {
