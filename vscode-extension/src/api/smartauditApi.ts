@@ -205,7 +205,7 @@ export class SmartAuditAPI {
         });
     }
     
-    async startAudit(contractCode: string, language: string, fileName?: string): Promise<{ sessionId: string; sessionKey: string }> {
+    async startAudit(contractCode: string, language: string, fileName?: string, auditConfig?: any): Promise<{ sessionId: string; sessionKey: string }> {
         // Input validation
         if (!contractCode?.trim()) {
             throw new Error('Contract code is required');
@@ -221,11 +221,23 @@ export class SmartAuditAPI {
         const sanitizedFileName = fileName ? fileName.replace(/[^a-zA-Z0-9.-]/g, '') : undefined;
         
         return this.retryWithBackoff(async () => {
-            const response = await this.client.post('/api/vscode/audit', {
+            const payload: any = {
                 contractCode: sanitizedCode,
                 language: sanitizedLanguage,
                 fileName: sanitizedFileName
-            });
+            };
+            
+            // Add language-specific configuration if provided
+            if (auditConfig) {
+                payload.languageConfig = {
+                    detectedLanguage: auditConfig.language,
+                    category: auditConfig.category,
+                    networks: auditConfig.networks,
+                    specialChecks: auditConfig.specialChecks
+                };
+            }
+            
+            const response = await this.client.post('/api/vscode/audit', payload);
             
             return {
                 sessionId: response.data.sessionId,

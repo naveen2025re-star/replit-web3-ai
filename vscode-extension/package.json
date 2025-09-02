@@ -27,15 +27,21 @@
     "Linters"
   ],
   "keywords": [
-    "solidity",
-    "smart contracts",
-    "security",
-    "blockchain",
-    "ethereum",
-    "audit"
+    "solidity", "rust", "move", "cairo", "vyper", "clarity", "cadence",
+    "smart contracts", "blockchain security", "web3", "defi",
+    "ethereum", "polygon", "solana", "near", "starknet", "flow", "cardano",
+    "security audit", "vulnerability scanner", "static analysis"
   ],
   "activationEvents": [
     "onLanguage:solidity",
+    "onLanguage:rust", 
+    "onLanguage:move",
+    "onLanguage:cairo",
+    "onLanguage:go",
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:python",
+    "onFileSystem:file",
     "onCommand:smartaudit.auditFile",
     "onCommand:smartaudit.showHistory"
   ],
@@ -59,27 +65,39 @@
         "title": "Show Credit Balance",
         "category": "SmartAudit",
         "icon": "$(credit-card)"
+      },
+      {
+        "command": "smartaudit.selectLanguage",
+        "title": "Select Blockchain Language",
+        "category": "SmartAudit",
+        "icon": "$(symbol-property)"
+      },
+      {
+        "command": "smartaudit.selectNetwork",
+        "title": "Select Target Network",
+        "category": "SmartAudit",
+        "icon": "$(globe)"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "command": "smartaudit.auditFile",
-          "when": "resourceExtname == .sol",
+          "when": "resourceExtname in (.sol, .rs, .move, .cairo, .vy, .yul, .clar, .cdc, .hs, .as, .cpp, .cc, .cxx, .tz, .wasm, .wat, .go, .ts, .js, .py)",
           "group": "smartaudit@1"
         }
       ],
       "editor/title": [
         {
           "command": "smartaudit.auditFile", 
-          "when": "resourceExtname == .sol",
+          "when": "resourceExtname in (.sol, .rs, .move, .cairo, .vy, .yul, .clar, .cdc, .hs, .as, .cpp, .cc, .cxx, .tz, .wasm, .wat, .go, .ts, .js, .py)",
           "group": "navigation@1"
         }
       ],
       "explorer/context": [
         {
           "command": "smartaudit.auditFile",
-          "when": "resourceExtname == .sol",
+          "when": "resourceExtname in (.sol, .rs, .move, .cairo, .vy, .yul, .clar, .cdc, .hs, .as, .cpp, .cc, .cxx, .tz, .wasm, .wat, .go, .ts, .js, .py)",
           "group": "smartaudit@1"
         }
       ]
@@ -101,14 +119,39 @@
         "smartaudit.autoAudit": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically audit Solidity files on save",
+          "description": "Automatically audit blockchain files on save",
           "order": 3
+        },
+        "smartaudit.supportedLanguages": {
+          "type": "array",
+          "default": ["solidity", "rust", "move", "cairo", "vyper", "go", "typescript", "python"],
+          "description": "Blockchain languages to audit (all supported by default)",
+          "order": 4
+        },
+        "smartaudit.preferredNetwork": {
+          "type": "string",
+          "enum": ["ethereum", "polygon", "bsc", "arbitrum", "optimism", "base", "solana", "near", "starknet", "flow", "cardano", "auto-detect"],
+          "default": "auto-detect",
+          "description": "Preferred blockchain network for analysis",
+          "order": 5
+        },
+        "smartaudit.languageOverrides": {
+          "type": "object",
+          "default": {},
+          "description": "Manual language overrides for specific files",
+          "order": 6
+        },
+        "smartaudit.enableAdvancedChecks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable advanced language-specific security checks",
+          "order": 7
         },
         "smartaudit.showInlineResults": {
           "type": "boolean",
           "default": true,
           "description": "Show audit results as inline diagnostics",
-          "order": 4
+          "order": 8
         }
       }
     },

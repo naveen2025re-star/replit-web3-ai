@@ -47,7 +47,7 @@ export class SmartDiagnosticsParser {
     /**
      * Parse audit report text and extract structured diagnostics
      */
-    static parseAuditReport(reportText: string, contractCode: string): SmartDiagnostic[] {
+    static parseAuditReport(reportText: string, contractCode: string, detectedLang?: any): SmartDiagnostic[] {
         if (!reportText || !contractCode) {
             return [];
         }
@@ -58,7 +58,7 @@ export class SmartDiagnosticsParser {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const diagnostic = this.parseLine(line, i, lines, codeLines);
+            const diagnostic = this.parseLine(line, i, lines, codeLines, detectedLang);
             
             if (diagnostic) {
                 diagnostics.push(diagnostic);
@@ -76,7 +76,8 @@ export class SmartDiagnosticsParser {
         line: string, 
         lineIndex: number, 
         allLines: string[], 
-        codeLines: string[]
+        codeLines: string[],
+        detectedLang?: any
     ): SmartDiagnostic | null {
         const trimmed = line.trim();
         

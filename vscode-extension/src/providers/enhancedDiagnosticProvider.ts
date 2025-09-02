@@ -35,12 +35,13 @@ export class EnhancedDiagnosticProvider {
     /**
      * Show enhanced diagnostics with smart parsing and contextual information
      */
-    async showDiagnostics(document: vscode.TextDocument, auditReport: string): Promise<void> {
+    async showDiagnostics(document: vscode.TextDocument, auditReport: string, detectedLang?: any): Promise<void> {
         try {
-            // Parse using smart diagnostics parser
+            // Parse using smart diagnostics parser with language context
             const smartDiagnostics = SmartDiagnosticsParser.parseAuditReport(
                 auditReport, 
-                document.getText()
+                document.getText(),
+                detectedLang
             );
             
             // Convert to VS Code diagnostics
@@ -52,8 +53,8 @@ export class EnhancedDiagnosticProvider {
             // Add inline decorations
             this.addInlineDecorations(document, smartDiagnostics);
             
-            // Show summary notification
-            this.showSummaryNotification(smartDiagnostics);
+            // Show summary notification with language info
+            this.showSummaryNotification(smartDiagnostics, detectedLang);
             
             // Update status bar
             await this.updateStatusBar();
@@ -132,7 +133,7 @@ export class EnhancedDiagnosticProvider {
     /**
      * Show summary notification with actionable insights
      */
-    private showSummaryNotification(diagnostics: SmartDiagnostic[]): void {
+    private showSummaryNotification(diagnostics: SmartDiagnostic[], detectedLang?: any): void {
         const counts = {
             error: diagnostics.filter(d => d.severity === 'error').length,
             warning: diagnostics.filter(d => d.severity === 'warning').length,
@@ -142,8 +143,13 @@ export class EnhancedDiagnosticProvider {
         const total = counts.error + counts.warning + counts.info;
         
         if (total === 0) {
+            const langMessage = detectedLang ? 
+                `✅ No security issues found in your ${detectedLang.language.name} code! ` +
+                `${detectedLang.language.icon} Ready for ${detectedLang.language.networks.slice(0,2).join(', ')}.` :
+                '✅ No security issues found! Your code looks good.';
+            
             vscode.window.showInformationMessage(
-                '✅ No security issues found! Your contract looks good.',
+                langMessage,
                 'View Details'
             ).then(action => {
                 if (action === 'View Details') {
@@ -156,7 +162,9 @@ export class EnhancedDiagnosticProvider {
         const severity = counts.error > 0 ? '🚨 Critical' : 
                         counts.warning > 0 ? '⚠️ Warning' : '📝 Info';
         
-        const message = `${severity}: Found ${total} issues (${counts.error} critical, ${counts.warning} warnings, ${counts.info} info)`;
+        const langInfo = detectedLang ? 
+            `${detectedLang.language.icon} ${detectedLang.language.name} ` : '';
+        const message = `${langInfo}${severity}: Found ${total} issues (${counts.error} critical, ${counts.warning} warnings, ${counts.info} info)`;
         
         if (counts.error > 0) {
             vscode.window.showErrorMessage(message, 'View Issues', 'Learn More').then(action => {
