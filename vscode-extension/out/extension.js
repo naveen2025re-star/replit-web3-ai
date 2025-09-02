@@ -28,7 +28,7 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const smartauditApi_1 = require("./api/smartauditApi");
 const enhancedDiagnosticProvider_1 = require("./providers/enhancedDiagnosticProvider");
-const marketplaceSidebarProvider_1 = require("./providers/marketplaceSidebarProvider");
+const sidebarProvider_1 = require("./providers/sidebarProvider");
 const secureStorage_1 = require("./security/secureStorage");
 const blockchainLanguageDetector_1 = require("./utils/blockchainLanguageDetector");
 const languageSelector_1 = require("./commands/languageSelector");
@@ -49,8 +49,23 @@ function activate(context) {
     // Initialize enhanced diagnostic provider
     diagnosticProvider = new enhancedDiagnosticProvider_1.EnhancedDiagnosticProvider(diagnosticCollection, smartauditApi);
     context.subscriptions.push(diagnosticProvider);
-    // Initialize marketplace sidebar provider
-    sidebarProvider = new marketplaceSidebarProvider_1.MarketplaceSidebarProvider(context.extensionUri, smartauditApi, context);
+    // Initialize enhanced sidebar provider
+    sidebarProvider = new sidebarProvider_1.SidebarProvider(context.extensionUri, smartauditApi);
+    // Set configured context based on API key
+    const updateConfiguredContext = async () => {
+        const config = vscode.workspace.getConfiguration('smartaudit');
+        const apiKey = config.get('apiKey');
+        const isConfigured = !!apiKey && apiKey.trim().length > 0;
+        await vscode.commands.executeCommand('setContext', 'smartaudit.configured', isConfigured);
+        console.log('SmartAudit configured context:', isConfigured);
+    };
+    // Update context initially and when configuration changes
+    updateConfiguredContext();
+    vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('smartaudit.apiKey')) {
+            updateConfiguredContext();
+        }
+    });
     context.subscriptions.push(vscode.window.registerWebviewViewProvider('smartauditSidebar', sidebarProvider));
     // Register commands
     // Audit current file

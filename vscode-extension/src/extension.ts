@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { SmartAuditAPI } from './api/smartauditApi';
 import { EnhancedDiagnosticProvider } from './providers/enhancedDiagnosticProvider';
-import { MarketplaceSidebarProvider } from './providers/marketplaceSidebarProvider';
+import { SidebarProvider } from './providers/sidebarProvider';
 import { SecureStorage } from './security/secureStorage';
 import { BlockchainLanguageDetector } from './utils/blockchainLanguageDetector';
 import { LanguageSelector } from './commands/languageSelector';
@@ -10,7 +10,7 @@ let diagnosticCollection: vscode.DiagnosticCollection;
 let smartauditApi: SmartAuditAPI;
 let diagnosticProvider: EnhancedDiagnosticProvider;
 let secureStorage: SecureStorage;
-let sidebarProvider: MarketplaceSidebarProvider;
+let sidebarProvider: any;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('SmartAudit AI extension is now active!');
@@ -29,8 +29,25 @@ export function activate(context: vscode.ExtensionContext) {
     diagnosticProvider = new EnhancedDiagnosticProvider(diagnosticCollection, smartauditApi);
     context.subscriptions.push(diagnosticProvider);
     
-    // Initialize marketplace sidebar provider
-    sidebarProvider = new MarketplaceSidebarProvider(context.extensionUri, smartauditApi, context);
+    // Initialize enhanced sidebar provider
+    sidebarProvider = new SidebarProvider(context.extensionUri, smartauditApi);
+    
+    // Set configured context based on API key
+    const updateConfiguredContext = async () => {
+        const config = vscode.workspace.getConfiguration('smartaudit');
+        const apiKey = config.get<string>('apiKey');
+        const isConfigured = !!apiKey && apiKey.trim().length > 0;
+        await vscode.commands.executeCommand('setContext', 'smartaudit.configured', isConfigured);
+        console.log('SmartAudit configured context:', isConfigured);
+    };
+    
+    // Update context initially and when configuration changes
+    updateConfiguredContext();
+    vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('smartaudit.apiKey')) {
+            updateConfiguredContext();
+        }
+    });
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider('smartauditSidebar', sidebarProvider)
     );
