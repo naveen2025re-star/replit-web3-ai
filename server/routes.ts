@@ -368,13 +368,18 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
     
     try {
-      // Handle GET request for server info (non-MCP)
+      // Handle GET request for server info (non-MCP) 
       if (req.method === 'GET') {
+        res.setHeader('Content-Type', 'application/json');
         return res.json({
           name: "SmartAudit AI Remote MCP",
-          description: "AI-powered smart contract auditing via Model Context Protocol",
+          description: "AI-powered smart contract auditing via Model Context Protocol", 
           version: "1.0.0",
+          protocolVersion: "2024-11-05",
           url: `${req.protocol}://${req.get('host')}/mcp/stream`,
+          capabilities: {
+            tools: ["authenticate_wallet", "audit_contract", "check_credits", "get_audit_results"]
+          },
           status: "active"
         });
       }
@@ -382,8 +387,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Parse JSON-RPC request
       const { id, jsonrpc, method, params } = req.body || {};
       
-      // Validate JSON-RPC format
-      if (!id || jsonrpc !== "2.0" || !method) {
+      // Validate JSON-RPC format (allow notifications without id)
+      if (jsonrpc !== "2.0" || !method) {
         return res.status(400).json({
           id: id || null,
           jsonrpc: "2.0",
@@ -392,6 +397,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
             message: "Invalid Request - expected JSON-RPC 2.0 format" 
           }
         });
+      }
+      
+      // Handle notifications (methods without id) 
+      if (method === "initialized") {
+        // This is a notification - no response needed
+        return res.status(204).end();
       }
 
       // Handle MCP protocol requests with proper JSON-RPC responses

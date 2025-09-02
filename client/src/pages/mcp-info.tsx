@@ -59,6 +59,14 @@ export default function MCPInfoPage() {
   }
 }`;
 
+  const windsurfConfig = `{
+  "mcpServers": {
+    "smartauditai": {
+      "serverUrl": "${mcpStreamUrl}"
+    }
+  }
+}`;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -116,7 +124,7 @@ export default function MCPInfoPage() {
             <CardHeader className="text-center">
               <Cpu className="h-8 w-8 text-purple-400 mx-auto mb-2" />
               <CardTitle className="text-white">Multiple IDEs</CardTitle>
-              <CardDescription>Claude, Cursor, Windsurf support</CardDescription>
+              <CardDescription>Claude, Cursor, Windsurf, VS Code support</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -272,7 +280,7 @@ export default function MCPInfoPage() {
                     <h4 className="font-medium text-white">2. Add MCP Server</h4>
                     <Button 
                       size="sm" 
-                      onClick={() => copyToClipboard(cursorConfig, 'Windsurf config')}
+                      onClick={() => copyToClipboard(windsurfConfig, 'Windsurf config')}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       {copiedText === 'Windsurf config' ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
@@ -280,7 +288,7 @@ export default function MCPInfoPage() {
                     </Button>
                   </div>
                   <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-                    <pre className="text-blue-300 font-mono text-sm overflow-x-auto">{cursorConfig}</pre>
+                    <pre className="text-blue-300 font-mono text-sm overflow-x-auto">{windsurfConfig}</pre>
                   </div>
                 </div>
 
