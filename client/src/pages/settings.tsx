@@ -38,7 +38,7 @@ import { CreditTracker } from '@/components/CreditTracker';
 import { ReferralCard } from '@/components/ReferralCard';
 
 export default function SettingsPage() {
-  const { user } = useWeb3Auth();
+  const { user, isLoading: userLoading } = useWeb3Auth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -246,9 +246,51 @@ export default function SettingsPage() {
     });
   };
 
-  if (!user) {
+  // Show loading state with dark background to prevent white flash
+  if (userLoading || !user) {
+    if (userLoading) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" style={{ backgroundColor: '#020617', minHeight: '100vh' }}>
+          <div className="flex">
+            {/* Sidebar Skeleton */}
+            <div className="w-64 bg-slate-900/40 border-r border-slate-800/60 flex flex-col">
+              <div className="p-4 border-b border-slate-800">
+                <div className="h-6 bg-slate-700 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1 p-4">
+                <div className="space-y-2">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="h-10 bg-slate-700 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Main Content Skeleton */}
+            <div className="flex-1 p-8">
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="h-8 bg-slate-700 rounded animate-pulse w-1/3"></div>
+                <div className="h-4 bg-slate-700 rounded animate-pulse w-1/2"></div>
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-slate-800/20 rounded-lg p-6 border border-slate-700/50">
+                      <div className="h-6 bg-slate-700 rounded animate-pulse w-1/4 mb-4"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-slate-700 rounded animate-pulse"></div>
+                        <div className="h-4 bg-slate-700 rounded animate-pulse w-3/4"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center" style={{ backgroundColor: '#020617', minHeight: '100vh' }}>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Authentication Required</h1>
           <p className="text-slate-400 mb-6">Please log in to access settings.</p>
