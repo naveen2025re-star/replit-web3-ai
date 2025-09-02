@@ -12,6 +12,7 @@ import Community from "@/pages/community";
 import AuditHistoryPage from "@/pages/audit-history";
 import IntegrationsPage from "@/pages/integrations";
 import SettingsPage from "@/pages/settings";
+import MCPInfoPage from "@/pages/mcp-info";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import { useState, useEffect } from "react";
 
@@ -64,6 +65,7 @@ function Router() {
       <Route path="/settings">
         {isAuthenticated && user ? <SettingsPage /> : <AuthPage />}
       </Route>
+      <Route path="/mcp-info" component={MCPInfoPage} />
       <Route path="/" component={Landing} />
       <Route component={NotFound} />
     </Switch>
