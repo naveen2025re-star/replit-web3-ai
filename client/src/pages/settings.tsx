@@ -38,7 +38,7 @@ import { CreditTracker } from '@/components/CreditTracker';
 import { ReferralCard } from '@/components/ReferralCard';
 
 export default function SettingsPage() {
-  const { user, isLoading: userLoading } = useWeb3Auth();
+  const { user, isUserLoading, isConnected } = useWeb3Auth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -246,9 +246,10 @@ export default function SettingsPage() {
     });
   };
 
-  // Show loading state with dark background to prevent white flash
-  if (userLoading || !user) {
-    if (userLoading) {
+  // Always show dark background immediately, then show loading or content
+  if (!user || isUserLoading) {
+    // If user is still loading or not authenticated
+    if (isUserLoading || (isConnected && !user)) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" style={{ backgroundColor: '#020617', minHeight: '100vh' }}>
           <div className="flex">
@@ -289,6 +290,7 @@ export default function SettingsPage() {
       );
     }
     
+    // If not connected to wallet or no user
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center" style={{ backgroundColor: '#020617', minHeight: '100vh' }}>
         <div className="text-center">
