@@ -2,14 +2,25 @@ import { createConfig, http } from 'wagmi'
 import { mainnet, polygon, arbitrum, base } from 'wagmi/chains'
 import { injected, walletConnect } from 'wagmi/connectors'
 
-const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'demo-project-id'
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+
+// Only include WalletConnect if we have a real project ID
+const connectors = [injected()]
+if (projectId && projectId !== 'demo-project-id') {
+  connectors.push(walletConnect({ 
+    projectId,
+    metadata: {
+      name: 'AI Smart Contract Auditor',
+      description: 'Professional smart contract security analysis powered by AI',
+      url: typeof window !== 'undefined' ? window.location.origin : 'https://aiaudit.dev',
+      icons: ['https://avatars.githubusercontent.com/u/37784886']
+    }
+  }))
+}
 
 export const config = createConfig({
   chains: [mainnet, polygon, arbitrum, base],
-  connectors: [
-    injected(),
-    walletConnect({ projectId }),
-  ],
+  connectors,
   transports: {
     [mainnet.id]: http(),
     [polygon.id]: http(),

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useConnect, useAccount, useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Wallet, LogOut, Copy, Check, Shield, ArrowRight, CheckCircle, Clock } from "lucide-react";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
@@ -86,6 +86,9 @@ export function LandingWalletConnect({ children, contractInput }: LandingWalletC
               <Wallet className="h-5 w-5 text-blue-400" />
               Connect Your Wallet
             </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Choose your preferred wallet to connect and start auditing smart contracts
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-gray-400 mb-4">
@@ -116,6 +119,7 @@ export function LandingWalletConnect({ children, contractInput }: LandingWalletC
         <DialogContent className="sm:max-w-lg bg-gray-900 border-gray-700 text-white">
           <DialogHeader className="sr-only">
             <DialogTitle>Wallet Authentication</DialogTitle>
+            <DialogDescription>Authenticating your wallet connection</DialogDescription>
           </DialogHeader>
           <div className="p-6 text-center">
             {authStep === 'connecting' && (
