@@ -503,16 +503,24 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check if user exists, create if not
-      const user = await storage.createOrUpdateUser({
-        address: address.toLowerCase(),
-        lastLogin: new Date().toISOString()
-      });
+      let user = await storage.getUserByWallet(address.toLowerCase());
+      
+      if (!user) {
+        user = await storage.createUser({
+          walletAddress: address.toLowerCase(),
+          lastLogin: new Date()
+        });
+      } else {
+        user = await storage.updateUser(user.id, {
+          lastLogin: new Date()
+        });
+      }
 
       res.json({ 
         success: true, 
         user: {
           id: user.id,
-          address: user.address,
+          address: user.walletAddress,
           createdAt: user.createdAt
         }
       });
@@ -531,7 +539,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Valid Ethereum address is required" });
       }
 
-      const user = await storage.getUserByAddress(address.toLowerCase());
+      const user = await storage.getUserByWallet(address.toLowerCase());
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -539,9 +547,9 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         id: user.id,
-        address: user.address,
+        address: user.walletAddress,
         createdAt: user.createdAt,
-        lastLogin: user.lastLogin
+        lastLogin: user.lastLogin || null
       });
     } catch (error) {
       console.error('User fetch error:', error);
@@ -721,9 +729,14 @@ export function registerRoutes(app: Express): Server {
   // Get public audit sessions
   app.get("/api/community/audits", async (req, res) => {
     try {
-      const { limit = 20, offset = 0 } = req.query;
-      const audits = await storage.getPublicAudits(Number(limit), Number(offset));
-      res.json({ audits });
+      const { limit = 20, offset = 0, tags, search } = req.query;
+      const result = await storage.getPublicAudits({
+        limit: Number(limit),
+        offset: Number(offset),
+        tags: tags as string,
+        search: search as string
+      });
+      res.json({ audits: result.audits, total: result.total });
     } catch (error) {
       console.error('Community audits error:', error);
       res.status(500).json({ message: "Failed to fetch community audits" });
