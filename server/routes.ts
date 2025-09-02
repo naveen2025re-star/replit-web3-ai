@@ -332,6 +332,24 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
   
+  // MCP info endpoint (GET) - moved to avoid vite middleware conflict
+  app.get("/api/mcp-info", (req, res) => {
+    res.json({
+      name: "SmartAudit AI MCP Server",
+      description: "Model Context Protocol server for smart contract auditing",
+      version: "1.0.0",
+      capabilities: {
+        tools: ["authenticate", "audit_smart_contract", "get_credits"],
+        transports: ["stdio", "http"]
+      },
+      setup: {
+        stdio: "Use the standalone MCP server: node build/mcp-server.js",
+        http: "POST requests to /api/mcp with MCP protocol format"
+      },
+      standalone_server: "build/mcp-server.js"
+    });
+  });
+
   // MCP HTTP endpoint for AI IDEs  
   app.post("/api/mcp", async (req, res) => {
     try {
@@ -379,7 +397,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
           switch (name) {
             case "authenticate":
               const { walletAddress } = args;
-              const user = await storage.getUserByWalletAddress(walletAddress.toLowerCase());
+              const user = await storage.getUserByWallet(walletAddress.toLowerCase());
               if (user) {
                 const credits = await CreditService.getUserCredits(user.id);
                 res.json({
