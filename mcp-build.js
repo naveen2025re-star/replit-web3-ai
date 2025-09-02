@@ -22,13 +22,11 @@ async function buildMcpServer() {
       bundle: true,
       platform: "node",
       target: "node18",
-      format: "cjs",
+      format: "esm",
       outfile: join(__dirname, "build/mcp-server.js"),
       external: [],
       packages: "bundle",
-      banner: {
-        js: "#!/usr/bin/env node",
-      },
+      // Remove shebang for ESM format
       sourcemap: false,
       minify: false,
       mainFields: ["main", "module"],

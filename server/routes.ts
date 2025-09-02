@@ -7,6 +7,7 @@ import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { BlockchainScanner } from "./blockchainScanner";
 import { ApiService, WebhookService } from "./apiService";
 import { authenticateApiKey, requirePermission, createAudit, getAudit, createBatchAudit, listAudits } from "./auditApi";
+import { server as mcpServer } from "./mcpServer";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createRazorpayOrder, verifyRazorpayPayment, getRazorpayPaymentDetails, handleRazorpayWebhook } from "./razorpay";
@@ -331,6 +332,96 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
   
+  // MCP HTTP endpoint for AI IDEs  
+  app.post("/api/mcp", async (req, res) => {
+    try {
+      const { method, params } = req.body;
+      
+      switch (method) {
+        case "tools/list":
+          res.json({
+            tools: [
+              {
+                name: "authenticate",
+                description: "Authenticate user with wallet address",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    walletAddress: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" }
+                  },
+                  required: ["walletAddress"]
+                }
+              },
+              {
+                name: "audit_smart_contract", 
+                description: "Audit smart contract for vulnerabilities",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    contractCode: { type: "string" },
+                    contractAddress: { type: "string" }
+                  },
+                  required: ["contractCode"]
+                }
+              },
+              {
+                name: "get_credits",
+                description: "Get user credit balance",
+                inputSchema: { type: "object", properties: {} }
+              }
+            ]
+          });
+          break;
+          
+        case "tools/call":
+          const { name, arguments: args } = params;
+          
+          switch (name) {
+            case "authenticate":
+              const { walletAddress } = args;
+              const user = await storage.getUserByWalletAddress(walletAddress.toLowerCase());
+              if (user) {
+                const credits = await CreditService.getUserCredits(user.id);
+                res.json({
+                  content: [{
+                    type: "text",
+                    text: `✅ Authentication successful!\\n\\n**User ID**: ${user.id}\\n**Credits**: ${credits} available\\n\\nYou can now use auditing tools.`
+                  }]
+                });
+              } else {
+                res.json({
+                  content: [{
+                    type: "text", 
+                    text: "❌ Authentication failed. User not found."
+                  }]
+                });
+              }
+              break;
+              
+            case "audit_smart_contract":
+              const { contractCode } = args;
+              res.json({
+                content: [{
+                  type: "text",
+                  text: `🔍 Contract received (${contractCode?.length || 0} chars). Use web interface for full AI audit capabilities.`
+                }]
+              });
+              break;
+              
+            default:
+              res.status(404).json({ error: "Tool not found" });
+          }
+          break;
+          
+        default:
+          res.status(400).json({ error: "Unknown method" });
+      }
+    } catch (error) {
+      console.error('MCP error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Create new audit session
   app.post("/api/audit/sessions", async (req, res) => {
     try {

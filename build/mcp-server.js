@@ -1,13 +1,17 @@
 #!/usr/bin/env node
-#!/usr/bin/env node
-"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJS = (cb, mod) => function __require() {
+var __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, {
+  get: (a2, b) => (typeof require !== "undefined" ? require : a2)[b]
+}) : x2)(function(x2) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x2 + '" is not supported');
+});
+var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
@@ -30,14 +34,13 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/uri-js/dist/es5/uri.all.js
 var require_uri_all = __commonJS({
-  "node_modules/uri-js/dist/es5/uri.all.js"(exports2, module2) {
+  "node_modules/uri-js/dist/es5/uri.all.js"(exports, module) {
     (function(global, factory) {
-      typeof exports2 === "object" && typeof module2 !== "undefined" ? factory(exports2) : typeof define === "function" && define.amd ? define(["exports"], factory) : factory(global.URI = global.URI || {});
-    })(exports2, function(exports3) {
+      typeof exports === "object" && typeof module !== "undefined" ? factory(exports) : typeof define === "function" && define.amd ? define(["exports"], factory) : factory(global.URI = global.URI || {});
+    })(exports, function(exports2) {
       "use strict";
       function merge() {
         for (var _len = arguments.length, sets = Array(_len), _key = 0; _key < _len; _key++) {
@@ -1032,28 +1035,28 @@ var require_uri_all = __commonJS({
       SCHEMES[handler$4.scheme] = handler$4;
       SCHEMES[handler$5.scheme] = handler$5;
       SCHEMES[handler$6.scheme] = handler$6;
-      exports3.SCHEMES = SCHEMES;
-      exports3.pctEncChar = pctEncChar;
-      exports3.pctDecChars = pctDecChars;
-      exports3.parse = parse;
-      exports3.removeDotSegments = removeDotSegments;
-      exports3.serialize = serialize;
-      exports3.resolveComponents = resolveComponents;
-      exports3.resolve = resolve;
-      exports3.normalize = normalize;
-      exports3.equal = equal;
-      exports3.escapeComponent = escapeComponent;
-      exports3.unescapeComponent = unescapeComponent;
-      Object.defineProperty(exports3, "__esModule", { value: true });
+      exports2.SCHEMES = SCHEMES;
+      exports2.pctEncChar = pctEncChar;
+      exports2.pctDecChars = pctDecChars;
+      exports2.parse = parse;
+      exports2.removeDotSegments = removeDotSegments;
+      exports2.serialize = serialize;
+      exports2.resolveComponents = resolveComponents;
+      exports2.resolve = resolve;
+      exports2.normalize = normalize;
+      exports2.equal = equal;
+      exports2.escapeComponent = escapeComponent;
+      exports2.unescapeComponent = unescapeComponent;
+      Object.defineProperty(exports2, "__esModule", { value: true });
     });
   }
 });
 
 // node_modules/fast-deep-equal/index.js
 var require_fast_deep_equal = __commonJS({
-  "node_modules/fast-deep-equal/index.js"(exports2, module2) {
+  "node_modules/fast-deep-equal/index.js"(exports, module) {
     "use strict";
-    module2.exports = function equal(a2, b) {
+    module.exports = function equal(a2, b) {
       if (a2 === b) return true;
       if (a2 && b && typeof a2 == "object" && typeof b == "object") {
         if (a2.constructor !== b.constructor) return false;
@@ -1086,9 +1089,9 @@ var require_fast_deep_equal = __commonJS({
 
 // node_modules/ajv/lib/compile/ucs2length.js
 var require_ucs2length = __commonJS({
-  "node_modules/ajv/lib/compile/ucs2length.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/ucs2length.js"(exports, module) {
     "use strict";
-    module2.exports = function ucs2length(str) {
+    module.exports = function ucs2length(str) {
       var length = 0, len = str.length, pos = 0, value;
       while (pos < len) {
         length++;
@@ -1105,9 +1108,9 @@ var require_ucs2length = __commonJS({
 
 // node_modules/ajv/lib/compile/util.js
 var require_util = __commonJS({
-  "node_modules/ajv/lib/compile/util.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/util.js"(exports, module) {
     "use strict";
-    module2.exports = {
+    module.exports = {
       copy,
       checkDataType,
       checkDataTypes,
@@ -1289,10 +1292,10 @@ var require_util = __commonJS({
 
 // node_modules/ajv/lib/compile/schema_obj.js
 var require_schema_obj = __commonJS({
-  "node_modules/ajv/lib/compile/schema_obj.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/schema_obj.js"(exports, module) {
     "use strict";
     var util2 = require_util();
-    module2.exports = SchemaObject;
+    module.exports = SchemaObject;
     function SchemaObject(obj) {
       util2.copy(obj, this);
     }
@@ -1301,9 +1304,9 @@ var require_schema_obj = __commonJS({
 
 // node_modules/json-schema-traverse/index.js
 var require_json_schema_traverse = __commonJS({
-  "node_modules/json-schema-traverse/index.js"(exports2, module2) {
+  "node_modules/json-schema-traverse/index.js"(exports, module) {
     "use strict";
-    var traverse = module2.exports = function(schema, opts, cb) {
+    var traverse = module.exports = function(schema, opts, cb) {
       if (typeof opts == "function") {
         cb = opts;
         opts = {};
@@ -1385,14 +1388,14 @@ var require_json_schema_traverse = __commonJS({
 
 // node_modules/ajv/lib/compile/resolve.js
 var require_resolve = __commonJS({
-  "node_modules/ajv/lib/compile/resolve.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/resolve.js"(exports, module) {
     "use strict";
     var URI = require_uri_all();
     var equal = require_fast_deep_equal();
     var util2 = require_util();
     var SchemaObject = require_schema_obj();
     var traverse = require_json_schema_traverse();
-    module2.exports = resolve;
+    module.exports = resolve;
     resolve.normalizeId = normalizeId;
     resolve.fullPath = getFullPath;
     resolve.url = resolveUrl;
@@ -1606,10 +1609,10 @@ var require_resolve = __commonJS({
 
 // node_modules/ajv/lib/compile/error_classes.js
 var require_error_classes = __commonJS({
-  "node_modules/ajv/lib/compile/error_classes.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/error_classes.js"(exports, module) {
     "use strict";
     var resolve = require_resolve();
-    module2.exports = {
+    module.exports = {
       Validation: errorSubclass(ValidationError),
       MissingRef: errorSubclass(MissingRefError)
     };
@@ -1636,9 +1639,9 @@ var require_error_classes = __commonJS({
 
 // node_modules/fast-json-stable-stringify/index.js
 var require_fast_json_stable_stringify = __commonJS({
-  "node_modules/fast-json-stable-stringify/index.js"(exports2, module2) {
+  "node_modules/fast-json-stable-stringify/index.js"(exports, module) {
     "use strict";
-    module2.exports = function(data, opts) {
+    module.exports = function(data, opts) {
       if (!opts) opts = {};
       if (typeof opts === "function") opts = { cmp: opts };
       var cycles = typeof opts.cycles === "boolean" ? opts.cycles : false;
@@ -1692,9 +1695,9 @@ var require_fast_json_stable_stringify = __commonJS({
 
 // node_modules/ajv/lib/dotjs/validate.js
 var require_validate = __commonJS({
-  "node_modules/ajv/lib/dotjs/validate.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/validate.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_validate(it, $keyword, $ruleType) {
+    module.exports = function generate_validate(it, $keyword, $ruleType) {
       var out = "";
       var $async = it.schema.$async === true, $refKeywords = it.util.schemaHasRulesExcept(it.schema, it.RULES.all, "$ref"), $id = it.self._getId(it.schema);
       if (it.opts.strictKeywords) {
@@ -2150,7 +2153,7 @@ var require_validate = __commonJS({
 
 // node_modules/ajv/lib/compile/index.js
 var require_compile = __commonJS({
-  "node_modules/ajv/lib/compile/index.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/index.js"(exports, module) {
     "use strict";
     var resolve = require_resolve();
     var util2 = require_util();
@@ -2160,7 +2163,7 @@ var require_compile = __commonJS({
     var ucs2length = util2.ucs2length;
     var equal = require_fast_deep_equal();
     var ValidationError = errorClasses.Validation;
-    module2.exports = compile;
+    module.exports = compile;
     function compile(schema, root, localRefs, baseId) {
       var self = this, opts = this._opts, refVal = [void 0], refs = {}, patterns = [], patternsHash = {}, defaults = [], defaultsHash = {}, customRules = [];
       root = root || { schema, refVal, refs };
@@ -2429,9 +2432,9 @@ var require_compile = __commonJS({
 
 // node_modules/ajv/lib/cache.js
 var require_cache = __commonJS({
-  "node_modules/ajv/lib/cache.js"(exports2, module2) {
+  "node_modules/ajv/lib/cache.js"(exports, module) {
     "use strict";
-    var Cache = module2.exports = function Cache2() {
+    var Cache = module.exports = function Cache2() {
       this._cache = {};
     };
     Cache.prototype.put = function Cache_put(key, value) {
@@ -2451,7 +2454,7 @@ var require_cache = __commonJS({
 
 // node_modules/ajv/lib/compile/formats.js
 var require_formats = __commonJS({
-  "node_modules/ajv/lib/compile/formats.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/formats.js"(exports, module) {
     "use strict";
     var util2 = require_util();
     var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
@@ -2466,7 +2469,7 @@ var require_formats = __commonJS({
     var JSON_POINTER = /^(?:\/(?:[^~/]|~0|~1)*)*$/;
     var JSON_POINTER_URI_FRAGMENT = /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i;
     var RELATIVE_JSON_POINTER = /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/;
-    module2.exports = formats;
+    module.exports = formats;
     function formats(mode) {
       mode = mode == "full" ? "full" : "fast";
       return util2.copy(formats[mode]);
@@ -2563,9 +2566,9 @@ var require_formats = __commonJS({
 
 // node_modules/ajv/lib/dotjs/ref.js
 var require_ref = __commonJS({
-  "node_modules/ajv/lib/dotjs/ref.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/ref.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_ref(it, $keyword, $ruleType) {
+    module.exports = function generate_ref(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -2691,9 +2694,9 @@ var require_ref = __commonJS({
 
 // node_modules/ajv/lib/dotjs/allOf.js
 var require_allOf = __commonJS({
-  "node_modules/ajv/lib/dotjs/allOf.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/allOf.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_allOf(it, $keyword, $ruleType) {
+    module.exports = function generate_allOf(it, $keyword, $ruleType) {
       var out = " ";
       var $schema = it.schema[$keyword];
       var $schemaPath = it.schemaPath + it.util.getProperty($keyword);
@@ -2737,9 +2740,9 @@ var require_allOf = __commonJS({
 
 // node_modules/ajv/lib/dotjs/anyOf.js
 var require_anyOf = __commonJS({
-  "node_modules/ajv/lib/dotjs/anyOf.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/anyOf.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_anyOf(it, $keyword, $ruleType) {
+    module.exports = function generate_anyOf(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -2814,9 +2817,9 @@ var require_anyOf = __commonJS({
 
 // node_modules/ajv/lib/dotjs/comment.js
 var require_comment = __commonJS({
-  "node_modules/ajv/lib/dotjs/comment.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/comment.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_comment(it, $keyword, $ruleType) {
+    module.exports = function generate_comment(it, $keyword, $ruleType) {
       var out = " ";
       var $schema = it.schema[$keyword];
       var $errSchemaPath = it.errSchemaPath + "/" + $keyword;
@@ -2834,9 +2837,9 @@ var require_comment = __commonJS({
 
 // node_modules/ajv/lib/dotjs/const.js
 var require_const = __commonJS({
-  "node_modules/ajv/lib/dotjs/const.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/const.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_const(it, $keyword, $ruleType) {
+    module.exports = function generate_const(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -2894,9 +2897,9 @@ var require_const = __commonJS({
 
 // node_modules/ajv/lib/dotjs/contains.js
 var require_contains = __commonJS({
-  "node_modules/ajv/lib/dotjs/contains.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/contains.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_contains(it, $keyword, $ruleType) {
+    module.exports = function generate_contains(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -2976,9 +2979,9 @@ var require_contains = __commonJS({
 
 // node_modules/ajv/lib/dotjs/dependencies.js
 var require_dependencies = __commonJS({
-  "node_modules/ajv/lib/dotjs/dependencies.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/dependencies.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_dependencies(it, $keyword, $ruleType) {
+    module.exports = function generate_dependencies(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3141,9 +3144,9 @@ var require_dependencies = __commonJS({
 
 // node_modules/ajv/lib/dotjs/enum.js
 var require_enum = __commonJS({
-  "node_modules/ajv/lib/dotjs/enum.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/enum.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_enum(it, $keyword, $ruleType) {
+    module.exports = function generate_enum(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3210,9 +3213,9 @@ var require_enum = __commonJS({
 
 // node_modules/ajv/lib/dotjs/format.js
 var require_format = __commonJS({
-  "node_modules/ajv/lib/dotjs/format.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/format.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_format(it, $keyword, $ruleType) {
+    module.exports = function generate_format(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3361,9 +3364,9 @@ var require_format = __commonJS({
 
 // node_modules/ajv/lib/dotjs/if.js
 var require_if = __commonJS({
-  "node_modules/ajv/lib/dotjs/if.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/if.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_if(it, $keyword, $ruleType) {
+    module.exports = function generate_if(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3465,9 +3468,9 @@ var require_if = __commonJS({
 
 // node_modules/ajv/lib/dotjs/items.js
 var require_items = __commonJS({
-  "node_modules/ajv/lib/dotjs/items.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/items.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_items(it, $keyword, $ruleType) {
+    module.exports = function generate_items(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3606,9 +3609,9 @@ var require_items = __commonJS({
 
 // node_modules/ajv/lib/dotjs/_limit.js
 var require_limit = __commonJS({
-  "node_modules/ajv/lib/dotjs/_limit.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/_limit.js"(exports, module) {
     "use strict";
-    module2.exports = function generate__limit(it, $keyword, $ruleType) {
+    module.exports = function generate__limit(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3760,9 +3763,9 @@ var require_limit = __commonJS({
 
 // node_modules/ajv/lib/dotjs/_limitItems.js
 var require_limitItems = __commonJS({
-  "node_modules/ajv/lib/dotjs/_limitItems.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/_limitItems.js"(exports, module) {
     "use strict";
-    module2.exports = function generate__limitItems(it, $keyword, $ruleType) {
+    module.exports = function generate__limitItems(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3844,9 +3847,9 @@ var require_limitItems = __commonJS({
 
 // node_modules/ajv/lib/dotjs/_limitLength.js
 var require_limitLength = __commonJS({
-  "node_modules/ajv/lib/dotjs/_limitLength.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/_limitLength.js"(exports, module) {
     "use strict";
-    module2.exports = function generate__limitLength(it, $keyword, $ruleType) {
+    module.exports = function generate__limitLength(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -3933,9 +3936,9 @@ var require_limitLength = __commonJS({
 
 // node_modules/ajv/lib/dotjs/_limitProperties.js
 var require_limitProperties = __commonJS({
-  "node_modules/ajv/lib/dotjs/_limitProperties.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/_limitProperties.js"(exports, module) {
     "use strict";
-    module2.exports = function generate__limitProperties(it, $keyword, $ruleType) {
+    module.exports = function generate__limitProperties(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4017,9 +4020,9 @@ var require_limitProperties = __commonJS({
 
 // node_modules/ajv/lib/dotjs/multipleOf.js
 var require_multipleOf = __commonJS({
-  "node_modules/ajv/lib/dotjs/multipleOf.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/multipleOf.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_multipleOf(it, $keyword, $ruleType) {
+    module.exports = function generate_multipleOf(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4101,9 +4104,9 @@ var require_multipleOf = __commonJS({
 
 // node_modules/ajv/lib/dotjs/not.js
 var require_not = __commonJS({
-  "node_modules/ajv/lib/dotjs/not.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/not.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_not(it, $keyword, $ruleType) {
+    module.exports = function generate_not(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4190,9 +4193,9 @@ var require_not = __commonJS({
 
 // node_modules/ajv/lib/dotjs/oneOf.js
 var require_oneOf = __commonJS({
-  "node_modules/ajv/lib/dotjs/oneOf.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/oneOf.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_oneOf(it, $keyword, $ruleType) {
+    module.exports = function generate_oneOf(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4265,9 +4268,9 @@ var require_oneOf = __commonJS({
 
 // node_modules/ajv/lib/dotjs/pattern.js
 var require_pattern = __commonJS({
-  "node_modules/ajv/lib/dotjs/pattern.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/pattern.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_pattern(it, $keyword, $ruleType) {
+    module.exports = function generate_pattern(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4344,9 +4347,9 @@ var require_pattern = __commonJS({
 
 // node_modules/ajv/lib/dotjs/properties.js
 var require_properties = __commonJS({
-  "node_modules/ajv/lib/dotjs/properties.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/properties.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_properties(it, $keyword, $ruleType) {
+    module.exports = function generate_properties(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4660,9 +4663,9 @@ var require_properties = __commonJS({
 
 // node_modules/ajv/lib/dotjs/propertyNames.js
 var require_propertyNames = __commonJS({
-  "node_modules/ajv/lib/dotjs/propertyNames.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/propertyNames.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_propertyNames(it, $keyword, $ruleType) {
+    module.exports = function generate_propertyNames(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4738,9 +4741,9 @@ var require_propertyNames = __commonJS({
 
 // node_modules/ajv/lib/dotjs/required.js
 var require_required = __commonJS({
-  "node_modules/ajv/lib/dotjs/required.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/required.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_required(it, $keyword, $ruleType) {
+    module.exports = function generate_required(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -4998,9 +5001,9 @@ var require_required = __commonJS({
 
 // node_modules/ajv/lib/dotjs/uniqueItems.js
 var require_uniqueItems = __commonJS({
-  "node_modules/ajv/lib/dotjs/uniqueItems.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/uniqueItems.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_uniqueItems(it, $keyword, $ruleType) {
+    module.exports = function generate_uniqueItems(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -5087,9 +5090,9 @@ var require_uniqueItems = __commonJS({
 
 // node_modules/ajv/lib/dotjs/index.js
 var require_dotjs = __commonJS({
-  "node_modules/ajv/lib/dotjs/index.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/index.js"(exports, module) {
     "use strict";
-    module2.exports = {
+    module.exports = {
       "$ref": require_ref(),
       allOf: require_allOf(),
       anyOf: require_anyOf(),
@@ -5124,11 +5127,11 @@ var require_dotjs = __commonJS({
 
 // node_modules/ajv/lib/compile/rules.js
 var require_rules = __commonJS({
-  "node_modules/ajv/lib/compile/rules.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/rules.js"(exports, module) {
     "use strict";
     var ruleModules = require_dotjs();
     var toHash = require_util().toHash;
-    module2.exports = function rules() {
+    module.exports = function rules() {
       var RULES = [
         {
           type: "number",
@@ -5218,7 +5221,7 @@ var require_rules = __commonJS({
 
 // node_modules/ajv/lib/data.js
 var require_data = __commonJS({
-  "node_modules/ajv/lib/data.js"(exports2, module2) {
+  "node_modules/ajv/lib/data.js"(exports, module) {
     "use strict";
     var KEYWORDS = [
       "multipleOf",
@@ -5241,7 +5244,7 @@ var require_data = __commonJS({
       "format",
       "const"
     ];
-    module2.exports = function(metaSchema, keywordsJsonPointers) {
+    module.exports = function(metaSchema, keywordsJsonPointers) {
       for (var i = 0; i < keywordsJsonPointers.length; i++) {
         metaSchema = JSON.parse(JSON.stringify(metaSchema));
         var segments = keywordsJsonPointers[i].split("/");
@@ -5269,10 +5272,10 @@ var require_data = __commonJS({
 
 // node_modules/ajv/lib/compile/async.js
 var require_async = __commonJS({
-  "node_modules/ajv/lib/compile/async.js"(exports2, module2) {
+  "node_modules/ajv/lib/compile/async.js"(exports, module) {
     "use strict";
     var MissingRefError = require_error_classes().MissingRef;
-    module2.exports = compileAsync;
+    module.exports = compileAsync;
     function compileAsync(schema, meta, callback) {
       var self = this;
       if (typeof this._opts.loadSchema != "function")
@@ -5336,9 +5339,9 @@ var require_async = __commonJS({
 
 // node_modules/ajv/lib/dotjs/custom.js
 var require_custom = __commonJS({
-  "node_modules/ajv/lib/dotjs/custom.js"(exports2, module2) {
+  "node_modules/ajv/lib/dotjs/custom.js"(exports, module) {
     "use strict";
-    module2.exports = function generate_custom(it, $keyword, $ruleType) {
+    module.exports = function generate_custom(it, $keyword, $ruleType) {
       var out = " ";
       var $lvl = it.level;
       var $dataLvl = it.dataLevel;
@@ -5560,8 +5563,8 @@ var require_custom = __commonJS({
 
 // node_modules/ajv/lib/refs/json-schema-draft-07.json
 var require_json_schema_draft_07 = __commonJS({
-  "node_modules/ajv/lib/refs/json-schema-draft-07.json"(exports2, module2) {
-    module2.exports = {
+  "node_modules/ajv/lib/refs/json-schema-draft-07.json"(exports, module) {
+    module.exports = {
       $schema: "http://json-schema.org/draft-07/schema#",
       $id: "http://json-schema.org/draft-07/schema#",
       title: "Core schema meta-schema",
@@ -5734,10 +5737,10 @@ var require_json_schema_draft_07 = __commonJS({
 
 // node_modules/ajv/lib/definition_schema.js
 var require_definition_schema = __commonJS({
-  "node_modules/ajv/lib/definition_schema.js"(exports2, module2) {
+  "node_modules/ajv/lib/definition_schema.js"(exports, module) {
     "use strict";
     var metaSchema = require_json_schema_draft_07();
-    module2.exports = {
+    module.exports = {
       $id: "https://github.com/ajv-validator/ajv/blob/master/lib/definition_schema.js",
       definitions: {
         simpleTypes: metaSchema.definitions.simpleTypes
@@ -5775,12 +5778,12 @@ var require_definition_schema = __commonJS({
 
 // node_modules/ajv/lib/keyword.js
 var require_keyword = __commonJS({
-  "node_modules/ajv/lib/keyword.js"(exports2, module2) {
+  "node_modules/ajv/lib/keyword.js"(exports, module) {
     "use strict";
     var IDENTIFIER = /^[a-z_$][a-z0-9_$-]*$/i;
     var customRuleCode = require_custom();
     var definitionSchema = require_definition_schema();
-    module2.exports = {
+    module.exports = {
       add: addKeyword,
       get: getKeyword,
       remove: removeKeyword,
@@ -5875,8 +5878,8 @@ var require_keyword = __commonJS({
 
 // node_modules/ajv/lib/refs/data.json
 var require_data2 = __commonJS({
-  "node_modules/ajv/lib/refs/data.json"(exports2, module2) {
-    module2.exports = {
+  "node_modules/ajv/lib/refs/data.json"(exports, module) {
+    module.exports = {
       $schema: "http://json-schema.org/draft-07/schema#",
       $id: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#",
       description: "Meta-schema for $data reference (JSON Schema extension proposal)",
@@ -5898,7 +5901,7 @@ var require_data2 = __commonJS({
 
 // node_modules/ajv/lib/ajv.js
 var require_ajv = __commonJS({
-  "node_modules/ajv/lib/ajv.js"(exports2, module2) {
+  "node_modules/ajv/lib/ajv.js"(exports, module) {
     "use strict";
     var compileSchema = require_compile();
     var resolve = require_resolve();
@@ -5909,7 +5912,7 @@ var require_ajv = __commonJS({
     var rules = require_rules();
     var $dataMetaSchema = require_data();
     var util2 = require_util();
-    module2.exports = Ajv2;
+    module.exports = Ajv2;
     Ajv2.prototype.validate = validate;
     Ajv2.prototype.compile = compile;
     Ajv2.prototype.addSchema = addSchema;
@@ -6250,12 +6253,12 @@ var require_ajv = __commonJS({
 
 // node_modules/ws/lib/constants.js
 var require_constants = __commonJS({
-  "node_modules/ws/lib/constants.js"(exports2, module2) {
+  "node_modules/ws/lib/constants.js"(exports, module) {
     "use strict";
     var BINARY_TYPES = ["nodebuffer", "arraybuffer", "fragments"];
     var hasBlob = typeof Blob !== "undefined";
     if (hasBlob) BINARY_TYPES.push("blob");
-    module2.exports = {
+    module.exports = {
       BINARY_TYPES,
       EMPTY_BUFFER: Buffer.alloc(0),
       GUID: "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
@@ -6272,11 +6275,11 @@ var require_constants = __commonJS({
 
 // node_modules/node-gyp-build/node-gyp-build.js
 var require_node_gyp_build = __commonJS({
-  "node_modules/node-gyp-build/node-gyp-build.js"(exports2, module2) {
-    var fs = require("fs");
-    var path = require("path");
-    var os = require("os");
-    var runtimeRequire = typeof __webpack_require__ === "function" ? __non_webpack_require__ : require;
+  "node_modules/node-gyp-build/node-gyp-build.js"(exports, module) {
+    var fs = __require("fs");
+    var path = __require("path");
+    var os = __require("os");
+    var runtimeRequire = typeof __webpack_require__ === "function" ? __non_webpack_require__ : __require;
     var vars = process.config && process.config.variables || {};
     var prebuildsOnly = !!process.env.PREBUILDS_ONLY;
     var abi = process.versions.modules;
@@ -6286,7 +6289,7 @@ var require_node_gyp_build = __commonJS({
     var libc = process.env.LIBC || (isAlpine(platform) ? "musl" : "glibc");
     var armv = process.env.ARM_VERSION || (arch === "arm64" ? "8" : vars.arm_version) || "";
     var uv = (process.versions.uv || "").split(".")[0];
-    module2.exports = load;
+    module.exports = load;
     function load(dir) {
       return runtimeRequire(load.resolve(dir));
     }
@@ -6441,19 +6444,19 @@ var require_node_gyp_build = __commonJS({
 
 // node_modules/node-gyp-build/index.js
 var require_node_gyp_build2 = __commonJS({
-  "node_modules/node-gyp-build/index.js"(exports2, module2) {
-    var runtimeRequire = typeof __webpack_require__ === "function" ? __non_webpack_require__ : require;
+  "node_modules/node-gyp-build/index.js"(exports, module) {
+    var runtimeRequire = typeof __webpack_require__ === "function" ? __non_webpack_require__ : __require;
     if (typeof runtimeRequire.addon === "function") {
-      module2.exports = runtimeRequire.addon.bind(runtimeRequire);
+      module.exports = runtimeRequire.addon.bind(runtimeRequire);
     } else {
-      module2.exports = require_node_gyp_build();
+      module.exports = require_node_gyp_build();
     }
   }
 });
 
 // node_modules/bufferutil/fallback.js
 var require_fallback = __commonJS({
-  "node_modules/bufferutil/fallback.js"(exports2, module2) {
+  "node_modules/bufferutil/fallback.js"(exports, module) {
     "use strict";
     var mask = (source, mask2, output, offset, length) => {
       for (var i = 0; i < length; i++) {
@@ -6466,25 +6469,25 @@ var require_fallback = __commonJS({
         buffer[i] ^= mask2[i & 3];
       }
     };
-    module2.exports = { mask, unmask };
+    module.exports = { mask, unmask };
   }
 });
 
 // node_modules/bufferutil/index.js
 var require_bufferutil = __commonJS({
-  "node_modules/bufferutil/index.js"(exports2, module2) {
+  "node_modules/bufferutil/index.js"(exports, module) {
     "use strict";
     try {
-      module2.exports = require_node_gyp_build2()(__dirname);
+      module.exports = require_node_gyp_build2()(__dirname);
     } catch (e) {
-      module2.exports = require_fallback();
+      module.exports = require_fallback();
     }
   }
 });
 
 // node_modules/ws/lib/buffer-util.js
 var require_buffer_util = __commonJS({
-  "node_modules/ws/lib/buffer-util.js"(exports2, module2) {
+  "node_modules/ws/lib/buffer-util.js"(exports, module) {
     "use strict";
     var { EMPTY_BUFFER } = require_constants();
     var FastBuffer = Buffer[Symbol.species];
@@ -6533,7 +6536,7 @@ var require_buffer_util = __commonJS({
       }
       return buf;
     }
-    module2.exports = {
+    module.exports = {
       concat,
       mask: _mask,
       toArrayBuffer,
@@ -6543,11 +6546,11 @@ var require_buffer_util = __commonJS({
     if (!process.env.WS_NO_BUFFER_UTIL) {
       try {
         const bufferUtil = require_bufferutil();
-        module2.exports.mask = function(source, mask, output, offset, length) {
+        module.exports.mask = function(source, mask, output, offset, length) {
           if (length < 48) _mask(source, mask, output, offset, length);
           else bufferUtil.mask(source, mask, output, offset, length);
         };
-        module2.exports.unmask = function(buffer, mask) {
+        module.exports.unmask = function(buffer, mask) {
           if (buffer.length < 32) _unmask(buffer, mask);
           else bufferUtil.unmask(buffer, mask);
         };
@@ -6559,7 +6562,7 @@ var require_buffer_util = __commonJS({
 
 // node_modules/ws/lib/limiter.js
 var require_limiter = __commonJS({
-  "node_modules/ws/lib/limiter.js"(exports2, module2) {
+  "node_modules/ws/lib/limiter.js"(exports, module) {
     "use strict";
     var kDone = Symbol("kDone");
     var kRun = Symbol("kRun");
@@ -6603,15 +6606,15 @@ var require_limiter = __commonJS({
         }
       }
     };
-    module2.exports = Limiter;
+    module.exports = Limiter;
   }
 });
 
 // node_modules/ws/lib/permessage-deflate.js
 var require_permessage_deflate = __commonJS({
-  "node_modules/ws/lib/permessage-deflate.js"(exports2, module2) {
+  "node_modules/ws/lib/permessage-deflate.js"(exports, module) {
     "use strict";
-    var zlib = require("zlib");
+    var zlib = __require("zlib");
     var bufferUtil = require_buffer_util();
     var Limiter = require_limiter();
     var { kStatusCode } = require_constants();
@@ -6961,7 +6964,7 @@ var require_permessage_deflate = __commonJS({
         });
       }
     };
-    module2.exports = PerMessageDeflate;
+    module.exports = PerMessageDeflate;
     function deflateOnData(chunk) {
       this[kBuffers].push(chunk);
       this[kTotalLength] += chunk.length;
@@ -6992,7 +6995,7 @@ var require_permessage_deflate = __commonJS({
 
 // node_modules/utf-8-validate/fallback.js
 var require_fallback2 = __commonJS({
-  "node_modules/utf-8-validate/fallback.js"(exports2, module2) {
+  "node_modules/utf-8-validate/fallback.js"(exports, module) {
     "use strict";
     function isValidUTF8(buf) {
       const len = buf.length;
@@ -7023,27 +7026,27 @@ var require_fallback2 = __commonJS({
       }
       return true;
     }
-    module2.exports = isValidUTF8;
+    module.exports = isValidUTF8;
   }
 });
 
 // node_modules/utf-8-validate/index.js
 var require_utf_8_validate = __commonJS({
-  "node_modules/utf-8-validate/index.js"(exports2, module2) {
+  "node_modules/utf-8-validate/index.js"(exports, module) {
     "use strict";
     try {
-      module2.exports = require_node_gyp_build2()(__dirname);
+      module.exports = require_node_gyp_build2()(__dirname);
     } catch (e) {
-      module2.exports = require_fallback2();
+      module.exports = require_fallback2();
     }
   }
 });
 
 // node_modules/ws/lib/validation.js
 var require_validation = __commonJS({
-  "node_modules/ws/lib/validation.js"(exports2, module2) {
+  "node_modules/ws/lib/validation.js"(exports, module) {
     "use strict";
-    var { isUtf8 } = require("buffer");
+    var { isUtf8 } = __require("buffer");
     var { hasBlob } = require_constants();
     var tokenChars = [
       0,
@@ -7218,20 +7221,20 @@ var require_validation = __commonJS({
     function isBlob(value) {
       return hasBlob && typeof value === "object" && typeof value.arrayBuffer === "function" && typeof value.type === "string" && typeof value.stream === "function" && (value[Symbol.toStringTag] === "Blob" || value[Symbol.toStringTag] === "File");
     }
-    module2.exports = {
+    module.exports = {
       isBlob,
       isValidStatusCode,
       isValidUTF8: _isValidUTF8,
       tokenChars
     };
     if (isUtf8) {
-      module2.exports.isValidUTF8 = function(buf) {
+      module.exports.isValidUTF8 = function(buf) {
         return buf.length < 24 ? _isValidUTF8(buf) : isUtf8(buf);
       };
     } else if (!process.env.WS_NO_UTF_8_VALIDATE) {
       try {
         const isValidUTF8 = require_utf_8_validate();
-        module2.exports.isValidUTF8 = function(buf) {
+        module.exports.isValidUTF8 = function(buf) {
           return buf.length < 32 ? _isValidUTF8(buf) : isValidUTF8(buf);
         };
       } catch (e) {
@@ -7242,9 +7245,9 @@ var require_validation = __commonJS({
 
 // node_modules/ws/lib/receiver.js
 var require_receiver = __commonJS({
-  "node_modules/ws/lib/receiver.js"(exports2, module2) {
+  "node_modules/ws/lib/receiver.js"(exports, module) {
     "use strict";
-    var { Writable } = require("stream");
+    var { Writable } = __require("stream");
     var PerMessageDeflate = require_permessage_deflate();
     var {
       BINARY_TYPES,
@@ -7828,16 +7831,16 @@ var require_receiver = __commonJS({
         return err;
       }
     };
-    module2.exports = Receiver2;
+    module.exports = Receiver2;
   }
 });
 
 // node_modules/ws/lib/sender.js
 var require_sender = __commonJS({
-  "node_modules/ws/lib/sender.js"(exports2, module2) {
+  "node_modules/ws/lib/sender.js"(exports, module) {
     "use strict";
-    var { Duplex } = require("stream");
-    var { randomFillSync } = require("crypto");
+    var { Duplex } = __require("stream");
+    var { randomFillSync } = __require("crypto");
     var PerMessageDeflate = require_permessage_deflate();
     var { EMPTY_BUFFER, kWebSocket, NOOP } = require_constants();
     var { isBlob, isValidStatusCode } = require_validation();
@@ -8304,7 +8307,7 @@ var require_sender = __commonJS({
         }
       }
     };
-    module2.exports = Sender2;
+    module.exports = Sender2;
     function callCallbacks(sender, err, cb) {
       if (typeof cb === "function") cb(err);
       for (let i = 0; i < sender._queue.length; i++) {
@@ -8322,7 +8325,7 @@ var require_sender = __commonJS({
 
 // node_modules/ws/lib/event-target.js
 var require_event_target = __commonJS({
-  "node_modules/ws/lib/event-target.js"(exports2, module2) {
+  "node_modules/ws/lib/event-target.js"(exports, module) {
     "use strict";
     var { kForOnEventAttribute, kListener } = require_constants();
     var kCode = Symbol("kCode");
@@ -8532,7 +8535,7 @@ var require_event_target = __commonJS({
         }
       }
     };
-    module2.exports = {
+    module.exports = {
       CloseEvent,
       ErrorEvent,
       Event,
@@ -8551,7 +8554,7 @@ var require_event_target = __commonJS({
 
 // node_modules/ws/lib/extension.js
 var require_extension = __commonJS({
-  "node_modules/ws/lib/extension.js"(exports2, module2) {
+  "node_modules/ws/lib/extension.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
     function push(dest, name, elem) {
@@ -8698,22 +8701,22 @@ var require_extension = __commonJS({
         }).join(", ");
       }).join(", ");
     }
-    module2.exports = { format, parse };
+    module.exports = { format, parse };
   }
 });
 
 // node_modules/ws/lib/websocket.js
 var require_websocket = __commonJS({
-  "node_modules/ws/lib/websocket.js"(exports2, module2) {
+  "node_modules/ws/lib/websocket.js"(exports, module) {
     "use strict";
-    var EventEmitter = require("events");
-    var https = require("https");
-    var http = require("http");
-    var net = require("net");
-    var tls = require("tls");
-    var { randomBytes, createHash } = require("crypto");
-    var { Duplex, Readable } = require("stream");
-    var { URL: URL2 } = require("url");
+    var EventEmitter = __require("events");
+    var https = __require("https");
+    var http = __require("http");
+    var net = __require("net");
+    var tls = __require("tls");
+    var { randomBytes, createHash } = __require("crypto");
+    var { Duplex, Readable } = __require("stream");
+    var { URL: URL2 } = __require("url");
     var PerMessageDeflate = require_permessage_deflate();
     var Receiver2 = require_receiver();
     var Sender2 = require_sender();
@@ -9175,7 +9178,7 @@ var require_websocket = __commonJS({
     });
     WebSocket3.prototype.addEventListener = addEventListener;
     WebSocket3.prototype.removeEventListener = removeEventListener;
-    module2.exports = WebSocket3;
+    module.exports = WebSocket3;
     function initAsClient(websocket, address, protocols, options) {
       const opts = {
         allowSynchronousEvents: true,
@@ -9587,10 +9590,10 @@ var require_websocket = __commonJS({
 
 // node_modules/ws/lib/stream.js
 var require_stream = __commonJS({
-  "node_modules/ws/lib/stream.js"(exports2, module2) {
+  "node_modules/ws/lib/stream.js"(exports, module) {
     "use strict";
     var WebSocket3 = require_websocket();
-    var { Duplex } = require("stream");
+    var { Duplex } = __require("stream");
     function emitClose(stream) {
       stream.emit("close");
     }
@@ -9679,13 +9682,13 @@ var require_stream = __commonJS({
       duplex.on("error", duplexOnError);
       return duplex;
     }
-    module2.exports = createWebSocketStream2;
+    module.exports = createWebSocketStream2;
   }
 });
 
 // node_modules/ws/lib/subprotocol.js
 var require_subprotocol = __commonJS({
-  "node_modules/ws/lib/subprotocol.js"(exports2, module2) {
+  "node_modules/ws/lib/subprotocol.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
     function parse(header) {
@@ -9724,18 +9727,18 @@ var require_subprotocol = __commonJS({
       protocols.add(protocol);
       return protocols;
     }
-    module2.exports = { parse };
+    module.exports = { parse };
   }
 });
 
 // node_modules/ws/lib/websocket-server.js
 var require_websocket_server = __commonJS({
-  "node_modules/ws/lib/websocket-server.js"(exports2, module2) {
+  "node_modules/ws/lib/websocket-server.js"(exports, module) {
     "use strict";
-    var EventEmitter = require("events");
-    var http = require("http");
-    var { Duplex } = require("stream");
-    var { createHash } = require("crypto");
+    var EventEmitter = __require("events");
+    var http = __require("http");
+    var { Duplex } = __require("stream");
+    var { createHash } = __require("crypto");
     var extension = require_extension();
     var PerMessageDeflate = require_permessage_deflate();
     var subprotocol = require_subprotocol();
@@ -10075,7 +10078,7 @@ var require_websocket_server = __commonJS({
         cb(ws2, req);
       }
     };
-    module2.exports = WebSocketServer2;
+    module.exports = WebSocketServer2;
     function addListeners(server2, map) {
       for (const event of Object.keys(map)) server2.on(event, map[event]);
       return function removeListeners() {
@@ -10116,13 +10119,6 @@ var require_websocket_server = __commonJS({
     }
   }
 });
-
-// server/mcpServer.ts
-var mcpServer_exports = {};
-__export(mcpServer_exports, {
-  server: () => server
-});
-module.exports = __toCommonJS(mcpServer_exports);
 
 // node_modules/zod/lib/index.mjs
 var util;
@@ -15706,7 +15702,7 @@ var Server = class extends Protocol {
 };
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.js
-var import_node_process = __toESM(require("node:process"), 1);
+import process2 from "node:process";
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/shared/stdio.js
 var ReadBuffer = class {
@@ -15738,7 +15734,7 @@ function serializeMessage(message) {
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.js
 var StdioServerTransport = class {
-  constructor(_stdin = import_node_process.default.stdin, _stdout = import_node_process.default.stdout) {
+  constructor(_stdin = process2.stdin, _stdout = process2.stdout) {
     this._stdin = _stdin;
     this._stdout = _stdout;
     this._readBuffer = new ReadBuffer();
@@ -29114,7 +29110,6 @@ var CreditService = class {
 };
 
 // server/mcpServer.ts
-var import_meta = {};
 var server = new Server(
   {
     name: "smart-contract-auditor-mcp",
@@ -29680,16 +29675,15 @@ process.on("SIGINT", async () => {
   await server.close();
   process.exit(0);
 });
-if (import_meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
     console.error("Fatal error:", error);
     process.exit(1);
   });
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
+export {
   server
-});
+};
 /*! Bundled license information:
 
 uri-js/dist/es5/uri.all.js:
