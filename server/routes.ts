@@ -357,19 +357,18 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
   // Remote MCP endpoint for AI IDEs (following Fi Money's approach)
   app.all("/mcp/stream", async (req, res) => {
-    // Enable CORS for remote MCP access
+    // Enable CORS for remote MCP access  
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Content-Type', 'application/json');
     
     if (req.method === 'OPTIONS') {
       return res.status(200).end();
     }
     
     try {
-      const { method, params } = req.body || {};
-      
-      // Handle GET request for server info
+      // Handle GET request for server info (non-MCP)
       if (req.method === 'GET') {
         return res.json({
           name: "SmartAudit AI Remote MCP",
@@ -380,26 +379,47 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         });
       }
       
-      // Handle MCP protocol requests
+      // Parse JSON-RPC request
+      const { id, jsonrpc, method, params } = req.body || {};
+      
+      // Validate JSON-RPC format
+      if (!id || jsonrpc !== "2.0" || !method) {
+        return res.status(400).json({
+          id: id || null,
+          jsonrpc: "2.0",
+          error: { 
+            code: -32600, 
+            message: "Invalid Request - expected JSON-RPC 2.0 format" 
+          }
+        });
+      }
+
+      // Handle MCP protocol requests with proper JSON-RPC responses
       switch (method) {
         case "initialize":
-          res.json({
-            protocolVersion: "2024-11-05",
-            capabilities: {
-              tools: {}
-            },
-            serverInfo: {
-              name: "SmartAudit AI",
-              version: "1.0.0"
+          return res.json({
+            id,
+            jsonrpc: "2.0",
+            result: {
+              protocolVersion: "2024-11-05",
+              capabilities: {
+                tools: {}
+              },
+              serverInfo: {
+                name: "SmartAudit AI",
+                version: "1.0.0"
+              }
             }
           });
-          break;
           
         case "tools/list":
-          res.json({
-            tools: [
-              {
-                name: "authenticate_wallet",
+          return res.json({
+            id,
+            jsonrpc: "2.0", 
+            result: {
+              tools: [
+                {
+                  name: "authenticate_wallet",
                 description: "Authenticate with your Web3 wallet to access smart contract auditing features",
                 inputSchema: {
                   type: "object",
@@ -454,8 +474,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
                 }
               }
             ]
+            }
           });
-          break;
           
         case "tools/call":
           const { name, arguments: args } = params;
@@ -466,67 +486,98 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               const user = await storage.getUserByWallet(walletAddress.toLowerCase());
               if (user) {
                 const credits = await CreditService.getUserCredits(user.id);
-                res.json({
-                  content: [{
-                    type: "text",
-                    text: `🎉 **Authentication Successful!**\\n\\n**Welcome back!** Your wallet ${walletAddress} is now connected.\\n\\n💰 **Credits Available**: ${credits}\\n\\n✅ You can now audit smart contracts, check your history, and manage your credits through this AI interface.\\n\\n**Need help?** Just ask me to "audit a smart contract" or "check my credits"!`
-                  }]
+                return res.json({
+                  id,
+                  jsonrpc: "2.0",
+                  result: {
+                    content: [{
+                      type: "text",
+                      text: `🎉 **Authentication Successful!**\\n\\n**Welcome back!** Your wallet ${walletAddress} is now connected.\\n\\n💰 **Credits Available**: ${credits}\\n\\n✅ You can now audit smart contracts, check your history, and manage your credits through this AI interface.\\n\\n**Need help?** Just ask me to "audit a smart contract" or "check my credits"!`
+                    }]
+                  }
                 });
               } else {
-                res.json({
-                  content: [{
-                    type: "text",
-                    text: `❌ **Authentication Failed**\\n\\nWallet address ${walletAddress} is not registered in our system.\\n\\n**To get started:**\\n1. Visit your SmartAudit AI dashboard\\n2. Connect your wallet and create an account\\n3. Purchase credit packages\\n4. Return here to start auditing!\\n\\n[Register at your dashboard URL]`
-                  }]
+                return res.json({
+                  id,
+                  jsonrpc: "2.0",
+                  result: {
+                    content: [{
+                      type: "text",
+                      text: `❌ **Authentication Failed**\\n\\nWallet address ${walletAddress} is not registered in our system.\\n\\n**To get started:**\\n1. Visit your SmartAudit AI dashboard\\n2. Connect your wallet and create an account\\n3. Purchase credit packages\\n4. Return here to start auditing!\\n\\n[Register at your dashboard URL]`
+                    }]
+                  }
                 });
               }
-              break;
+              
               
             case "check_credits":
-              res.json({
-                content: [{
-                  type: "text",
-                  text: `💳 **Credit Check**\\n\\nPlease authenticate with your wallet first using:\\n\\n"Authenticate my wallet: 0x[your-wallet-address]"\\n\\nOnce authenticated, I can show your credit balance, recent audits, and purchase options.`
-                }]
+              return res.json({
+                id,
+                jsonrpc: "2.0",
+                result: {
+                  content: [{
+                    type: "text",
+                    text: `💳 **Credit Check**\\n\\nPlease authenticate with your wallet first using:\\n\\n"Authenticate my wallet: 0x[your-wallet-address]"\\n\\nOnce authenticated, I can show your credit balance, recent audits, and purchase options.`
+                  }]
+                }
               });
-              break;
               
             case "audit_contract":
               const { contractCode, contractName } = args;
-              res.json({
-                content: [{
-                  type: "text",
-                  text: `🔍 **Smart Contract Audit Request**\\n\\n**Contract**: ${contractName || 'Unnamed'}\\n**Code Length**: ${contractCode?.length || 0} characters\\n\\n⚠️ **Authentication Required**: Please authenticate your wallet first to perform audits.\\n\\n**Cost**: 10 credits per audit\\n**Features**: Vulnerability detection, gas optimization, security recommendations\\n\\nAuthenticate first, then resubmit your audit request!`
-                }]
+              return res.json({
+                id,
+                jsonrpc: "2.0",
+                result: {
+                  content: [{
+                    type: "text",
+                    text: `🔍 **Smart Contract Audit Request**\\n\\n**Contract**: ${contractName || 'Unnamed'}\\n**Code Length**: ${contractCode?.length || 0} characters\\n\\n⚠️ **Authentication Required**: Please authenticate your wallet first to perform audits.\\n\\n**Cost**: 10 credits per audit\\n**Features**: Vulnerability detection, gas optimization, security recommendations\\n\\nAuthenticate first, then resubmit your audit request!`
+                  }]
+                }
               });
-              break;
               
             case "get_audit_results":
               const { sessionId } = args;
-              res.json({
-                content: [{
-                  type: "text",
-                  text: `📊 **Audit Results Request**\\n\\n**Session ID**: ${sessionId}\\n\\n🔒 Please authenticate your wallet first to access audit results.\\n\\nOnce authenticated, I can retrieve detailed vulnerability reports, gas optimization suggestions, and security recommendations for this audit session.`
-                }]
+              return res.json({
+                id,
+                jsonrpc: "2.0", 
+                result: {
+                  content: [{
+                    type: "text",
+                    text: `📊 **Audit Results Request**\\n\\n**Session ID**: ${sessionId}\\n\\n🔒 Please authenticate your wallet first to access audit results.\\n\\nOnce authenticated, I can retrieve detailed vulnerability reports, gas optimization suggestions, and security recommendations for this audit session.`
+                  }]
+                }
               });
-              break;
               
             default:
-              res.status(400).json({ 
-                error: { code: -32601, message: "Method not found" }
+              return res.status(400).json({
+                id,
+                jsonrpc: "2.0",
+                error: { 
+                  code: -32601, 
+                  message: "Method not found" 
+                }
               });
           }
-          break;
           
         default:
-          res.status(400).json({ 
-            error: { code: -32600, message: "Invalid Request" }
+          return res.status(400).json({
+            id: id || null,
+            jsonrpc: "2.0", 
+            error: { 
+              code: -32600, 
+              message: "Invalid Request" 
+            }
           });
       }
     } catch (error) {
       console.error('Remote MCP error:', error);
-      res.status(500).json({ 
-        error: { code: -32603, message: "Internal error" }
+      return res.status(500).json({
+        id: req.body?.id || null,
+        jsonrpc: "2.0", 
+        error: { 
+          code: -32603, 
+          message: "Internal error" 
+        }
       });
     }
   });
