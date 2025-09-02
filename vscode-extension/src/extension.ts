@@ -213,7 +213,7 @@ async function auditDocument(document: vscode.TextDocument) {
     }, async (progress) => {
         try {
             progress.report({ 
-                message: `Starting ${detectedLang.language.name} analysis...` 
+                message: `Starting ${detectedLang?.language.name || 'code'} analysis...` 
             });
             
             // Start audit with language information
@@ -250,7 +250,7 @@ async function auditDocument(document: vscode.TextDocument) {
                     // Show completion message with language-specific info
                     const networkInfo = auditConfig.networks.slice(0, 2).join(', ');
                     vscode.window.showInformationMessage(
-                        `✅ ${detectedLang.language.name} audit completed! Compatible with: ${networkInfo}`
+                        `✅ ${detectedLang?.language.name || 'Code'} audit completed! Compatible with: ${networkInfo}`
                     );
                     
                     return;
