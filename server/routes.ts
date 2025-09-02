@@ -355,6 +355,39 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     });
   });
 
+  // Catch-all for MCP metadata endpoints that Windsurf might try (MUST be before main /api/mcp route)
+  app.all("/api/mcp-*", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id');
+    
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
+    // Return server metadata for any MCP endpoint variant to fix HTML decode errors
+    return res.json({
+      name: "SmartAudit AI",
+      description: "AI-powered smart contract auditing via Model Context Protocol",
+      version: "1.0.0",
+      protocolVersion: "2024-11-05",
+      capabilities: {
+        tools: {}
+      },
+      serverInfo: {
+        name: "SmartAudit AI",
+        version: "1.0.0"
+      },
+      transport: "streamable-http",
+      endpoints: {
+        main: "/api/mcp",
+        metadata: "/api/mcp",
+        stream: "/api/mcp"
+      }
+    });
+  });
+
   // MCP server endpoint (API path to avoid frontend routing conflicts)
   app.all("/api/mcp", async (req, res) => {
     // Enable CORS for remote MCP access  
@@ -648,6 +681,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
   app.all("/mcp/stream", (req, res) => {
     res.redirect(301, "/api/mcp");
   });
+  
 
   // Removed duplicate /api/mcp route - now handled by the main route above
 

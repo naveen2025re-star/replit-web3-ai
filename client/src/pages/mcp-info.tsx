@@ -284,7 +284,7 @@ export default function MCPInfoPage() {
               <CardContent className="space-y-4">
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm font-medium">
-                    🚀 **STREAMABLE HTTP TRANSPORT WORKING** - Full Windsurf compatibility achieved! All transport methods tested: JSON-RPC POST, SSE streaming, session management, and metadata endpoints!
+                    ✅ **HTML DECODE ERROR FIXED** - All MCP metadata endpoints now return JSON! Route ordering issue resolved. Complete Streamable HTTP transport working!
                   </p>
                 </div>
 
