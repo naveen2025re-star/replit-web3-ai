@@ -142,39 +142,6 @@ export class GitHubService {
     }
   }
 
-  async getFileContent(owner: string, repo: string, filePath: string, branch = 'main') {
-    try {
-      const { data } = await this.octokit.rest.repos.getContent({
-        owner,
-        repo,
-        path: filePath,
-        ref: branch,
-      });
-
-      // Handle file content
-      if (Array.isArray(data)) {
-        throw new Error('Path is a directory, not a file');
-      }
-
-      if (!('content' in data)) {
-        throw new Error('No content found for file');
-      }
-
-      // Decode base64 content
-      const content = Buffer.from(data.content, 'base64').toString('utf-8');
-      
-      return {
-        content,
-        sha: data.sha,
-        size: data.size,
-        name: data.name,
-        path: data.path,
-      };
-    } catch (error) {
-      throw new Error(`Failed to get file content: ${error}`);
-    }
-  }
-
   private async findSolidityFiles(owner: string, repo: string, branch: string, path = '', depth = 0): Promise<any[]> {
     // Prevent infinite recursion and limit depth
     if (depth > 10) {
@@ -258,6 +225,24 @@ ${scanResult.reportUrl ? `[📊 View Full Report](${scanResult.reportUrl})` : ''
     return `${scanResult.findings} ${scanResult.severity} severity issues found`;
   }
 
+  async getFileContent(owner: string, repo: string, path: string, branch = 'main'): Promise<string> {
+    try {
+      const { data } = await this.octokit.rest.repos.getContent({
+        owner,
+        repo,
+        path,
+        ref: branch,
+      });
+
+      if ('content' in data && data.content) {
+        return Buffer.from(data.content, 'base64').toString('utf-8');
+      }
+      
+      throw new Error('File content not found');
+    } catch (error) {
+      throw new Error(`Failed to get file content: ${error}`);
+    }
+  }
 }
 
 export class CICDService {

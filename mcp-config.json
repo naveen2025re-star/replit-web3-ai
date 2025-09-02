@@ -1,0 +1,90 @@
+{
+  "name": "Smart Contract Auditor MCP",
+  "description": "AI-powered smart contract auditing system with web search capabilities",
+  "version": "1.0.0",
+  "server": {
+    "command": "node",
+    "args": ["./build/mcp-server.js"],
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "capabilities": {
+    "tools": [
+      "audit_smart_contract",
+      "search_web", 
+      "get_audit_history",
+      "explain_vulnerability",
+      "generate_secure_code"
+    ],
+    "resources": [
+      "audit://sessions/recent",
+      "audit://vulnerabilities/common"
+    ]
+  },
+  "integrations": {
+    "claude_desktop": {
+      "config_path": "~/Library/Application Support/Claude/claude_desktop_config.json",
+      "config_example": {
+        "mcpServers": {
+          "smart-contract-auditor": {
+            "command": "node",
+            "args": ["/absolute/path/to/your/project/build/mcp-server.js"],
+            "env": {
+              "NODE_ENV": "production"
+            }
+          }
+        }
+      }
+    },
+    "vscode": {
+      "extension": "claude-dev",
+      "config_example": {
+        "claude-dev.mcpServers": {
+          "smart-contract-auditor": {
+            "command": "node",
+            "args": ["./build/mcp-server.js"]
+          }
+        }
+      }
+    },
+    "cursor": {
+      "config_path": "~/.cursor/mcp_servers.json",
+      "config_example": {
+        "servers": {
+          "smart-contract-auditor": {
+            "command": "node",
+            "args": ["./build/mcp-server.js"]
+          }
+        }
+      }
+    }
+  },
+  "usage_examples": {
+    "audit_contract": {
+      "description": "Audit a smart contract for vulnerabilities",
+      "command": "audit_smart_contract",
+      "example": "Please audit this ERC20 token contract: [paste contract code]"
+    },
+    "search_vulnerabilities": {
+      "description": "Search for information about specific vulnerabilities",
+      "command": "search_web", 
+      "example": "Search for recent reentrancy attack examples and prevention methods"
+    },
+    "get_history": {
+      "description": "View previous audit sessions",
+      "command": "get_audit_history",
+      "example": "Show me my recent contract audits"
+    },
+    "explain_vulnerability": {
+      "description": "Get detailed explanation of a vulnerability",
+      "command": "explain_vulnerability",
+      "example": "Explain how reentrancy attacks work and how to prevent them"
+    },
+    "generate_code": {
+      "description": "Generate secure contract templates",
+      "command": "generate_secure_code",
+      "example": "Generate a secure ERC20 token contract with pausable functionality"
+    }
+  }
+}
