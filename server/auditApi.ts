@@ -415,7 +415,7 @@ export const listAudits = async (req: Request, res: Response) => {
 };
 
 // Simulate audit processing (replace with real Shipable AI integration)
-async function processAudit(auditId: string, sessionKey: string, contractCode: string) {
+export async function processAudit(auditId: string, sessionKey: string, contractCode: string) {
   try {
     // Update status to analyzing
     await db

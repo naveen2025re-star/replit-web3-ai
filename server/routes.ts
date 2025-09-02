@@ -6,7 +6,7 @@ import { insertAuditSessionSchema, insertAuditResultSchema, insertUserSchema, up
 import { CreditService, type CreditCalculationFactors } from "./creditService";
 import { BlockchainScanner } from "./blockchainScanner";
 import { ApiService, WebhookService } from "./apiService";
-import { authenticateApiKey, requirePermission, createAudit, getAudit, createBatchAudit, listAudits } from "./auditApi";
+import { authenticateApiKey, requirePermission, createAudit, getAudit, createBatchAudit, listAudits, processAudit } from "./auditApi";
 import { z } from "zod";
 import * as crypto from "crypto";
 import { createRazorpayOrder, verifyRazorpayPayment, getRazorpayPaymentDetails, handleRazorpayWebhook } from "./razorpay";
@@ -2066,6 +2066,14 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         isPublic: false,
         tags: ["github", "repository", repositoryFullName.split('/')[1]]
       });
+
+      // Deduct credits for the analysis
+      await CreditService.deductCreditsForAudit(userId, creditCheck.cost);
+
+      // CRITICAL FIX: Start the AI analysis process that was missing!
+      // This is the key step that triggers the actual AI analysis
+      processAudit(auditSession.id, sessionKey, combinedContractCode)
+        .catch(error => console.error('GitHub audit processing error:', error));
 
       res.json({
         sessionId: auditSession.id,
