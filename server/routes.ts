@@ -360,16 +360,52 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     // Enable CORS for remote MCP access  
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id');
     
     if (req.method === 'OPTIONS') {
       return res.status(200).end();
     }
     
     try {
-      // Handle GET request for server metadata
+      // Handle GET request - Streamable HTTP transport protocol
       if (req.method === 'GET') {
+        const accept = req.headers.accept || "";
+        
+        // Check if client wants SSE streaming for Streamable HTTP transport
+        if (accept.includes("text/event-stream")) {
+          // SSE streaming endpoint for Windsurf Streamable HTTP transport
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type, Mcp-Session-Id'
+          });
+          
+          // Generate session ID for Streamable HTTP transport
+          const sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+          
+          // Send session initialization for Streamable HTTP protocol
+          res.write(`data: ${JSON.stringify({
+            type: "session",
+            sessionId: sessionId,
+            protocolVersion: "2024-11-05",
+            capabilities: { tools: {} }
+          })}\n\n`);
+          
+          // Send keepalive
+          res.write('data: {"type":"keepalive"}\n\n');
+          
+          // Keep connection alive briefly for Windsurf compatibility, then close gracefully  
+          setTimeout(() => {
+            res.end();
+          }, 500);
+          
+          return;
+        }
+        
+        // Default: Return server metadata for transport detection (fixes HTML decode error)
+        res.setHeader('Content-Type', 'application/json');
         return res.json({
           name: "SmartAudit AI",
           description: "AI-powered smart contract auditing via Model Context Protocol", 

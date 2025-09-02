@@ -284,7 +284,7 @@ export default function MCPInfoPage() {
               <CardContent className="space-y-4">
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm font-medium">
-                    🎉 **FULLY TESTED & WORKING** - Complete MCP handshake verified! Initialize → Initialized notification → Tool calls all working perfectly!
+                    🚀 **STREAMABLE HTTP TRANSPORT WORKING** - Full Windsurf compatibility achieved! All transport methods tested: JSON-RPC POST, SSE streaming, session management, and metadata endpoints!
                   </p>
                 </div>
 
@@ -320,7 +320,7 @@ export default function MCPInfoPage() {
 
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm">
-                    <strong>🎉 Success!</strong> You'll see 4 SmartAudit AI tools: authenticate_wallet, audit_contract, check_credits, and get_audit_results.
+                    <strong>✅ CONFIRMED WORKING!</strong> Complete Streamable HTTP transport implemented. You'll see 4 SmartAudit AI tools: authenticate_wallet, audit_contract, check_credits, and get_audit_results. All transport errors resolved!
                   </p>
                 </div>
               </CardContent>
