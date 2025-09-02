@@ -29,8 +29,8 @@ export function useWeb3Auth() {
         // Check if stored auth is not expired (24 hours)
         if (authData.timestamp && Date.now() - authData.timestamp < 24 * 60 * 60 * 1000) {
           setHasAttemptedAuth(true)
-          // Don't set cached data immediately - let query fetch fresh data
-          // This ensures we always get the latest user data including displayName
+          // Set cached data immediately to prevent loading states
+          queryClient.setQueryData([`/api/auth/user/${address}`], authData.user)
           return
         }
       } catch (error) {
@@ -46,6 +46,8 @@ export function useWeb3Auth() {
     queryKey: [`/api/auth/user/${address}`],
     enabled: isConnected && !!address && hasAttemptedAuth,
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
   })
 
   // Sign and authenticate user
