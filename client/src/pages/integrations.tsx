@@ -45,6 +45,7 @@ export default function IntegrationsPage() {
   useEffect(() => {
     const savedScanResults = localStorage.getItem('github_scan_results');
     const savedSelectedFiles = localStorage.getItem('github_selected_files');
+    const savedSelectedRepository = localStorage.getItem('github_selected_repository');
     
     if (savedScanResults) {
       try {
@@ -63,6 +64,15 @@ export default function IntegrationsPage() {
         localStorage.removeItem('github_selected_files');
       }
     }
+    
+    if (savedSelectedRepository) {
+      try {
+        setSelectedRepository(savedSelectedRepository);
+      } catch (error) {
+        console.warn('Invalid saved selected repository:', error);
+        localStorage.removeItem('github_selected_repository');
+      }
+    }
   }, []);
 
   // Save scan results to localStorage when they change
@@ -78,6 +88,13 @@ export default function IntegrationsPage() {
       localStorage.setItem('github_selected_files', JSON.stringify(selectedFiles));
     }
   }, [selectedFiles]);
+
+  // Save selected repository to localStorage when it changes
+  useEffect(() => {
+    if (selectedRepository) {
+      localStorage.setItem('github_selected_repository', selectedRepository);
+    }
+  }, [selectedRepository]);
   const { toast } = useToast();
   const { user } = useWeb3Auth();
 
@@ -302,6 +319,9 @@ export default function IntegrationsPage() {
     }
     setScanResults(null);
     setSelectedFiles([]);
+    // Clear old scan data when starting new scan
+    localStorage.removeItem('github_scan_results');
+    localStorage.removeItem('github_selected_files');
     githubScanMutation.mutate(selectedRepository);
   };
 
@@ -318,6 +338,8 @@ export default function IntegrationsPage() {
       setSelectedFiles(scanResults.contracts.map((contract: any) => contract.path));
     } else {
       setSelectedFiles([]);
+      // Clear localStorage when unselecting all
+      localStorage.removeItem('github_selected_files');
     }
   };
 
