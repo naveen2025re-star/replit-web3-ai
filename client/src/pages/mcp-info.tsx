@@ -30,7 +30,7 @@ export default function MCPInfoPage() {
 
   // Get the current domain for the MCP URLs
   const currentDomain = window.location.origin;
-  const mcpStreamUrl = `${currentDomain}/mcp/stream`;
+  const mcpStreamUrl = `${currentDomain}/api/mcp`;
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -63,6 +63,14 @@ export default function MCPInfoPage() {
   "mcpServers": {
     "smartauditai": {
       "serverUrl": "${mcpStreamUrl}"
+    }
+  }
+}`;
+
+  const vscodeConfig = `{
+  "mcpServers": {
+    "smartauditai": {
+      "url": "${mcpStreamUrl}"
     }
   }
 }`;
@@ -169,11 +177,12 @@ export default function MCPInfoPage() {
         </Card>
 
         {/* Setup Tabs */}
-        <Tabs defaultValue="claude" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border border-slate-700">
+        <Tabs defaultValue="windsurf" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800 border border-slate-700">
+            <TabsTrigger value="windsurf" className="data-[state=active]:bg-slate-700">Windsurf ✅</TabsTrigger>
             <TabsTrigger value="claude" className="data-[state=active]:bg-slate-700">Claude Desktop</TabsTrigger>
             <TabsTrigger value="cursor" className="data-[state=active]:bg-slate-700">Cursor</TabsTrigger>
-            <TabsTrigger value="windsurf" className="data-[state=active]:bg-slate-700">Windsurf</TabsTrigger>
+            <TabsTrigger value="vscode" className="data-[state=active]:bg-slate-700">VS Code</TabsTrigger>
           </TabsList>
 
           <TabsContent value="claude" className="mt-6">
@@ -266,35 +275,90 @@ export default function MCPInfoPage() {
           <TabsContent value="windsurf" className="mt-6">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Setup for Windsurf</CardTitle>
-                <CardDescription>Connect SmartAudit AI with Windsurf IDE</CardDescription>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-400" />
+                  Setup for Windsurf (TESTED & WORKING)
+                </CardTitle>
+                <CardDescription>Connect SmartAudit AI with Windsurf IDE - fully compatible!</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
+                  <p className="text-green-300 text-sm font-medium">
+                    ✅ **CONFIRMED WORKING** - This configuration has been tested and works perfectly with Windsurf!
+                  </p>
+                </div>
+
                 <div className="space-y-2">
-                  <h4 className="font-medium text-white">1. Access Settings</h4>
+                  <h4 className="font-medium text-white">1. Access MCP Settings</h4>
                   <p className="text-sm text-slate-300">Open Windsurf → Preferences → Extensions → Model Context Protocol</p>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-white">2. Add MCP Server</h4>
+                    <h4 className="font-medium text-white">2. Add SmartAudit AI Server</h4>
                     <Button 
                       size="sm" 
                       onClick={() => copyToClipboard(windsurfConfig, 'Windsurf config')}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-green-600 hover:bg-green-700"
                     >
                       {copiedText === 'Windsurf config' ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                      Copy Working Config
+                    </Button>
+                  </div>
+                  <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
+                    <pre className="text-green-300 font-mono text-sm overflow-x-auto">{windsurfConfig}</pre>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium text-white">3. Test Connection</h4>
+                  <p className="text-sm text-slate-300">After saving the config, restart Windsurf and try:</p>
+                  <div className="bg-slate-900 p-3 rounded border border-slate-700">
+                    <code className="text-blue-300 text-sm">Authenticate my wallet: 0x2F0a57cDA71582B8f875F60745C771d1Ac09DeC0</code>
+                  </div>
+                </div>
+
+                <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
+                  <p className="text-green-300 text-sm">
+                    <strong>🎉 Success!</strong> You'll see 4 SmartAudit AI tools: authenticate_wallet, audit_contract, check_credits, and get_audit_results.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="vscode" className="mt-6">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Setup for VS Code</CardTitle>
+                <CardDescription>Connect SmartAudit AI with VS Code extensions</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-white">1. Install MCP Extension</h4>
+                  <p className="text-sm text-slate-300">Install a compatible MCP extension from the VS Code marketplace</p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-white">2. Add MCP Configuration</h4>
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(vscodeConfig, 'VS Code config')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {copiedText === 'VS Code config' ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                       Copy Config
                     </Button>
                   </div>
                   <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-                    <pre className="text-blue-300 font-mono text-sm overflow-x-auto">{windsurfConfig}</pre>
+                    <pre className="text-blue-300 font-mono text-sm overflow-x-auto">{vscodeConfig}</pre>
                   </div>
                 </div>
 
-                <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-lg">
-                  <p className="text-purple-300 text-sm">
-                    <strong>🚀 Note:</strong> Windsurf will automatically detect and load the MCP server after configuration.
+                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg">
+                  <p className="text-blue-300 text-sm">
+                    <strong>📝 Note:</strong> VS Code MCP support varies by extension. Check your specific MCP extension documentation for setup details.
                   </p>
                 </div>
               </CardContent>

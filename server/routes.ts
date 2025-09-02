@@ -355,8 +355,8 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     });
   });
 
-  // Remote MCP endpoint for AI IDEs (following Fi Money's approach)
-  app.all("/mcp/stream", async (req, res) => {
+  // MCP server endpoint (API path to avoid frontend routing conflicts)
+  app.all("/api/mcp", async (req, res) => {
     // Enable CORS for remote MCP access  
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -368,41 +368,42 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
     
     try {
-      // Handle GET request for server info (non-MCP) 
+      // Handle GET request for server metadata
       if (req.method === 'GET') {
-        res.setHeader('Content-Type', 'application/json');
         return res.json({
-          name: "SmartAudit AI Remote MCP",
+          name: "SmartAudit AI",
           description: "AI-powered smart contract auditing via Model Context Protocol", 
           version: "1.0.0",
           protocolVersion: "2024-11-05",
-          url: `${req.protocol}://${req.get('host')}/mcp/stream`,
           capabilities: {
-            tools: ["authenticate_wallet", "audit_contract", "check_credits", "get_audit_results"]
+            tools: {}
           },
-          status: "active"
+          serverInfo: {
+            name: "SmartAudit AI",
+            version: "1.0.0"
+          }
         });
       }
       
       // Parse JSON-RPC request
       const { id, jsonrpc, method, params } = req.body || {};
       
-      // Validate JSON-RPC format (allow notifications without id)
+      // Handle notifications first (they don't need id validation)
+      if (method === "initialized") {
+        // This is a notification - no response needed
+        return res.status(204).end();
+      }
+      
+      // Validate JSON-RPC format for non-notification requests
       if (jsonrpc !== "2.0" || !method) {
         return res.status(400).json({
           id: id || null,
           jsonrpc: "2.0",
           error: { 
             code: -32600, 
-            message: "Invalid Request - expected JSON-RPC 2.0 format" 
+            message: "Invalid Request" 
           }
         });
-      }
-      
-      // Handle notifications (methods without id) 
-      if (method === "initialized") {
-        // This is a notification - no response needed
-        return res.status(204).end();
       }
 
       // Handle MCP protocol requests with proper JSON-RPC responses
@@ -581,7 +582,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
           });
       }
     } catch (error) {
-      console.error('Remote MCP error:', error);
+      console.error('MCP Server error:', error);
       return res.status(500).json({
         id: req.body?.id || null,
         jsonrpc: "2.0", 
@@ -592,96 +593,17 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       });
     }
   });
-
-  // Legacy MCP HTTP endpoint for AI IDEs  
-  app.post("/api/mcp", async (req, res) => {
-    try {
-      const { method, params } = req.body;
-      
-      switch (method) {
-        case "tools/list":
-          res.json({
-            tools: [
-              {
-                name: "authenticate",
-                description: "Authenticate user with wallet address",
-                inputSchema: {
-                  type: "object",
-                  properties: {
-                    walletAddress: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" }
-                  },
-                  required: ["walletAddress"]
-                }
-              },
-              {
-                name: "audit_smart_contract", 
-                description: "Audit smart contract for vulnerabilities",
-                inputSchema: {
-                  type: "object",
-                  properties: {
-                    contractCode: { type: "string" },
-                    contractAddress: { type: "string" }
-                  },
-                  required: ["contractCode"]
-                }
-              },
-              {
-                name: "get_credits",
-                description: "Get user credit balance",
-                inputSchema: { type: "object", properties: {} }
-              }
-            ]
-          });
-          break;
-          
-        case "tools/call":
-          const { name, arguments: args } = params;
-          
-          switch (name) {
-            case "authenticate":
-              const { walletAddress } = args;
-              const user = await storage.getUserByWallet(walletAddress.toLowerCase());
-              if (user) {
-                const credits = await CreditService.getUserCredits(user.id);
-                res.json({
-                  content: [{
-                    type: "text",
-                    text: `✅ Authentication successful!\\n\\n**User ID**: ${user.id}\\n**Credits**: ${credits} available\\n\\nYou can now use auditing tools.`
-                  }]
-                });
-              } else {
-                res.json({
-                  content: [{
-                    type: "text", 
-                    text: "❌ Authentication failed. User not found."
-                  }]
-                });
-              }
-              break;
-              
-            case "audit_smart_contract":
-              const { contractCode } = args;
-              res.json({
-                content: [{
-                  type: "text",
-                  text: `🔍 Contract received (${contractCode?.length || 0} chars). Use web interface for full AI audit capabilities.`
-                }]
-              });
-              break;
-              
-            default:
-              res.status(404).json({ error: "Tool not found" });
-          }
-          break;
-          
-        default:
-          res.status(400).json({ error: "Unknown method" });
-      }
-    } catch (error) {
-      console.error('MCP error:', error);
-      res.status(500).json({ error: "Internal server error" });
-    }
+  
+  // Legacy endpoints for backward compatibility
+  app.all("/mcp", (req, res) => {
+    res.redirect(301, "/api/mcp");
   });
+  
+  app.all("/mcp/stream", (req, res) => {
+    res.redirect(301, "/api/mcp");
+  });
+
+  // Removed duplicate /api/mcp route - now handled by the main route above
 
   // Create new audit session
   app.post("/api/audit/sessions", async (req, res) => {
