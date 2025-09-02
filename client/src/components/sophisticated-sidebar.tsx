@@ -75,6 +75,8 @@ export function SophisticatedSidebar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null);
   const [localDisplayName, setLocalDisplayName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSections, setExpandedSections] = useState({
@@ -148,9 +150,16 @@ export function SophisticatedSidebar({
 
   const handleDelete = (sessionId: string) => {
     setContextMenu(null);
-    if (onDeleteAudit) {
-      onDeleteAudit(sessionId);
+    setDeleteSessionId(sessionId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteSessionId && onDeleteAudit) {
+      onDeleteAudit(deleteSessionId);
     }
+    setShowDeleteConfirm(false);
+    setDeleteSessionId(null);
   };
 
   return (
@@ -371,9 +380,8 @@ export function SophisticatedSidebar({
                           className="text-slate-400 hover:text-red-400 h-7 w-7 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (onDeleteAudit && window.confirm('Are you sure you want to delete this audit?')) {
-                              onDeleteAudit(session.id);
-                            }
+                            setDeleteSessionId(session.id);
+                            setShowDeleteConfirm(true);
                           }}
                         >
                           <Trash2 className="h-3 w-3" />
@@ -558,6 +566,36 @@ export function SophisticatedSidebar({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Delete Audit</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Are you sure you want to delete this audit? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setDeleteSessionId(null);
+              }}
+              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       </div>
     </>

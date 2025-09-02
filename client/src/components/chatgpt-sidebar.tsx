@@ -60,9 +60,11 @@ export function ChatGPTSidebar({
 }: ChatGPTSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
   const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
+  const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{sessionId: string, x: number, y: number} | null>(null);
   const queryClient = useQueryClient();
@@ -584,10 +586,9 @@ export function ChatGPTSidebar({
           <button
             className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-2"
             onClick={() => {
+              setDeleteSessionId(contextMenu.sessionId);
+              setShowDeleteModal(true);
               setContextMenu(null);
-              if (onDeleteAudit && confirm('Are you sure you want to delete this chat?')) {
-                onDeleteAudit(contextMenu.sessionId);
-              }
             }}
           >
             <Trash2 className="h-3 w-3" />
@@ -635,6 +636,42 @@ export function ChatGPTSidebar({
                 Save
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Delete Chat</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Are you sure you want to delete this chat? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteSessionId(null);
+              }}
+              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (deleteSessionId && onDeleteAudit) {
+                  onDeleteAudit(deleteSessionId);
+                }
+                setShowDeleteModal(false);
+                setDeleteSessionId(null);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -85,6 +85,7 @@ export default function AuditorPage() {
   const [analysisState, setAnalysisState] = useState<AnalysisState>("initial");
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showNewAuditConfirm, setShowNewAuditConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<'audits' | 'community'>('audits');
   const [auditVisibility, setAuditVisibility] = useState<AuditVisibilityOptions>({
     isPublic: true // Default to public for Free users
@@ -707,11 +708,29 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
   const newAuditSession = () => {
     // Confirm if there are unsaved changes
     if (messages.length > 0 && analysisState !== "completed") {
-      if (!confirm("You have an analysis in progress. Are you sure you want to start a new audit?")) {
-        return;
-      }
+      setShowNewAuditConfirm(true);
+      return;
     }
     
+    setMessages([]);
+    setAnalysisState("initial");
+    setInputValue("");
+    setUploadedFiles(null);
+    setCurrentSessionId(null);
+    
+    // Focus on the input textarea for better UX
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+    
+    toast({
+      title: "New audit session",
+      description: "Ready for your next smart contract analysis.",
+    });
+  };
+
+  const confirmNewAudit = () => {
+    setShowNewAuditConfirm(false);
     setMessages([]);
     setAnalysisState("initial");
     setInputValue("");
@@ -1306,6 +1325,33 @@ Focus on payment security and marketplace vulnerabilities.`)}
         onOpenChange={setShowCreditPurchase}
         userId={user?.id}
       />
+
+      {/* New Audit Confirmation Modal */}
+      <Dialog open={showNewAuditConfirm} onOpenChange={setShowNewAuditConfirm}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Start New Audit?</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              You have an analysis in progress. Are you sure you want to start a new audit? This will discard your current progress.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowNewAuditConfirm(false)}
+              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmNewAudit}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Start New Audit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
