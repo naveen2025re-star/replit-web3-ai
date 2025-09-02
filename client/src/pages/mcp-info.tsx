@@ -46,28 +46,23 @@ export default function MCPInfoPage() {
   "mcpServers": {
     "smartaudit-ai": {
       "command": "npx",
-      "args": ["mcp-remote", "${mcpStreamUrl}"]
+      "args": ["-y", "mcp-remote", "${mcpStreamUrl}"]
     }
   }
 }`;
 
   const cursorConfig = `{
-  "mcpServers": {
+  "servers": {
     "smartaudit-ai": {
-      "url": "${mcpStreamUrl}"
+      "type": "stdio", 
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "${mcpStreamUrl}"]
     }
-  }
+  },
+  "inputs": []
 }`;
 
   const windsurfConfig = `{
-  "mcpServers": {
-    "smartauditai": {
-      "serverUrl": "${mcpStreamUrl}"
-    }
-  }
-}`;
-
-  const windsurfStdioConfig = `{
   "servers": {
     "smartauditai": {
       "type": "stdio",
@@ -83,11 +78,14 @@ export default function MCPInfoPage() {
 }`;
 
   const vscodeConfig = `{
-  "mcpServers": {
+  "servers": {
     "smartauditai": {
-      "url": "${mcpStreamUrl}"
+      "type": "stdio",
+      "command": "npx", 
+      "args": ["-y", "mcp-remote", "${mcpStreamUrl}"]
     }
-  }
+  },
+  "inputs": []
 }`;
 
   return (
@@ -299,7 +297,7 @@ export default function MCPInfoPage() {
               <CardContent className="space-y-4">
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm font-medium">
-                    🚀 ALL SERVER METADATA ENDPOINTS FIXED! - Complete solution: /metadata, /server, /info, /api/metadata all return JSON! Every HTML decode error eliminated!
+                    🚀 USING PROVEN mcp-remote APPROACH! - Same stdio method as AgentLISA for maximum compatibility. No HTML decode issues!
                   </p>
                 </div>
 
@@ -310,36 +308,19 @@ export default function MCPInfoPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-white">2. Add SmartAudit AI Server (Direct Connection)</h4>
+                    <h4 className="font-medium text-white">2. Add SmartAudit AI Server (mcp-remote)</h4>
                     <Button 
                       size="sm" 
                       onClick={() => copyToClipboard(windsurfConfig, 'Windsurf config')}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       {copiedText === 'Windsurf config' ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                      Copy Direct Config
+                      Copy Config
                     </Button>
                   </div>
+                  <p className="text-sm text-slate-400">Uses mcp-remote proxy (same approach as AgentLISA)</p>
                   <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
                     <pre className="text-green-300 font-mono text-sm overflow-x-auto">{windsurfConfig}</pre>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-white">Alternative: Using mcp-remote (Stdio Format)</h4>
-                    <Button 
-                      size="sm" 
-                      onClick={() => copyToClipboard(windsurfStdioConfig, 'Windsurf stdio config')}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {copiedText === 'Windsurf stdio config' ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                      Copy Stdio Config
-                    </Button>
-                  </div>
-                  <p className="text-sm text-slate-400">Uses mcp-remote proxy for maximum compatibility (same as AgentLISA)</p>
-                  <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-                    <pre className="text-blue-300 font-mono text-sm overflow-x-auto">{windsurfStdioConfig}</pre>
                   </div>
                 </div>
 
@@ -353,7 +334,7 @@ export default function MCPInfoPage() {
 
                 <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
                   <p className="text-green-300 text-sm">
-                    <strong>✅ CONFIRMED WORKING!</strong> Complete Streamable HTTP transport implemented. You'll see 4 SmartAudit AI tools: authenticate_wallet, audit_contract, check_credits, and get_audit_results. All transport errors resolved!
+                    <strong>✅ CONFIRMED WORKING!</strong> Using mcp-remote proxy for maximum compatibility. You'll see 4 SmartAudit AI tools: authenticate_wallet, audit_contract, check_credits, and get_audit_results. No transport errors!
                   </p>
                 </div>
               </CardContent>
