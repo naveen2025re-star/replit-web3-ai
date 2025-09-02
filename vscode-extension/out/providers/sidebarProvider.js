@@ -70,6 +70,12 @@ class SidebarProvider {
                 case 'auditCurrentFile':
                     vscode.commands.executeCommand('smartaudit.auditFile');
                     break;
+                case 'showHistory':
+                    vscode.commands.executeCommand('smartaudit.showHistory');
+                    break;
+                case 'showCredits':
+                    vscode.commands.executeCommand('smartaudit.showCredits');
+                    break;
             }
         });
         // Auto-refresh data when view becomes visible
@@ -78,6 +84,25 @@ class SidebarProvider {
                 webviewView.webview.postMessage({ type: 'refresh' });
             }
         });
+        // Refresh data periodically
+        const refreshInterval = setInterval(async () => {
+            if (webviewView.visible) {
+                try {
+                    const userInfo = await this.api.getUserInfo();
+                    webviewView.webview.postMessage({
+                        type: 'userInfo',
+                        data: userInfo
+                    });
+                }
+                catch (error) {
+                    console.error('Failed to refresh user info:', error);
+                }
+            }
+        }, 30000); // Refresh every 30 seconds
+        // Clean up interval when webview is disposed
+        webviewView.onDidDispose(() => {
+            clearInterval(refreshInterval);
+        });
     }
     _getHtmlForWebview(webview) {
         return `<!DOCTYPE html>
@@ -85,8 +110,12 @@ class SidebarProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAudit AI</title>
+    <title>SmartAudit AI Dashboard</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
@@ -94,36 +123,120 @@ class SidebarProvider {
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
             margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+        
+        .container {
             padding: 16px;
+            max-height: 100vh;
+            overflow-y: auto;
         }
         
         .header {
             display: flex;
             align-items: center;
-            margin-bottom: 16px;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--vscode-widget-border);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--vscode-charts-red);
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.connected {
+            background-color: var(--vscode-charts-green);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         .logo {
-            width: 24px;
-            height: 24px;
-            margin-right: 8px;
+            width: 28px;
+            height: 28px;
+            margin-right: 12px;
             background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
         
         .title {
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--vscode-foreground);
+        }
+        
+        .subtitle {
+            font-size: 12px;
+            color: var(--vscode-descriptionForeground);
+            margin-top: 2px;
         }
         
         .section {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .card {
+            background: var(--vscode-sideBar-background);
+            border: 1px solid var(--vscode-widget-border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--vscode-focusBorder);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .stat-card {
+            background: var(--vscode-badge-background);
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--vscode-textLink-foreground);
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
         }
         
         .section-title {
@@ -133,10 +246,23 @@ class SidebarProvider {
         }
         
         .user-info {
-            background: var(--vscode-badge-background);
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--vscode-badge-background) 0%, var(--vscode-sideBar-background) 100%);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid var(--vscode-widget-border);
+        }
+        
+        .user-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+        
+        .user-wallet {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            font-family: monospace;
         }
         
         .credit-balance {
@@ -144,15 +270,46 @@ class SidebarProvider {
             color: var(--vscode-textLink-foreground);
         }
         
-        .button {
+        .btn {
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
             border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
+            padding: 10px 16px;
+            border-radius: 6px;
             cursor: pointer;
             width: 100%;
             margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background: var(--vscode-button-hoverBackground);
+            transform: translateY(-1px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .btn-secondary {
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+        }
+        
+        .btn-icon {
+            font-size: 16px;
         }
         
         .button:hover {
@@ -160,8 +317,20 @@ class SidebarProvider {
         }
         
         .history-item {
-            padding: 8px 0;
+            padding: 12px;
             border-bottom: 1px solid var(--vscode-widget-border);
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .history-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
         }
         
         .history-title {
@@ -183,31 +352,120 @@ class SidebarProvider {
         .error {
             color: var(--vscode-errorForeground);
             background: var(--vscode-inputValidation-errorBackground);
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 8px;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--vscode-errorForeground);
+        }
+        
+        .success {
+            color: var(--vscode-terminal-ansiGreen);
+            background: rgba(0, 255, 0, 0.1);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--vscode-terminal-ansiGreen);
+        }
+        
+        .info {
+            color: var(--vscode-textLink-foreground);
+            background: rgba(0, 123, 255, 0.1);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--vscode-textLink-foreground);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--vscode-progressBar-background);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--vscode-progressBar-background);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--vscode-descriptionForeground);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">SA</div>
-        <div class="title">SmartAudit AI</div>
-    </div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">🛡️</div>
+                <div>
+                    <div class="title">SmartAudit AI</div>
+                    <div class="subtitle">Security Dashboard</div>
+                </div>
+            </div>
+            <div class="status-indicator" id="statusIndicator" title="Connection Status"></div>
+        </div>
     
-    <div class="section">
-        <button class="button" onclick="auditCurrentFile()">🛡️ Audit Current File</button>
-        <button class="button" onclick="openSettings()">⚙️ Settings</button>
-    </div>
+        <div class="section">
+            <button class="btn btn-primary" onclick="auditCurrentFile()">
+                <span class="btn-icon">🚀</span>
+                Audit Current File
+            </button>
+            <button class="btn btn-secondary" onclick="openSettings()">
+                <span class="btn-icon">⚙️</span>
+                Configure Settings
+            </button>
+        </div>
     
-    <div class="section">
-        <div class="section-title">Account</div>
-        <div id="userInfo" class="loading">Loading account info...</div>
-    </div>
-    
-    <div class="section">
-        <div class="section-title">Recent Audits</div>
-        <div id="auditHistory" class="loading">Loading audit history...</div>
+        <div class="card user-info" id="userCard" style="display:none;">
+            <div class="user-name" id="userName">Loading...</div>
+            <div class="user-wallet" id="userWallet"></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="creditsBalance">-</span>
+                    <div class="stat-label">Credits</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="totalAudits">-</span>
+                    <div class="stat-label">Audits</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📊 Recent Activity</div>
+            <div id="auditHistory" class="loading">Loading recent audits...</div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">🚀 Quick Actions</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button class="btn" onclick="showHistory()" style="font-size: 12px; padding: 8px;">
+                    📈 History
+                </button>
+                <button class="btn" onclick="showCredits()" style="font-size: 12px; padding: 8px;">
+                    💳 Credits
+                </button>
+            </div>
+        </div>
+        
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-state-icon">🔍</div>
+            <p>No audits yet</p>
+            <p style="font-size: 12px;">Click "Audit Current File" to get started!</p>
+        </div>
     </div>
 
     <script>
@@ -215,15 +473,40 @@ class SidebarProvider {
         
         function auditCurrentFile() {
             vscode.postMessage({ type: 'auditCurrentFile' });
+            showNotification('🚀 Starting audit...', 'info');
         }
         
         function openSettings() {
             vscode.postMessage({ type: 'openSettings' });
         }
         
+        function showHistory() {
+            vscode.postMessage({ type: 'showHistory' });
+        }
+        
+        function showCredits() {
+            vscode.postMessage({ type: 'showCredits' });
+        }
+        
         function refreshData() {
+            updateConnectionStatus(true);
             vscode.postMessage({ type: 'getUserInfo' });
             vscode.postMessage({ type: 'getAuditHistory' });
+        }
+        
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            if (connected) {
+                indicator.classList.add('connected');
+                indicator.title = 'Connected to SmartAudit AI';
+            } else {
+                indicator.classList.remove('connected');
+                indicator.title = 'Not connected - check API key';
+            }
+        }
+        
+        function showNotification(message, type) {
+            console.log('[' + type.toUpperCase() + '] ' + message);
         }
         
         // Listen for messages from extension
@@ -244,39 +527,62 @@ class SidebarProvider {
         });
         
         function displayUserInfo(userInfo) {
-            const userInfoEl = document.getElementById('userInfo');
+            const userCard = document.getElementById('userCard');
+            const userName = document.getElementById('userName');
+            const userWallet = document.getElementById('userWallet');
+            const creditsBalance = document.getElementById('creditsBalance');
+            
             if (userInfo) {
-                userInfoEl.innerHTML = \`
-                    <div class="user-info">
-                        <div><strong>\${userInfo.displayName || 'User'}</strong></div>
-                        <div class="credit-balance">Credits: \${userInfo.credits}</div>
-                    </div>
-                \`;
+                updateConnectionStatus(true);
+                userCard.style.display = 'block';
+                userName.textContent = userInfo.displayName || 'SmartAudit User';
+                userWallet.textContent = userInfo.walletAddress ? 
+                    userInfo.walletAddress.substring(0, 6) + '...' + userInfo.walletAddress.slice(-4) : '';
+                creditsBalance.textContent = userInfo.credits || '0';
             } else {
-                userInfoEl.innerHTML = '<div class="error">Please configure your API key in settings</div>';
+                updateConnectionStatus(false);
+                userCard.style.display = 'none';
+                const historyEl = document.getElementById('auditHistory');
+                historyEl.innerHTML = '<div class="error">🔑 Please configure your API key in settings to view your dashboard</div>';
             }
         }
         
         function displayAuditHistory(history) {
             const historyEl = document.getElementById('auditHistory');
+            const totalAudits = document.getElementById('totalAudits');
+            const emptyState = document.getElementById('emptyState');
             
             if (history && history.length > 0) {
-                historyEl.innerHTML = history.map(audit => \`
-                    <div class="history-item">
-                        <div class="history-title">\${audit.title}</div>
-                        <div class="history-meta">
-                            \${audit.status} • \${audit.creditsUsed} credits • 
-                            \${new Date(audit.createdAt).toLocaleDateString()}
+                totalAudits.textContent = history.length;
+                emptyState.style.display = 'none';
+                historyEl.innerHTML = history.slice(0, 5).map(audit => {
+                    const statusEmoji = audit.status === 'completed' ? '✅' : audit.status === 'failed' ? '❌' : '⏳';
+                    return \`
+                        <div class="history-item">
+                            <div class="history-title">\${statusEmoji} \${audit.title}</div>
+                            <div class="history-meta">
+                                \${audit.language || 'Unknown'} • \${audit.creditsUsed} credits • 
+                                \${new Date(audit.createdAt).toLocaleDateString()}
+                            </div>
                         </div>
-                    </div>
-                \`).join('');
+                    \`;
+                }).join('');
             } else {
-                historyEl.innerHTML = '<div class="loading">No audits yet</div>';
+                totalAudits.textContent = '0';
+                historyEl.innerHTML = '';
+                emptyState.style.display = 'block';
             }
         }
         
         // Initial load
         refreshData();
+        
+        // Auto-refresh periodically
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refreshData();
+            }
+        }, 60000); // Refresh every minute when visible
     </script>
 </body>
 </html>`;
