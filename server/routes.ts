@@ -438,6 +438,56 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     });
   });
 
+  // OAuth client registration endpoints that Windsurf tries
+  app.all("/oauth/register", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(400).json({
+      error: "oauth_not_required",
+      error_description: "This MCP server does not require OAuth client registration. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  app.all("/api/oauth/register", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(400).json({
+      error: "oauth_not_required",
+      error_description: "This MCP server does not require OAuth client registration. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  app.all("/oauth/clients", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(400).json({
+      error: "oauth_not_required",
+      error_description: "This MCP server does not require OAuth clients endpoint. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
+  // OpenID Configuration endpoint
+  app.all("/.well-known/openid_configuration", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    
+    return res.status(400).json({
+      error: "openid_not_supported",
+      error_description: "This MCP server does not support OpenID Connect. Use direct connection.",
+      mcp_endpoint: "/api/mcp"
+    });
+  });
+
   // SSE endpoints that Windsurf expects for legacy support
   app.all("/sse", (req, res) => {
     res.setHeader('Content-Type', 'application/json');
