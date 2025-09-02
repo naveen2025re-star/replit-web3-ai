@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="128" height="128" rx="12" fill="url(#gradient)"/>
+<defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#3b82f6"/>
+        <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+</defs>
+<!-- Shield Icon -->
+<path d="M64 20L48 26V50C48 66.16 56.88 80.24 72 84.36V108L64 104L56 108V84.36C41.12 80.24 32 66.16 32 50V26L64 20Z" fill="white" opacity="0.9"/>
+<path d="M64 20L80 26V50C80 66.16 71.12 80.24 56 84.36V108L64 104L72 108V84.36C86.88 80.24 96 66.16 96 50V26L64 20Z" fill="white"/>
+<!-- AI Brain Pattern -->
+<circle cx="64" cy="50" r="8" fill="url(#gradient)" opacity="0.7"/>
+<path d="M50 42L58 46L50 50L58 54L64 50L70 54L78 50L70 46L78 42L64 46L50 42Z" fill="white" opacity="0.5"/>
+</svg>
