@@ -158,7 +158,7 @@ async function auditDocument(document) {
     const config = vscode.workspace.getConfiguration('smartaudit');
     const apiKey = config.get('apiKey');
     if (!apiKey) {
-        const action = await vscode.window.showWarningMessage('⚠️ SmartAudit AI requires an API key to function. Would you like to configure it now?', 'Configure Now', 'Get Free API Key', 'Try Demo Mode');
+        const action = await vscode.window.showWarningMessage('⚠️ SmartAudit AI requires an API key to function. Would you like to configure it now?', 'Configure Now', 'Get Free API Key');
         if (action === 'Configure Now') {
             vscode.commands.executeCommand('workbench.action.openSettings', 'smartaudit.apiKey');
             vscode.window.showInformationMessage('💡 Tip: Set your API key in the SmartAudit AI settings to start auditing!');
@@ -166,11 +166,6 @@ async function auditDocument(document) {
         else if (action === 'Get Free API Key') {
             vscode.env.openExternal(vscode.Uri.parse('https://smartaudit.ai/settings'));
             vscode.window.showInformationMessage('🌐 Visit smartaudit.ai to get your free API key!');
-        }
-        else if (action === 'Try Demo Mode') {
-            // Show demo mode with sample results
-            await showDemoAuditResults(document);
-            return;
         }
         return;
     }
@@ -236,12 +231,9 @@ async function auditDocument(document) {
         catch (error) {
             // Show detailed error with helpful actions
             const errorMsg = error instanceof Error ? error.message : String(error);
-            const action = await vscode.window.showErrorMessage(`❌ SmartAudit AI audit failed: ${errorMsg}`, 'Check Settings', 'Try Demo', 'Get Help');
+            const action = await vscode.window.showErrorMessage(`❌ SmartAudit AI audit failed: ${errorMsg}`, 'Check Settings', 'Get Help');
             if (action === 'Check Settings') {
                 vscode.commands.executeCommand('workbench.action.openSettings', 'smartaudit');
-            }
-            else if (action === 'Try Demo') {
-                await showDemoAuditResults(document);
             }
             else if (action === 'Get Help') {
                 vscode.env.openExternal(vscode.Uri.parse('https://smartaudit.ai/help'));
@@ -257,35 +249,6 @@ async function checkForSmartContracts() {
         .join(',');
     const files = await vscode.workspace.findFiles(`{${supportedExts}}`, '**/node_modules/**', 1);
     vscode.commands.executeCommand('setContext', 'workspaceHasSmartContracts', files.length > 0);
-}
-// Demo mode - show sample audit results
-async function showDemoAuditResults(document) {
-    const fileName = document.fileName.split('/').pop() || 'contract.sol';
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: `🎭 Demo Mode: Analyzing ${fileName}`,
-        cancellable: false
-    }, async (progress) => {
-        progress.report({ message: 'Simulating security analysis...' });
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        progress.report({ message: 'Checking for vulnerabilities...' });
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        // Show sample results
-        const results = {
-            high: 1,
-            medium: 2,
-            low: 3,
-            info: 5
-        };
-        vscode.window.showInformationMessage(`🎭 Demo Results: Found ${results.high} high, ${results.medium} medium, ${results.low} low severity issues. Click 'Get Real Analysis' for actual results.`, 'Get Real Analysis', 'Configure API Key').then(action => {
-            if (action === 'Get Real Analysis') {
-                vscode.env.openExternal(vscode.Uri.parse('https://smartaudit.ai/pricing'));
-            }
-            else if (action === 'Configure API Key') {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'smartaudit.apiKey');
-            }
-        });
-    });
 }
 function deactivate() {
     if (diagnosticCollection) {
