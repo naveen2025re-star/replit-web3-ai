@@ -238,3 +238,62 @@
 .markdown-content strong {
   @apply font-semibold text-foreground;
 }
+
+/* Custom Scrollbars - Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(222, 47%, 11%); /* --card color */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(217, 32%, 17%); /* --border/muted color */
+  border-radius: 4px;
+  border: 1px solid hsl(222, 47%, 11%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(217, 32%, 22%); /* Slightly lighter on hover */
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: hsl(217, 91%, 60%); /* Primary blue when dragging */
+}
+
+::-webkit-scrollbar-corner {
+  background: hsl(222, 47%, 11%); /* --card color */
+}
+
+/* Custom Scrollbars - Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(217, 32%, 17%) hsl(222, 47%, 11%); /* thumb track */
+}
+
+/* Ensure scrollbars work well with the sidebar */
+.sidebar-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(217, 32%, 17%) hsl(222, 47%, 11%);
+}
+
+.sidebar-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-track {
+  background: hsl(222, 47%, 11%);
+  border-radius: 3px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb {
+  background: hsl(217, 32%, 17%);
+  border-radius: 3px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb:hover {
+  background: hsl(217, 32%, 22%);
+}
