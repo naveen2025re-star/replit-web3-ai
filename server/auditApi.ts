@@ -414,57 +414,122 @@ export const listAudits = async (req: Request, res: Response) => {
   }
 };
 
-// Simulate audit processing (replace with real Shipable AI integration)
+// Real AI audit processing using Shipable AI integration
 export async function processAudit(auditId: string, sessionKey: string, contractCode: string) {
+  console.log(`[PROCESS_AUDIT] Starting real AI analysis for audit ${auditId}`);
+  
   try {
     // Update status to analyzing
     await db
       .update(auditSessions)
       .set({ status: 'analyzing' })
       .where(eq(auditSessions.id, auditId));
+
+    console.log(`[PROCESS_AUDIT] Calling Shipable AI API for session ${sessionKey}`);
     
-    // Simulate processing time (2-30 seconds)
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 28000 + 2000));
-    
-    // Mock analysis results
-    const mockResults = {
-      vulnerabilityCount: {
-        high: Math.floor(Math.random() * 3),
-        medium: Math.floor(Math.random() * 5),
-        low: Math.floor(Math.random() * 8),
-        info: Math.floor(Math.random() * 10),
-      },
-      securityScore: Math.floor(Math.random() * 40 + 60), // 60-100
-      formattedReport: `# Smart Contract Security Analysis
-
-## Summary
-The contract has been analyzed for common security vulnerabilities and best practices.
-
-## Findings
-- **High Risk:** ${Math.floor(Math.random() * 3)} issues found
-- **Medium Risk:** ${Math.floor(Math.random() * 5)} issues found  
-- **Low Risk:** ${Math.floor(Math.random() * 8)} issues found
-- **Informational:** ${Math.floor(Math.random() * 10)} suggestions
-
-## Recommendations
-1. Review access controls and permissions
-2. Implement proper input validation
-3. Add reentrancy protection where needed
-4. Consider using OpenZeppelin libraries
-
-*Analysis completed at ${new Date().toISOString()}*`,
+    // Create FormData for the request (same as manual upload)
+    const formData = new FormData();
+    const requestPayload = {
+      sessionKey: sessionKey,
+      messages: [{
+        role: "user",
+        content: `Please perform a comprehensive security audit of this smart contract code. Analyze for vulnerabilities, security issues, gas optimization opportunities, and best practices. Provide a detailed report with severity levels and recommendations.\n\n${contractCode}`
+      }],
+      token: process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE",
+      stream: true
     };
     
-    // Save results
+    formData.append("request", JSON.stringify(requestPayload));
+
+    // Call Shipable AI analysis endpoint (same as manual upload)
+    const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
+    const analysisResponse = await fetch(`${SHIPABLE_API_BASE}/chat/open-playground`, {
+      method: "POST",
+      body: formData
+    });
+
+    console.log(`[PROCESS_AUDIT] Shipable API response status: ${analysisResponse.status}`);
+    
+    if (!analysisResponse.ok) {
+      const errorText = await analysisResponse.text();
+      console.error(`[PROCESS_AUDIT] Shipable API Error: ${errorText}`);
+      throw new Error(`Analysis failed: ${analysisResponse.statusText}`);
+    }
+
+    let fullResponse = "";
+    let lastActivity = Date.now();
+    const TIMEOUT_MS = 300000; // 5 minutes timeout
+    
+    const reader = analysisResponse.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (reader) {
+      try {
+        while (true) {
+          // Check for timeout
+          if (Date.now() - lastActivity > TIMEOUT_MS) {
+            console.log(`[PROCESS_AUDIT] Timeout reached for audit ${auditId}`);
+            break;
+          }
+
+          const { done, value } = await reader.read();
+          if (done) {
+            console.log(`[PROCESS_AUDIT] Stream ended naturally for audit ${auditId}`);
+            break;
+          }
+
+          lastActivity = Date.now(); // Reset timeout on activity
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('event: processing')) {
+              console.log(`[PROCESS_AUDIT] Processing event`);
+              continue;
+            }
+            
+            if (line.startsWith('event: content')) {
+              continue;
+            }
+            
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonData = JSON.parse(line.slice(6));
+                if (jsonData.body) {
+                  fullResponse += jsonData.body;
+                  console.log(`[PROCESS_AUDIT] Received chunk: ${jsonData.body.substring(0, 30)}...`);
+                } else if (jsonData.status) {
+                  console.log(`[PROCESS_AUDIT] Status: ${jsonData.status}`);
+                  
+                  // Check if analysis is complete based on status
+                  if (jsonData.status === 'complete' || jsonData.status === 'completed') {
+                    console.log(`[PROCESS_AUDIT] Analysis marked complete by status`);
+                    break;
+                  }
+                }
+              } catch (e) {
+                console.log(`[PROCESS_AUDIT] Invalid JSON in line: ${line}`);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+    
+    console.log(`[PROCESS_AUDIT] Analysis completed for audit ${auditId}. Response length: ${fullResponse.length}`);
+
+    // Save the complete result
     await db.insert(auditResults).values({
       sessionId: auditId,
-      formattedReport: mockResults.formattedReport,
-      vulnerabilityCount: mockResults.vulnerabilityCount,
-      securityScore: mockResults.securityScore,
-      rawResponse: JSON.stringify(mockResults),
+      formattedReport: fullResponse,
+      rawResponse: fullResponse,
+      vulnerabilityCount: null,
+      securityScore: null,
     });
     
-    // Update session status
+    // Update session status to completed
     await db
       .update(auditSessions)
       .set({ 
@@ -485,14 +550,12 @@ The contract has been analyzed for common security vulnerabilities and best prac
         auditId,
         sessionKey,
         status: 'completed',
-        securityScore: mockResults.securityScore,
-        vulnerabilityCount: mockResults.vulnerabilityCount,
         timestamp: new Date().toISOString(),
       }, session.userId);
     }
     
   } catch (error) {
-    console.error(`Audit processing failed for ${auditId}:`, error);
+    console.error(`[PROCESS_AUDIT] Failed for ${auditId}:`, error);
     
     // Mark as failed
     await db
