@@ -34,7 +34,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/finalExtension.js",
+  "main": "./out/correctedExtension.js",
   "contributes": {
     "commands": [
       {
