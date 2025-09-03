@@ -69,6 +69,10 @@ class SmartAuditDataProvider {
                 return Promise.resolve(this.getStatusItems());
             case 'languages':
                 return Promise.resolve(this.getLanguageItems());
+            case 'results':
+                return Promise.resolve(this.getResultItems());
+            case 'summary':
+                return Promise.resolve(this.getSummaryItems());
             default:
                 return Promise.resolve([]);
         }
@@ -77,9 +81,25 @@ class SmartAuditDataProvider {
         const config = vscode.workspace.getConfiguration('smartaudit');
         const apiKey = config.get('apiKey');
         const hasApiKey = apiKey && apiKey.trim().length > 0;
+        // Simulate analysis state for demo purposes
+        const isAnalyzing = this.context.workspaceState.get('smartaudit.analyzing', false);
+        const hasResults = this.context.workspaceState.get('smartaudit.hasResults', false);
         const items = [];
-        // Status section
-        items.push(new SmartAuditTreeItem(hasApiKey ? '🟢 Connected & Ready' : '🔴 Not Connected', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon(hasApiKey ? 'check' : 'error')));
+        // Status section - shows current state
+        if (isAnalyzing) {
+            items.push(new SmartAuditTreeItem('🔄 Analyzing Contract...', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon('loading~spin')));
+        }
+        else if (hasResults) {
+            items.push(new SmartAuditTreeItem('✅ Analysis Complete', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon('check-all')));
+        }
+        else {
+            items.push(new SmartAuditTreeItem(hasApiKey ? '🟢 Connected & Ready' : '🔴 Not Connected', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon(hasApiKey ? 'check' : 'error')));
+        }
+        // Results section - only show when we have results
+        if (hasResults) {
+            items.push(new SmartAuditTreeItem('📊 Analysis Results (3 issues)', vscode.TreeItemCollapsibleState.Collapsed, 'results', undefined, new vscode.ThemeIcon('list-tree')));
+            items.push(new SmartAuditTreeItem('📈 Analysis Summary', vscode.TreeItemCollapsibleState.Collapsed, 'summary', undefined, new vscode.ThemeIcon('graph')));
+        }
         // Configuration section
         items.push(new SmartAuditTreeItem('🔑 Configuration', vscode.TreeItemCollapsibleState.Collapsed, 'config', undefined, new vscode.ThemeIcon('gear')));
         // Quick Actions section
@@ -172,6 +192,34 @@ class SmartAuditDataProvider {
         ];
         return languages.map(lang => new SmartAuditTreeItem(`✅ ${lang.name}`, vscode.TreeItemCollapsibleState.None, 'languageItem', undefined, new vscode.ThemeIcon(lang.icon)));
     }
+    getResultItems() {
+        const items = [];
+        items.push(new SmartAuditTreeItem('🔴 Critical: Reentrancy Vulnerability', vscode.TreeItemCollapsibleState.None, 'resultItem', {
+            command: 'vscode.open',
+            title: 'Open Issue',
+            arguments: [vscode.Uri.file('path/to/file'), { selection: new vscode.Range(44, 0, 44, 50) }]
+        }, new vscode.ThemeIcon('error')));
+        items.push(new SmartAuditTreeItem('🟡 Medium: Unchecked External Call', vscode.TreeItemCollapsibleState.None, 'resultItem', {
+            command: 'vscode.open',
+            title: 'Open Issue',
+            arguments: [vscode.Uri.file('path/to/file'), { selection: new vscode.Range(66, 0, 66, 30) }]
+        }, new vscode.ThemeIcon('warning')));
+        items.push(new SmartAuditTreeItem('🟠 Low: Gas Optimization Opportunity', vscode.TreeItemCollapsibleState.None, 'resultItem', {
+            command: 'vscode.open',
+            title: 'Open Issue',
+            arguments: [vscode.Uri.file('path/to/file'), { selection: new vscode.Range(22, 0, 22, 40) }]
+        }, new vscode.ThemeIcon('info')));
+        return items;
+    }
+    getSummaryItems() {
+        const items = [];
+        items.push(new SmartAuditTreeItem('✅ Contract: Immunefi_ch1.sol', vscode.TreeItemCollapsibleState.None, 'summaryItem', undefined, new vscode.ThemeIcon('file-code')));
+        items.push(new SmartAuditTreeItem('⏱️ Completed: 2m 34s ago', vscode.TreeItemCollapsibleState.None, 'summaryItem', undefined, new vscode.ThemeIcon('clock')));
+        items.push(new SmartAuditTreeItem('🔍 Lines Analyzed: 156', vscode.TreeItemCollapsibleState.None, 'summaryItem', undefined, new vscode.ThemeIcon('search')));
+        items.push(new SmartAuditTreeItem('💰 Credits Used: 5', vscode.TreeItemCollapsibleState.None, 'summaryItem', undefined, new vscode.ThemeIcon('credit-card')));
+        items.push(new SmartAuditTreeItem('📊 Security Score: 7.2/10', vscode.TreeItemCollapsibleState.None, 'summaryItem', undefined, new vscode.ThemeIcon('graph')));
+        return items;
+    }
 }
 exports.SmartAuditDataProvider = SmartAuditDataProvider;
 function activate(context) {
@@ -185,12 +233,24 @@ function activate(context) {
         context.subscriptions.push(treeRegistration);
         console.log('✅ WORKING TREE: TreeDataProvider registered successfully');
         // Register commands
-        const auditCommand = vscode.commands.registerCommand('smartaudit.auditFile', () => {
+        const auditCommand = vscode.commands.registerCommand('smartaudit.auditFile', async () => {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
                 const fileName = editor.document.fileName.split('/').pop() || editor.document.fileName.split('\\').pop();
+                // Start analysis simulation
+                context.workspaceState.update('smartaudit.analyzing', true);
+                context.workspaceState.update('smartaudit.hasResults', false);
+                dataProvider.refresh();
                 vscode.window.showInformationMessage(`🔍 SmartAudit AI: Analyzing ${fileName}...`);
-                console.log('📁 Analyzing file:', fileName);
+                console.log('📁 Starting analysis for:', fileName);
+                // Simulate analysis process
+                setTimeout(() => {
+                    context.workspaceState.update('smartaudit.analyzing', false);
+                    context.workspaceState.update('smartaudit.hasResults', true);
+                    dataProvider.refresh();
+                    vscode.window.showInformationMessage(`✅ SmartAudit AI: Analysis complete! Found 3 security issues in ${fileName}`);
+                    console.log('🎉 Analysis completed with results');
+                }, 5000); // 5 second demo
             }
             else {
                 vscode.window.showWarningMessage('📝 SmartAudit AI: Please open a smart contract file to audit');
@@ -201,13 +261,25 @@ function activate(context) {
             vscode.window.showInformationMessage('🔄 SmartAudit AI: Dashboard refreshed');
             console.log('🔄 Dashboard refreshed');
         });
+        const simulateResultsCommand = vscode.commands.registerCommand('smartaudit.simulateResults', () => {
+            context.workspaceState.update('smartaudit.analyzing', false);
+            context.workspaceState.update('smartaudit.hasResults', true);
+            dataProvider.refresh();
+            vscode.window.showInformationMessage('🎯 SmartAudit AI: Demo results added to tree view!');
+        });
+        const clearResultsCommand = vscode.commands.registerCommand('smartaudit.clearResults', () => {
+            context.workspaceState.update('smartaudit.analyzing', false);
+            context.workspaceState.update('smartaudit.hasResults', false);
+            dataProvider.refresh();
+            vscode.window.showInformationMessage('🗑️ SmartAudit AI: Results cleared');
+        });
         const showHistoryCommand = vscode.commands.registerCommand('smartaudit.showHistory', () => {
             vscode.window.showInformationMessage('📊 SmartAudit AI: Audit history feature coming soon!');
         });
         const showCreditsCommand = vscode.commands.registerCommand('smartaudit.showCredits', () => {
             vscode.window.showInformationMessage('💰 SmartAudit AI: Current balance: 150 credits');
         });
-        context.subscriptions.push(auditCommand, refreshCommand, showHistoryCommand, showCreditsCommand);
+        context.subscriptions.push(auditCommand, refreshCommand, showHistoryCommand, showCreditsCommand, simulateResultsCommand, clearResultsCommand);
         console.log('✅ WORKING TREE: All commands registered successfully');
         // Show success notification
         vscode.window.showInformationMessage('🛡️ SmartAudit AI TreeView Extension Activated Successfully!');
