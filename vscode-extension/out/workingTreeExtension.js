@@ -373,10 +373,17 @@ function activate(context) {
         const refreshCommand = vscode.commands.registerCommand('smartaudit.refresh', async () => {
             console.log('🔄 Refreshing authentication...');
             vscode.window.showInformationMessage('🔄 SmartAudit AI: Refreshing connection...');
-            // Clear cached auth and re-validate
+            // Clear ALL cached data including API key tracking
             dataProvider.authService.clearCache();
             context.workspaceState.update('smartaudit.user', undefined);
-            // Trigger re-authentication
+            context.workspaceState.update('lastApiKey', undefined);
+            // Force reload configuration from settings
+            const config = vscode.workspace.getConfiguration('smartaudit');
+            const newApiKey = config.get('apiKey');
+            if (newApiKey && newApiKey.trim().length > 0) {
+                console.log(`[REFRESH] Using new API key: ${newApiKey.substring(0, 20)}...`);
+            }
+            // Trigger re-authentication with fresh config
             const authResult = await dataProvider.authService.validateApiKey();
             if (authResult.success && authResult.user) {
                 context.workspaceState.update('smartaudit.user', authResult.user);

@@ -40,8 +40,16 @@ export class AuthService {
             return { success: false, error: 'API URL not configured' };
         }
 
-        // Use cache if recent
+        // Always check if API key changed - clear cache if different
         const now = Date.now();
+        const lastApiKey = this.context.workspaceState.get<string>('lastApiKey');
+        if (lastApiKey && lastApiKey !== apiKey) {
+            console.log('[AUTH] API key changed, clearing cache...');
+            this.clearCache();
+        }
+        this.context.workspaceState.update('lastApiKey', apiKey);
+
+        // Use cache if recent and API key hasn't changed
         if (this.cachedUserInfo && (now - this.lastAuthCheck) < this.AUTH_CACHE_DURATION) {
             return { success: true, user: this.cachedUserInfo };
         }
