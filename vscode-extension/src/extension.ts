@@ -13,7 +13,9 @@ let secureStorage: SecureStorage;
 let sidebarProvider: any;
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('SmartAudit AI extension is now active!');
+    console.log('🚀 SmartAudit AI extension activating...');
+    console.log('Extension path:', context.extensionPath);
+    console.log('VS Code version:', vscode.version);
     
     // Initialize secure storage
     secureStorage = SecureStorage.getInstance(context);
@@ -29,25 +31,19 @@ export function activate(context: vscode.ExtensionContext) {
     diagnosticProvider = new EnhancedDiagnosticProvider(diagnosticCollection, smartauditApi);
     context.subscriptions.push(diagnosticProvider);
     
-    // Initialize enhanced sidebar provider with error handling
-    try {
-        sidebarProvider = new SidebarProvider(context.extensionUri, smartauditApi);
-        
-        // Register the webview provider immediately
-        const disposable = vscode.window.registerWebviewViewProvider(
-            'smartauditSidebar', 
-            sidebarProvider,
-            {
-                webviewOptions: {
-                    retainContextWhenHidden: true
-                }
-            }
-        );
-        context.subscriptions.push(disposable);
-        console.log('SmartAudit AI: Successfully registered webview provider for smartauditSidebar');
-    } catch (error) {
-        console.error('SmartAudit AI: Failed to register webview provider:', error);
-    }
+    // Initialize and register sidebar provider using exact VS Code pattern
+    sidebarProvider = new SidebarProvider(context.extensionUri, smartauditApi);
+    
+    // Register webview provider with exact match to package.json view ID
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            SidebarProvider.viewType, // Use the static viewType from class
+            sidebarProvider
+        )
+    );
+    
+    console.log('✅ SmartAudit AI: Registered webview provider with ID:', SidebarProvider.viewType);
+    console.log('🎉 SmartAudit AI extension fully activated!');
     
     // Set configured context for other extensions/commands
     const updateConfiguredContext = async () => {

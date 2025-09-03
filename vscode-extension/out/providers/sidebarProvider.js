@@ -31,22 +31,17 @@ class SidebarProvider {
         this.api = api;
     }
     resolveWebviewView(webviewView, context, _token) {
-        console.log('SmartAudit AI: Resolving webview view...');
+        console.log('🚀 SmartAudit AI: resolveWebviewView called!');
         this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
         };
-        try {
-            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-            console.log('SmartAudit AI: Successfully set webview HTML');
-        }
-        catch (error) {
-            console.error('SmartAudit AI: Error setting webview HTML:', error);
-            webviewView.webview.html = '<html><body><h3>SmartAudit AI Error</h3><p>Failed to load dashboard. Check console for details.</p></body></html>';
-        }
-        // Handle messages from webview
+        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        console.log('✅ SmartAudit AI: Webview HTML set successfully');
+        // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (data) => {
+            console.log('📨 SmartAudit AI: Received message:', data.type);
             switch (data.type) {
                 case 'getUserInfo':
                     try {
