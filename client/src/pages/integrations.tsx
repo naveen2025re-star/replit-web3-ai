@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWeb3Auth } from '@/hooks/useWeb3Auth';
 import { 
   Github, 
@@ -40,6 +40,8 @@ export default function IntegrationsPage() {
   const [cicdConfig, setCicdConfig] = useState('');
   const [scanResults, setScanResults] = useState<any>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [generatingKey, setGeneratingKey] = useState(false);
 
   // Preserve scan results and selections across authentication
   useEffect(() => {
@@ -96,7 +98,72 @@ export default function IntegrationsPage() {
     }
   }, [selectedRepository]);
   const { toast } = useToast();
-  const { user } = useWeb3Auth();
+  const { user, isConnected } = useWeb3Auth();
+
+  // Fetch user's API keys
+  const { data: apiKeys, refetch: refetchApiKeys } = useQuery({
+    queryKey: ['api-keys'],
+    queryFn: async () => {
+      const response = await fetch('/api/integrations/api-keys', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch API keys');
+      return response.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  // Generate new API key mutation
+  const generateApiKeyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/integrations/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: 'VS Code Extension Key',
+          permissions: ['audit:read', 'audit:write'],
+          rateLimit: 1000
+        })
+      });
+      if (!response.ok) throw new Error('Failed to generate API key');
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchApiKeys();
+      toast({
+        title: "API Key Generated!",
+        description: "Your new API key has been created. Copy it now - it won't be shown again.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate API key",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Check if user has Pro+ plan
+  const hasProPlan = (user?.credits || 0) >= 1000; // Pro plan requirement
+  const currentApiKey = apiKeys?.apiKeys?.[0]; // Get the first API key
+
+  // Copy to clipboard helper
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied!",
+        description: "API key copied to clipboard",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    });
+  };
 
   // Check for GitHub connection status from URL params
   useEffect(() => {
@@ -380,13 +447,7 @@ export default function IntegrationsPage() {
     cicdSetupMutation.mutate(cicdForm);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: "Configuration copied to clipboard",
-    });
-  };
+  // copyToClipboard function already defined above
 
   const downloadConfig = () => {
     const filename = 'smart-audit.yml';
@@ -866,24 +927,58 @@ export default function IntegrationsPage() {
                   <div>
                     <Label htmlFor="api-key" className="text-white">Your API Key</Label>
                     <div className="flex gap-2 mt-2">
-                      <Input
-                        id="api-key"
-                        type="password"
-                        value="sa_1234567890abcdef..."
-                        readOnly
-                        className="bg-slate-700 border-slate-600 text-white font-mono text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => copyToClipboard("sa_1234567890abcdef1234567890abcdef")}
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                      {currentApiKey ? (
+                        <>
+                          <Input
+                            id="api-key"
+                            type={showApiKey ? "text" : "password"}
+                            value={currentApiKey.fullKey || `${currentApiKey.keyId}.${'*'.repeat(32)}`}
+                            readOnly
+                            className="bg-slate-700 border-slate-600 text-white font-mono text-sm"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                            title={showApiKey ? "Hide API key" : "Show API key"}
+                          >
+                            {showApiKey ? "👁️" : "👁️‍🗨️"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(currentApiKey.fullKey || currentApiKey.keyId)}
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 w-full">
+                          <div className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-slate-400 text-sm flex-1">
+                            {hasProPlan ? "No API key generated yet" : "Upgrade to Pro plan required"}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateApiKeyMutation.mutate()}
+                            disabled={!hasProPlan || generateApiKeyMutation.isPending}
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                          >
+                            {generateApiKeyMutation.isPending ? "Generating..." : "Generate Key"}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <p className="text-xs text-gray-400 mt-2">
-                      Use this key to authenticate API requests. Keep it secure!
+                      {hasProPlan ? (
+                        currentApiKey ? 
+                          `Created: ${new Date(currentApiKey.createdAt).toLocaleDateString()} | Rate limit: ${currentApiKey.rateLimit}/hour` :
+                          "Generate an API key to access SmartAudit AI via VS Code or direct API calls."
+                      ) : (
+                        "Upgrade to Pro plan ($20/month) to generate API keys for VS Code extension."
+                      )}
                     </p>
                   </div>
                   

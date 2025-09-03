@@ -53,11 +53,17 @@ class AuthService {
             if (!apiKey.startsWith('sa_')) {
                 return { success: false, error: 'API key must start with sa_' };
             }
-            if (apiKey.length < 30) {
-                return { success: false, error: 'API key too short' };
+            if (apiKey.length < 80) {
+                return { success: false, error: 'API key too short. Expected format: sa_<keyid>.<secret>' };
             }
-            // More flexible validation - some keys may not have dots in development
-            console.log(`[AUTH] Validating API key format: ${apiKey.substring(0, 10)}...`);
+            if (!apiKey.includes('.')) {
+                return { success: false, error: 'Invalid API key format. Expected format: sa_<keyid>.<secret>' };
+            }
+            const [keyId, secret] = apiKey.split('.');
+            if (!keyId || !secret || keyId.length < 35 || secret.length < 40) {
+                return { success: false, error: 'Invalid API key format. Please generate a new key from the website.' };
+            }
+            console.log(`[AUTH] Validating API key format: ${keyId}...`);
             // Step 2: Use the dedicated VS Code auth endpoint
             const authUrl = `${apiUrl}/api/vscode/auth`;
             const authResponse = await fetch(authUrl, {
