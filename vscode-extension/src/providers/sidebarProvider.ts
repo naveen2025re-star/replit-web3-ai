@@ -525,19 +525,27 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             const userName = document.getElementById('userName');
             const userWallet = document.getElementById('userWallet');
             const creditsBalance = document.getElementById('creditsBalance');
+            const container = document.querySelector('.container');
             
-            if (userInfo) {
+            if (userInfo && userInfo.credits !== undefined) {
+                // User is authenticated - show dashboard
                 updateConnectionStatus(true);
                 userCard.style.display = 'block';
                 userName.textContent = userInfo.displayName || 'SmartAudit User';
                 userWallet.textContent = userInfo.walletAddress ? 
                     userInfo.walletAddress.substring(0, 6) + '...' + userInfo.walletAddress.slice(-4) : '';
                 creditsBalance.textContent = userInfo.credits || '0';
+                
+                // Hide welcome content if any
+                const welcomeContent = document.getElementById('welcomeContent');
+                if (welcomeContent) welcomeContent.style.display = 'none';
             } else {
+                // No API key or authentication failed - show welcome
                 updateConnectionStatus(false);
                 userCard.style.display = 'none';
-                const historyEl = document.getElementById('auditHistory');
-                historyEl.innerHTML = '<div class="error">🔑 Please configure your API key in settings to view your dashboard</div>';
+                
+                // Show welcome content
+                showWelcomeContent();
             }
         }
         
@@ -570,6 +578,29 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         
         // Initial load
         refreshData();
+        
+        function showWelcomeContent() {
+            const historyEl = document.getElementById('auditHistory');
+            historyEl.innerHTML = 
+                '<div style="text-align: center; padding: 20px;">' +
+                    '<div style="font-size: 48px; margin-bottom: 16px;">\ud83d\udee1\ufe0f</div>' +
+                    '<h3 style="margin-bottom: 16px; color: var(--vscode-foreground);">Welcome to SmartAudit AI!</h3>' +
+                    '<p style="margin-bottom: 20px; color: var(--vscode-descriptionForeground); line-height: 1.5;">' +
+                        'Get started by configuring your API key to begin auditing smart contracts across 17+ blockchain languages.' +
+                    '</p>' +
+                    '<div style="display: flex; flex-direction: column; gap: 8px;">' +
+                        '<button class="btn btn-primary" onclick="vscode.postMessage({type: \'openSettings\'})">' +
+                            '\u2699\ufe0f Configure API Key' +
+                        '</button>' +
+                        '<button class="btn btn-secondary" onclick="window.open(\'https://smartaudit.ai/settings\', \'_blank\')">' +
+                            '\ud83c\udd86 Get Free API Key' +
+                        '</button>' +
+                        '<button class="btn btn-secondary" onclick="window.open(\'https://smartaudit.ai/docs\', \'_blank\')">' +
+                            '\ud83d\udcc4 View Documentation' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+        }
         
         // Auto-refresh periodically
         setInterval(() => {

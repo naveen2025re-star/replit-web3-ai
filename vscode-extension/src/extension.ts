@@ -32,13 +32,18 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize enhanced sidebar provider
     sidebarProvider = new SidebarProvider(context.extensionUri, smartauditApi);
     
-    // Set configured context based on API key
+    // Register the webview provider immediately
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider('smartauditSidebar', sidebarProvider)
+    );
+    
+    // Set configured context for other extensions/commands
     const updateConfiguredContext = async () => {
         const config = vscode.workspace.getConfiguration('smartaudit');
         const apiKey = config.get<string>('apiKey');
         const isConfigured = !!apiKey && apiKey.trim().length > 0;
         await vscode.commands.executeCommand('setContext', 'smartaudit.configured', isConfigured);
-        console.log('SmartAudit configured context:', isConfigured);
+        console.log('SmartAudit configured context:', isConfigured, 'API Key:', apiKey ? 'Present' : 'Missing');
     };
     
     // Update context initially and when configuration changes
@@ -48,9 +53,6 @@ export function activate(context: vscode.ExtensionContext) {
             updateConfiguredContext();
         }
     });
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider('smartauditSidebar', sidebarProvider)
-    );
     
     // Register commands
     

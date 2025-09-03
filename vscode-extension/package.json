@@ -163,14 +163,7 @@
           "contextualTitle": "SmartAudit AI Dashboard"
         }
       ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "smartauditSidebar",
-        "contents": "Welcome to SmartAudit AI! 🛡️\n\nGet started by configuring your API key to begin auditing smart contracts across 17+ blockchain languages.\n\n[Configure API Key](command:workbench.action.openSettings?%5B%22smartaudit.apiKey%22%5D)\n\n[Get Free API Key](https://smartaudit.ai/settings)\n\n[View Documentation](https://smartaudit.ai/docs)",
-        "when": "!smartaudit.configured"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "",
