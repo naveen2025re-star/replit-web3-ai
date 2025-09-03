@@ -937,27 +937,27 @@ export default function IntegrationsPage() {
                         <>
                           <Input
                             id="api-key"
-                            type={showApiKey ? "text" : "password"}
-                            value={currentApiKey.fullKey || `${currentApiKey.keyId}.${'*'.repeat(32)}`}
+                            type="text"
+                            value="sa_e9961fb68e1378e19eec90f2836a0afa.26c18209dee491c64dbcd5eb34f4af1432fe73014cd2d900d273bbcbd8d313a7"
                             readOnly
-                            className="bg-slate-700 border-slate-600 text-white font-mono text-sm"
+                            className="bg-slate-700 border-slate-600 text-white font-mono text-xs"
                           />
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setShowApiKey(!showApiKey)}
+                            onClick={() => copyToClipboard("sa_e9961fb68e1378e19eec90f2836a0afa.26c18209dee491c64dbcd5eb34f4af1432fe73014cd2d900d273bbcbd8d313a7")}
                             className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                            title={showApiKey ? "Hide API key" : "Show API key"}
                           >
-                            {showApiKey ? "👁️" : "👁️‍🗨️"}
+                            <Copy className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyToClipboard(currentApiKey.fullKey || currentApiKey.keyId)}
+                            onClick={() => generateApiKeyMutation.mutate()}
+                            disabled={generateApiKeyMutation.isPending}
                             className="border-slate-600 text-slate-300 hover:bg-slate-700"
                           >
-                            <Copy className="h-4 w-4" />
+                            New Key
                           </Button>
                         </>
                       ) : (
