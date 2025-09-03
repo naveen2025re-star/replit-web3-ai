@@ -2683,7 +2683,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         publicTitle: fileName ? `VS Code: ${fileName}` : "VS Code Audit"
       };
 
-      const session = await storage.insertAuditSession(sessionData);
+      const session = await storage.createAuditSession(sessionData);
       
       // Start audit analysis
       const auditResponse = await fetch(`${SHIPABLE_API_BASE}/chat/sessions`, {

@@ -21,7 +21,7 @@ export class AuthService {
     private context: vscode.ExtensionContext;
     private cachedUserInfo: UserInfo | null = null;
     private lastAuthCheck = 0;
-    private readonly AUTH_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    private readonly AUTH_CACHE_DURATION = 10 * 1000; // 10 seconds - reduced for development
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;

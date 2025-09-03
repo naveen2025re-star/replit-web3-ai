@@ -29,7 +29,7 @@ class AuthService {
     constructor(context) {
         this.cachedUserInfo = null;
         this.lastAuthCheck = 0;
-        this.AUTH_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+        this.AUTH_CACHE_DURATION = 10 * 1000; // 10 seconds - reduced for development
         this.context = context;
     }
     async validateApiKey() {
