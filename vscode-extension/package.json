@@ -32,17 +32,8 @@
     "security audit", "vulnerability scanner", "static analysis"
   ],
   "activationEvents": [
-    "onLanguage:solidity",
-    "onLanguage:rust", 
-    "onLanguage:move",
-    "onLanguage:cairo",
-    "onLanguage:go",
-    "onLanguage:typescript",
-    "onLanguage:javascript",
-    "onLanguage:python",
-    "onFileSystem:file",
-    "onCommand:smartaudit.auditFile",
-    "onCommand:smartaudit.showHistory"
+    "onView:smartauditSidebar",
+    "*"
   ],
   "main": "./out/extension.js",
   "contributes": {
