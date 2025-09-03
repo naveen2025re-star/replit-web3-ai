@@ -34,7 +34,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/correctedExtension.js",
+  "main": "./out/bulletproofExtension.js",
   "contributes": {
     "commands": [
       {
