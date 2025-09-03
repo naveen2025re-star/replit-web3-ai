@@ -54,7 +54,7 @@ export class AuthService {
                 return { success: false, error: 'API key must start with sa_' };
             }
             
-            if (apiKey.length < 40) {
+            if (apiKey.length < 30) {
                 return { success: false, error: 'API key too short' };
             }
             
