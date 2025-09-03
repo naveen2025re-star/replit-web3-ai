@@ -2536,10 +2536,17 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
   // ======= API KEY MANAGEMENT ENDPOINTS =======
   
-  // Get user's API keys
-  app.get("/api/integrations/api-keys", isAuthenticated, async (req: any, res) => {
+  // Get user's API keys - modified to work with Web3 session
+  app.get("/api/integrations/api-keys", async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      // Try to get userId from session first, then from x-user-id header
+      const userId = req.session?.user?.id || req.headers['x-user-id'];
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required - please connect your wallet" });
+      }
+      
+      console.log('[API-KEYS] Fetching API keys for user:', userId);
       const apiKeysList = await ApiService.getUserApiKeys(userId);
       res.json({ success: true, apiKeys: apiKeysList });
     } catch (error) {
@@ -2548,10 +2555,16 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // Create new API key
-  app.post("/api/integrations/api-keys", isAuthenticated, async (req: any, res) => {
+  // Create new API key - modified to work with Web3 session
+  app.post("/api/integrations/api-keys", async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      // Try to get userId from session first, then from x-user-id header
+      const userId = req.session?.user?.id || req.headers['x-user-id'];
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required - please connect your wallet" });
+      }
+
       const { name, permissions, rateLimit } = req.body;
       
       const validationSchema = z.object({

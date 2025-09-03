@@ -106,6 +106,9 @@ export default function IntegrationsPage() {
     queryFn: async () => {
       const response = await fetch('/api/integrations/api-keys', {
         credentials: 'include',
+        headers: {
+          'x-user-id': user?.id || '',
+        },
       });
       if (!response.ok) throw new Error('Failed to fetch API keys');
       return response.json();
@@ -118,7 +121,10 @@ export default function IntegrationsPage() {
     mutationFn: async () => {
       const response = await fetch('/api/integrations/api-keys', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || '',
+        },
         credentials: 'include',
         body: JSON.stringify({
           name: 'VS Code Extension Key',
