@@ -27,6 +27,7 @@ exports.SmartAuditDataProvider = void 0;
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
+const authService_1 = require("./authService");
 // Tree item class for our dashboard
 class SmartAuditTreeItem extends vscode.TreeItem {
     constructor(label, collapsibleState, contextValue, command, iconPath) {
@@ -47,6 +48,7 @@ class SmartAuditDataProvider {
         this.context = context;
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.authService = new authService_1.AuthService(context);
     }
     refresh() {
         this._onDidChangeTreeData.fire();
@@ -80,20 +82,31 @@ class SmartAuditDataProvider {
     getRootItems() {
         const config = vscode.workspace.getConfiguration('smartaudit');
         const apiKey = config.get('apiKey');
-        const hasApiKey = apiKey && apiKey.trim().length > 0;
+        const apiUrl = config.get('apiUrl');
+        // Check if we have both API key and URL
+        const hasConfig = apiKey && apiKey.trim().length > 0 && apiUrl && apiUrl.trim().length > 0;
+        // Get cached auth status
+        const isAuthenticated = this.authService.isAuthenticated();
+        const cachedUser = this.context.workspaceState.get('smartaudit.user');
         // Simulate analysis state for demo purposes
         const isAnalyzing = this.context.workspaceState.get('smartaudit.analyzing', false);
         const hasResults = this.context.workspaceState.get('smartaudit.hasResults', false);
         const items = [];
-        // Status section - shows current state
+        // Status section - shows real connection state
         if (isAnalyzing) {
             items.push(new SmartAuditTreeItem('🔄 Analyzing Contract...', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon('loading~spin')));
         }
         else if (hasResults) {
             items.push(new SmartAuditTreeItem('✅ Analysis Complete', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon('check-all')));
         }
+        else if (!hasConfig) {
+            items.push(new SmartAuditTreeItem('🔴 Configuration Missing', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon('error')));
+        }
+        else if (isAuthenticated && cachedUser && cachedUser.planTier) {
+            items.push(new SmartAuditTreeItem(`🟢 Connected (${cachedUser.planTier} Plan)`, vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon('check')));
+        }
         else {
-            items.push(new SmartAuditTreeItem(hasApiKey ? '🟢 Connected & Ready' : '🔴 Not Connected', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon(hasApiKey ? 'check' : 'error')));
+            items.push(new SmartAuditTreeItem('🟡 Validating Connection...', vscode.TreeItemCollapsibleState.Collapsed, 'status', undefined, new vscode.ThemeIcon('sync~spin')));
         }
         // Results section - only show when we have results
         if (hasResults) {
@@ -112,19 +125,40 @@ class SmartAuditDataProvider {
         const config = vscode.workspace.getConfiguration('smartaudit');
         const apiKey = config.get('apiKey');
         const apiUrl = config.get('apiUrl');
+        const cachedUser = this.context.workspaceState.get('smartaudit.user');
         const items = [];
-        if (apiKey && apiKey.trim().length > 0) {
-            items.push(new SmartAuditTreeItem('✅ API Key Configured', vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('key')));
-            items.push(new SmartAuditTreeItem('✅ Extension Active', vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('check')));
-            items.push(new SmartAuditTreeItem('✅ Commands Ready', vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('terminal')));
-            items.push(new SmartAuditTreeItem('🔗 API Connected', vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('globe')));
-        }
-        else {
+        if (!apiKey || apiKey.trim().length === 0) {
             items.push(new SmartAuditTreeItem('❌ API Key Missing', vscode.TreeItemCollapsibleState.None, 'statusItem', {
                 command: 'workbench.action.openSettings',
-                title: 'Open Settings',
+                title: 'Configure API Key',
                 arguments: ['smartaudit.apiKey']
-            }, new vscode.ThemeIcon('warning')));
+            }, new vscode.ThemeIcon('key')));
+        }
+        else if (!apiUrl || apiUrl.trim().length === 0) {
+            items.push(new SmartAuditTreeItem('❌ API URL Missing', vscode.TreeItemCollapsibleState.None, 'statusItem', {
+                command: 'workbench.action.openSettings',
+                title: 'Configure API URL',
+                arguments: ['smartaudit.apiUrl']
+            }, new vscode.ThemeIcon('globe')));
+        }
+        else if (cachedUser) {
+            // Show real user info
+            items.push(new SmartAuditTreeItem(`✅ Plan: ${cachedUser.planTier}`, vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('star')));
+            items.push(new SmartAuditTreeItem(`💰 Credits: ${cachedUser.balance}`, vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('credit-card')));
+            items.push(new SmartAuditTreeItem(`🔍 Total Audits: ${Math.floor(cachedUser.totalUsed / 10)}`, vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('search')));
+            if (cachedUser.canCreatePrivateAudits) {
+                items.push(new SmartAuditTreeItem('✅ Private Audits Enabled', vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('shield')));
+            }
+            else {
+                items.push(new SmartAuditTreeItem('❌ Upgrade to Pro for Private Audits', vscode.TreeItemCollapsibleState.None, 'statusItem', {
+                    command: 'vscode.open',
+                    title: 'Upgrade Plan',
+                    arguments: [vscode.Uri.parse('https://smartaudit.ai/pricing')]
+                }, new vscode.ThemeIcon('warning')));
+            }
+        }
+        else {
+            items.push(new SmartAuditTreeItem('🔄 Validating API Key...', vscode.TreeItemCollapsibleState.None, 'statusItem', undefined, new vscode.ThemeIcon('sync~spin')));
         }
         return items;
     }
@@ -256,9 +290,22 @@ function activate(context) {
                 vscode.window.showWarningMessage('📝 SmartAudit AI: Please open a smart contract file to audit');
             }
         });
-        const refreshCommand = vscode.commands.registerCommand('smartaudit.refresh', () => {
+        const refreshCommand = vscode.commands.registerCommand('smartaudit.refresh', async () => {
+            console.log('🔄 Refreshing authentication...');
+            vscode.window.showInformationMessage('🔄 SmartAudit AI: Refreshing connection...');
+            // Clear cached auth and re-validate
+            dataProvider.authService.clearCache();
+            context.workspaceState.update('smartaudit.user', undefined);
+            // Trigger re-authentication
+            const authResult = await dataProvider.authService.validateApiKey();
+            if (authResult.success && authResult.user) {
+                context.workspaceState.update('smartaudit.user', authResult.user);
+                vscode.window.showInformationMessage(`✅ SmartAudit AI: Connected as ${authResult.user.planTier} user with ${authResult.user.balance} credits`);
+            }
+            else {
+                vscode.window.showErrorMessage(`❌ SmartAudit AI: ${authResult.error || 'Authentication failed'}`);
+            }
             dataProvider.refresh();
-            vscode.window.showInformationMessage('🔄 SmartAudit AI: Dashboard refreshed');
             console.log('🔄 Dashboard refreshed');
         });
         const simulateResultsCommand = vscode.commands.registerCommand('smartaudit.simulateResults', () => {
