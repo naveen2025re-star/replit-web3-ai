@@ -31,12 +31,20 @@ class SidebarProvider {
         this.api = api;
     }
     resolveWebviewView(webviewView, context, _token) {
+        console.log('SmartAudit AI: Resolving webview view...');
         this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
         };
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        try {
+            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+            console.log('SmartAudit AI: Successfully set webview HTML');
+        }
+        catch (error) {
+            console.error('SmartAudit AI: Error setting webview HTML:', error);
+            webviewView.webview.html = '<html><body><h3>SmartAudit AI Error</h3><p>Failed to load dashboard. Check console for details.</p></body></html>';
+        }
         // Handle messages from webview
         webviewView.webview.onDidReceiveMessage(async (data) => {
             switch (data.type) {
@@ -66,6 +74,16 @@ class SidebarProvider {
                     break;
                 case 'openSettings':
                     vscode.commands.executeCommand('workbench.action.openSettings', 'smartaudit');
+                    break;
+                case 'refresh':
+                    // Force refresh the dashboard
+                    try {
+                        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                        console.log('SmartAudit AI: Dashboard refreshed');
+                    }
+                    catch (error) {
+                        console.error('SmartAudit AI: Error refreshing dashboard:', error);
+                    }
                     break;
                 case 'auditCurrentFile':
                     vscode.commands.executeCommand('smartaudit.auditFile');

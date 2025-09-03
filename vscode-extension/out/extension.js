@@ -49,10 +49,21 @@ function activate(context) {
     // Initialize enhanced diagnostic provider
     diagnosticProvider = new enhancedDiagnosticProvider_1.EnhancedDiagnosticProvider(diagnosticCollection, smartauditApi);
     context.subscriptions.push(diagnosticProvider);
-    // Initialize enhanced sidebar provider
-    sidebarProvider = new sidebarProvider_1.SidebarProvider(context.extensionUri, smartauditApi);
-    // Register the webview provider immediately
-    context.subscriptions.push(vscode.window.registerWebviewViewProvider('smartauditSidebar', sidebarProvider));
+    // Initialize enhanced sidebar provider with error handling
+    try {
+        sidebarProvider = new sidebarProvider_1.SidebarProvider(context.extensionUri, smartauditApi);
+        // Register the webview provider immediately
+        const disposable = vscode.window.registerWebviewViewProvider('smartauditSidebar', sidebarProvider, {
+            webviewOptions: {
+                retainContextWhenHidden: true
+            }
+        });
+        context.subscriptions.push(disposable);
+        console.log('SmartAudit AI: Successfully registered webview provider for smartauditSidebar');
+    }
+    catch (error) {
+        console.error('SmartAudit AI: Failed to register webview provider:', error);
+    }
     // Set configured context for other extensions/commands
     const updateConfiguredContext = async () => {
         const config = vscode.workspace.getConfiguration('smartaudit');
