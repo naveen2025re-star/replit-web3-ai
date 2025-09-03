@@ -43,17 +43,9 @@ export class AuditService {
             console.log('[AUDIT] Starting real analysis for:', fileName);
             vscode.window.showInformationMessage(`🔍 SmartAudit AI: Starting analysis of ${fileName}...`);
             
-            // Step 1: Create audit session
-            const session = await this.createAuditSession(contractCode, fileName, apiKey, apiUrl);
-            if (!session) {
-                throw new Error('Failed to create audit session');
-            }
-
-            console.log('[AUDIT] Session created:', session.sessionId);
-            vscode.window.showInformationMessage(`🔄 SmartAudit AI: Analysis session created, processing...`);
-            
-            // Step 2: Start analysis and stream results
-            const result = await this.streamAnalysis(session, apiKey, apiUrl);
+            // Use the dedicated VS Code audit endpoint
+            console.log('[AUDIT] Creating VS Code audit...');
+            const result = await this.createVSCodeAudit(contractCode, fileName, apiKey, apiUrl);
             return result;
 
         } catch (error: any) {
@@ -63,9 +55,10 @@ export class AuditService {
         }
     }
 
-    private async createAuditSession(contractCode: string, fileName: string, apiKey: string, apiUrl: string): Promise<AuditSession | null> {
+    private async createVSCodeAudit(contractCode: string, fileName: string, apiKey: string, apiUrl: string): Promise<AuditResult | null> {
         try {
-            const response = await fetch(`${apiUrl}/api/audit/sessions`, {
+            // Call the VS Code specific audit endpoint
+            const response = await fetch(`${apiUrl}/api/vscode/audit`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -73,135 +66,119 @@ export class AuditService {
                 },
                 body: JSON.stringify({
                     contractCode,
-                    contractLanguage: this.detectLanguage(fileName),
-                    isPublic: false,
-                    title: `VS Code: ${fileName}`,
-                    description: `Smart contract analysis from VS Code extension`,
-                    tags: ['vscode-extension']
+                    language: this.detectLanguage(fileName),
+                    fileName
                 })
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 if (response.status === 402) {
-                    throw new Error(`Insufficient credits. You need ${errorData.needed || 'more'} credits. Current balance: ${errorData.current || 0}`);
+                    throw new Error(`Insufficient credits. ${errorData.error || 'Please purchase more credits'}`);
                 } else if (response.status === 403) {
                     throw new Error('Upgrade to Pro plan required for VS Code extension');
+                } else if (response.status === 400) {
+                    throw new Error(errorData.error || 'Invalid contract code');
                 } else {
-                    throw new Error(errorData.message || `API Error: ${response.status}`);
+                    throw new Error(errorData.error || `API Error: ${response.status}`);
                 }
             }
 
-            const data = await response.json();
-            return {
-                sessionId: data.sessionId,
-                sessionKey: data.sessionKey,
-                status: data.status
-            };
+            const auditData = await response.json();
+            console.log('[AUDIT] VS Code audit started:', auditData.sessionId);
+            
+            if (!auditData.success || !auditData.sessionId) {
+                throw new Error('Failed to start audit session');
+            }
+
+            vscode.window.showInformationMessage(`🔄 SmartAudit AI: Audit started, processing...`);
+            
+            // Poll for results
+            return await this.pollForResults(auditData.sessionId, apiKey, apiUrl);
 
         } catch (error: any) {
-            console.error('[AUDIT] Session creation failed:', error);
+            console.error('[AUDIT] VS Code audit failed:', error);
             throw error;
         }
     }
 
-    private async streamAnalysis(session: AuditSession, apiKey: string, apiUrl: string): Promise<AuditResult | null> {
+    private async pollForResults(sessionId: string, apiKey: string, apiUrl: string): Promise<AuditResult | null> {
         return new Promise(async (resolve, reject) => {
             try {
-                console.log('[AUDIT] Starting analysis stream for session:', session.sessionId);
+                console.log('[AUDIT] Polling for results, session:', sessionId);
                 
-                const response = await fetch(`${apiUrl}/api/audit/analyze/${session.sessionId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Accept': 'text/event-stream',
-                        'Cache-Control': 'no-cache',
-                    }
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('[AUDIT] Analysis failed:', errorText);
-                    reject(new Error(`Analysis failed: ${response.status}`));
-                    return;
-                }
-
-                if (!response.body) {
-                    reject(new Error('No response body received'));
-                    return;
-                }
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let fullResponse = '';
-                let hasContent = false;
-
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
-
-                        for (const line of lines) {
-                            if (line.startsWith('event: content')) {
-                                continue;
+                let attempts = 0;
+                const maxAttempts = 60; // 5 minutes max (60 attempts × 5s)
+                
+                const poll = async (): Promise<void> => {
+                    try {
+                        attempts++;
+                        
+                        const response = await fetch(`${apiUrl}/api/vscode/audit/status/${sessionId}`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/json'
                             }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Status check failed: ${response.status}`);
+                        }
+
+                        const statusData = await response.json();
+                        console.log('[AUDIT] Status:', statusData.status);
+                        
+                        if (statusData.status === 'completed') {
+                            // Analysis complete
+                            vscode.window.showInformationMessage(`✅ SmartAudit AI: Analysis completed! Processing results...`);
                             
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    const jsonData = JSON.parse(line.slice(6));
-                                    if (jsonData.body) {
-                                        fullResponse += jsonData.body;
-                                        hasContent = true;
-                                        
-                                        // Update progress
-                                        if (fullResponse.length % 500 === 0) { // Every 500 chars
-                                            vscode.window.showInformationMessage(`📝 SmartAudit AI: Analysis in progress... (${Math.floor(fullResponse.length / 100)} tokens processed)`);
-                                        }
-                                    } else if (jsonData.status) {
-                                        console.log('[AUDIT] Status update:', jsonData.status);
-                                        if (jsonData.status === 'complete' || jsonData.status === 'completed') {
-                                            console.log('[AUDIT] Analysis completed');
-                                            break;
-                                        }
-                                    }
-                                } catch (e) {
-                                    // Ignore invalid JSON lines
+                            const result: AuditResult = {
+                                sessionId,
+                                rawResponse: statusData.result || '',
+                                formattedReport: statusData.result || '',
+                                vulnerabilityCount: null, // Will be calculated
+                                securityScore: null, // Will be calculated  
+                                completedAt: new Date().toISOString()
+                            };
+                            
+                            resolve(result);
+                            return;
+                            
+                        } else if (statusData.status === 'failed') {
+                            reject(new Error(statusData.error || 'Analysis failed'));
+                            return;
+                            
+                        } else if (statusData.status === 'analyzing' || statusData.status === 'pending') {
+                            // Still processing
+                            if (attempts <= maxAttempts) {
+                                if (attempts % 6 === 0) { // Every 30 seconds
+                                    vscode.window.showInformationMessage(`📝 SmartAudit AI: Analysis in progress... (${Math.floor(attempts * 5 / 60)} minutes elapsed)`);
                                 }
+                                setTimeout(poll, 5000); // Poll every 5 seconds
+                            } else {
+                                reject(new Error('Analysis timeout - taking longer than expected'));
                             }
                             
-                            if (line.startsWith('event: complete')) {
-                                console.log('[AUDIT] Received complete event');
-                                break;
-                            }
-                            
-                            if (line.startsWith('event: error')) {
-                                console.error('[AUDIT] Received error event');
-                                reject(new Error('Analysis failed on server'));
-                                return;
-                            }
+                        } else {
+                            reject(new Error(`Unknown status: ${statusData.status}`));
+                        }
+                        
+                    } catch (error) {
+                        console.error('[AUDIT] Polling error:', error);
+                        if (attempts <= maxAttempts) {
+                            setTimeout(poll, 5000); // Retry after 5 seconds
+                        } else {
+                            reject(error);
                         }
                     }
-                } finally {
-                    reader.releaseLock();
-                }
-
-                if (!hasContent || fullResponse.trim().length === 0) {
-                    reject(new Error('No analysis content received'));
-                    return;
-                }
-
-                console.log(`[AUDIT] Analysis completed. Response length: ${fullResponse.length}`);
-                vscode.window.showInformationMessage(`✅ SmartAudit AI: Analysis completed! Processing results...`);
-
-                // Get final results
-                const finalResult = await this.getFinalResults(session.sessionId, apiKey, apiUrl, fullResponse);
-                resolve(finalResult);
+                };
+                
+                // Start polling
+                await poll();
 
             } catch (error: any) {
-                console.error('[AUDIT] Stream analysis failed:', error);
+                console.error('[AUDIT] Polling failed:', error);
                 reject(error);
             }
         });

@@ -53,107 +53,60 @@ class AuthService {
             if (!apiKey.includes('.') || apiKey.split('.').length !== 2) {
                 return { success: false, error: 'Invalid API key format' };
             }
-            // Step 2: Test API key with a simple authenticated endpoint (list audits)
-            const testUrl = `${apiUrl}/api/audit/list-audits?limit=1`;
-            const testResponse = await fetch(testUrl, {
+            // Step 2: Use the dedicated VS Code auth endpoint
+            const authUrl = `${apiUrl}/api/vscode/auth`;
+            const authResponse = await fetch(authUrl, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 }
             });
-            if (!testResponse.ok) {
-                if (testResponse.status === 401) {
+            if (!authResponse.ok) {
+                if (authResponse.status === 401) {
                     return { success: false, error: 'Invalid or expired API key' };
                 }
-                else if (testResponse.status === 429) {
+                else if (authResponse.status === 429) {
                     return { success: false, error: 'Rate limit exceeded' };
                 }
-                else if (testResponse.status === 403) {
+                else if (authResponse.status === 403) {
                     return { success: false, error: 'API key lacks required permissions' };
                 }
                 else {
-                    return { success: false, error: `API error: ${testResponse.status}` };
+                    return { success: false, error: `API authentication failed: ${authResponse.status}` };
                 }
             }
-            // Step 3: Get the userId from the validated API response
-            const testData = await testResponse.json();
-            console.log('[AUTH] API key validation successful');
-            // Step 4: Get user credits and plan info
-            // The API key validation gives us the userId, but we need to extract it
-            // Let's try to get user info by making a credit balance request
-            // First, let's try to extract userId from the test response or make another authenticated call
-            // that returns user info. For now, let's use the audit endpoint pattern.
-            // Step 4: Try to get user credits (this endpoint requires userId)
-            // Since we validated the API key, let's try to call the audit endpoint to get user info
-            const auditResponse = await fetch(`${apiUrl}/api/audit/list-audits?limit=1`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (!auditResponse.ok) {
-                return { success: false, error: 'Failed to fetch user information' };
+            const authData = await authResponse.json();
+            console.log('[AUTH] VS Code authentication successful');
+            if (!authData.success || !authData.user) {
+                return { success: false, error: 'Invalid authentication response' };
             }
-            const auditData = await auditResponse.json();
-            // From the audit response, we can't directly get userId, but we know the API key is valid
-            // Let's make a test audit request to see if we can get user info
-            console.log('[AUTH] Getting user credits...');
-            // For now, since we can't easily extract userId from the API responses,
-            // let's create a simple test audit to validate the account and get user info
-            const testAuditResponse = await fetch(`${apiUrl}/api/audit/create-audit`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contractCode: '// Test contract\npragma solidity ^0.8.0;\ncontract Test { }',
-                    contractLanguage: 'solidity',
-                    publicTitle: 'Extension Auth Test',
-                    isPublic: false
-                })
-            });
-            if (testAuditResponse.ok) {
-                const auditInfo = await testAuditResponse.json();
-                console.log('[AUTH] User has sufficient credits and Pro plan access');
-                // Extract user info from audit response if available
-                this.cachedUserInfo = {
-                    userId: 'validated-user', // We know it's valid but don't have exact ID
-                    balance: 0, // We'll update this with a proper call later
-                    totalUsed: 0,
-                    totalEarned: 0,
-                    planTier: 'Pro', // Must be Pro+ to create private audits
-                    canCreatePrivateAudits: true,
-                    permissions: ['audit:create', 'audit:read'],
-                    rateLimit: 100
-                };
-                this.lastAuthCheck = now;
-                return { success: true, user: this.cachedUserInfo };
+            const user = authData.user;
+            // Determine plan tier based on credits  
+            let planTier = 'Free';
+            if (user.credits >= 15000)
+                planTier = 'Pro+';
+            else if (user.credits >= 5000)
+                planTier = 'Pro';
+            else if (user.credits >= 1000)
+                planTier = 'Pro'; // Basic Pro access
+            // VS Code extension requires Pro plan minimum
+            if (planTier === 'Free') {
+                return { success: false, error: 'VS Code extension requires Pro plan. Upgrade at smartaudit.ai' };
             }
-            else if (testAuditResponse.status === 402) {
-                // Insufficient credits - but account is valid
-                const errorData = await testAuditResponse.json();
-                this.cachedUserInfo = {
-                    userId: 'validated-user',
-                    balance: errorData.currentBalance || 0,
-                    totalUsed: 0,
-                    totalEarned: 0,
-                    planTier: errorData.currentBalance > 1000 ? 'Pro' : 'Free',
-                    canCreatePrivateAudits: errorData.currentBalance > 1000,
-                    permissions: ['audit:create', 'audit:read'],
-                    rateLimit: 100
-                };
-                this.lastAuthCheck = now;
-                return { success: true, user: this.cachedUserInfo };
-            }
-            else if (testAuditResponse.status === 403) {
-                return { success: false, error: 'Free plan users cannot use VS Code extension. Upgrade to Pro plan.' };
-            }
-            else {
-                return { success: false, error: 'Account validation failed' };
-            }
+            this.cachedUserInfo = {
+                userId: user.id,
+                balance: user.credits || 0,
+                totalUsed: 0, // Will be updated if needed
+                totalEarned: user.credits || 0,
+                planTier,
+                canCreatePrivateAudits: true, // Pro+ users can always create private audits
+                permissions: user.permissions || ['audit:read', 'audit:write'],
+                rateLimit: 1000 // Default rate limit
+            };
+            this.lastAuthCheck = now;
+            console.log(`[AUTH] User validated: ${planTier} plan with ${user.credits} credits`);
+            return { success: true, user: this.cachedUserInfo };
         }
         catch (error) {
             console.error('[AUTH] Authentication failed:', error);
