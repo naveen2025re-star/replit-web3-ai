@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { SmartAuditAPI } from './api/smartauditApi';
 import { EnhancedDiagnosticProvider } from './providers/enhancedDiagnosticProvider';
-import { SidebarProvider } from './providers/sidebarProvider';
+import { SimpleSidebarProvider } from './providers/simpleSidebarProvider';
 import { SecureStorage } from './security/secureStorage';
 import { BlockchainLanguageDetector } from './utils/blockchainLanguageDetector';
 import { LanguageSelector } from './commands/languageSelector';
@@ -26,6 +26,8 @@ export function activate(context: vscode.ExtensionContext) {
 function initializeExtension(context: vscode.ExtensionContext) {
     console.log('⚡ SmartAudit AI: Starting initialization...');
     
+    try {
+    
     // Initialize secure storage
     secureStorage = SecureStorage.getInstance(context);
     
@@ -40,22 +42,25 @@ function initializeExtension(context: vscode.ExtensionContext) {
     diagnosticProvider = new EnhancedDiagnosticProvider(diagnosticCollection, smartauditApi);
     context.subscriptions.push(diagnosticProvider);
     
-    // Initialize and register sidebar provider using exact VS Code pattern
-    sidebarProvider = new SidebarProvider(context.extensionUri, smartauditApi);
+    // Create simple sidebar provider
+    sidebarProvider = new SimpleSidebarProvider(context.extensionUri, smartauditApi);
+    console.log('🛠️ Created SimpleSidebarProvider');
     
-    // Register webview provider with exact match to package.json view ID
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(
-            SidebarProvider.viewType, // Use the static viewType from class
-            sidebarProvider
-        )
+    // Register webview provider
+    const disposable = vscode.window.registerWebviewViewProvider(
+        'smartauditSidebar',
+        sidebarProvider
     );
+    context.subscriptions.push(disposable);
+    console.log('✅ Successfully registered webview provider for: smartauditSidebar');
     
-    console.log('✅ SmartAudit AI: Registered webview provider with ID:', SidebarProvider.viewType);
-    console.log('🎉 SmartAudit AI: Extension fully activated and ready!');
-    
-    // Notify VS Code that we're ready
+    console.log('🎉 SmartAudit AI: Extension fully activated!');
     vscode.commands.executeCommand('setContext', 'smartaudit.activated', true);
+    
+    } catch (error) {
+        console.error('❌ SmartAudit AI initialization failed:', error);
+        vscode.window.showErrorMessage('SmartAudit AI failed to initialize: ' + (error as Error).message);
+    }
     
     // Set configured context for other extensions/commands
     const updateConfiguredContext = async () => {
