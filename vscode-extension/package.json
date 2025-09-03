@@ -32,10 +32,10 @@
     "security audit", "vulnerability scanner", "static analysis"
   ],
   "activationEvents": [
-    "onView:smartauditSidebar",
-    "*"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
+  "browser": "./out/extension.js",
   "contributes": {
     "commands": [
       {
