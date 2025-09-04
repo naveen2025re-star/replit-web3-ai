@@ -671,7 +671,9 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // Standard MCP HTTP API will be implemented separately
+  // ============================================================================
+  // MCP API Endpoint - Single endpoint to expose MCP tools via HTTP
+  // ============================================================================
   
   app.all("/api/stream/mcp", authenticateApiKey, async (req: any, res) => {
     try {
@@ -800,10 +802,10 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               const { contractCode, language = 'solidity', fileName = 'contract.sol' } = args;
               
               if (!contractCode?.trim()) {
-                res.write(`data: ${JSON.stringify({ 
+                res.write(\`data: \${JSON.stringify({ 
                   type: 'error', 
                   message: 'Contract code is required' 
-                })}\n\n`);
+                })}\\n\\n\`);
                 return res.end();
               }
 
@@ -821,42 +823,42 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
               const creditCheck = await CreditService.checkCreditsAndCalculateCost(apiUser.userId, factors);
               if (!creditCheck.hasEnough) {
-                res.write(`data: ${JSON.stringify({ 
+                res.write(\`data: \${JSON.stringify({ 
                   type: 'error', 
                   message: 'Insufficient credits',
                   needed: creditCheck.needed,
                   current: creditCheck.current,
                   cost: creditCheck.cost
-                })}\n\n`);
+                })}\\n\\n\`);
                 return res.end();
               }
 
               // Deduct credits
               const deductionResult = await CreditService.deductCreditsForAudit(
                 apiUser.userId,
-                `mcp_${Date.now()}`,
+                \`mcp_\${Date.now()}\`,
                 factors
               );
 
               if (!deductionResult.success) {
-                res.write(`data: ${JSON.stringify({ 
+                res.write(\`data: \${JSON.stringify({ 
                   type: 'error', 
                   message: deductionResult.error || 'Credit deduction failed'
-                })}\n\n`);
+                })}\\n\\n\`);
                 return res.end();
               }
 
               // Send credit info
-              res.write(`data: ${JSON.stringify({
+              res.write(\`data: \${JSON.stringify({
                 type: 'credits_deducted',
                 creditsUsed: deductionResult.creditsDeducted,
                 remainingCredits: deductionResult.newBalance
-              })}\n\n`);
+              })}\\n\\n\`);
 
               // Start streaming analysis
               await processAuditStreaming(
-                `mcp_${Date.now()}`,
-                `session_${Date.now()}`,
+                \`mcp_\${Date.now()}\`,
+                \`session_\${Date.now()}\`,
                 contractCode,
                 res
               );
@@ -868,16 +870,16 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               const { contracts } = args;
               
               if (!contracts || !Array.isArray(contracts) || contracts.length === 0) {
-                res.write(`data: ${JSON.stringify({ 
+                res.write(\`data: \${JSON.stringify({ 
                   type: 'error', 
                   message: 'Contracts array is required' 
-                })}\n\n`);
+                })}\\n\\n\`);
                 return res.end();
               }
 
               // Combine all contracts
               const combinedCode = contracts.map(c => 
-                `// File: ${c.fileName}\n${c.content}\n\n`
+                \`// File: \${c.fileName}\\n\${c.content}\\n\\n\`
               ).join('');
 
               const totalLength = combinedCode.length;
@@ -892,40 +894,40 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               // Check and deduct credits
               const creditCheck = await CreditService.checkCreditsAndCalculateCost(apiUser.userId, factors);
               if (!creditCheck.hasEnough) {
-                res.write(`data: ${JSON.stringify({ 
+                res.write(\`data: \${JSON.stringify({ 
                   type: 'error', 
                   message: 'Insufficient credits for multi-file analysis',
                   needed: creditCheck.needed,
                   current: creditCheck.current,
                   cost: creditCheck.cost
-                })}\n\n`);
+                })}\\n\\n\`);
                 return res.end();
               }
 
               const deductionResult = await CreditService.deductCreditsForAudit(
                 apiUser.userId,
-                `mcp_multi_${Date.now()}`,
+                \`mcp_multi_\${Date.now()}\`,
                 factors
               );
 
               if (!deductionResult.success) {
-                res.write(`data: ${JSON.stringify({ 
+                res.write(\`data: \${JSON.stringify({ 
                   type: 'error', 
                   message: deductionResult.error || 'Credit deduction failed'
-                })}\n\n`);
+                })}\\n\\n\`);
                 return res.end();
               }
 
-              res.write(`data: ${JSON.stringify({
+              res.write(\`data: \${JSON.stringify({
                 type: 'credits_deducted',
                 creditsUsed: deductionResult.creditsDeducted,
                 remainingCredits: deductionResult.newBalance
-              })}\n\n`);
+              })}\\n\\n\`);
 
               // Start streaming analysis of combined contracts
               await processAuditStreaming(
-                `mcp_multi_${Date.now()}`,
-                `session_multi_${Date.now()}`,
+                \`mcp_multi_\${Date.now()}\`,
+                \`session_multi_\${Date.now()}\`,
                 combinedCode,
                 res
               );
@@ -936,17 +938,17 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
             case 'get_credit_balance': {
               const balance = await CreditService.getCreditBalance(apiUser.userId);
               
-              res.write(`data: ${JSON.stringify({
+              res.write(\`data: \${JSON.stringify({
                 type: 'result',
                 data: {
                   credits: balance.credits,
                   plan: balance.plan || 'free',
                   userId: apiUser.userId,
-                  message: `Available Credits: ${balance.credits}\nSubscription Plan: ${(balance.plan || 'free').charAt(0).toUpperCase() + (balance.plan || 'free').slice(1)}`
+                  message: \`Available Credits: \${balance.credits}\\nSubscription Plan: \${(balance.plan || 'free').charAt(0).toUpperCase() + (balance.plan || 'free').slice(1)}\`
                 }
-              })}\n\n`);
+              })}\\n\\n\`);
               
-              res.write(`data: ${JSON.stringify({ type: 'complete' })}\\n\\n\`);
+              res.write(\`data: \${JSON.stringify({ type: 'complete' })}\\n\\n\`);
               res.end();
               break;
             }
@@ -985,15 +987,15 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
                 });
               }
 
-              res.write(`data: ${JSON.stringify({
+              res.write(\`data: \${JSON.stringify({
                 type: 'result',
                 data: {
                   audits: sessions,
                   message: historyText
                 }
-              })}\n\n`);
+              })}\\n\\n\`);
               
-              res.write(`data: ${JSON.stringify({ type: 'complete' })}\\n\\n\`);
+              res.write(\`data: \${JSON.stringify({ type: 'complete' })}\\n\\n\`);
               res.end();
               break;
             }
@@ -1002,10 +1004,10 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
               const { contractCode } = args;
               
               if (!contractCode?.trim()) {
-                res.write(`data: ${JSON.stringify({ 
+                res.write(\`data: \${JSON.stringify({ 
                   type: 'error', 
                   message: 'Contract code is required' 
-                })}\n\n`);
+                })}\\n\\n\`);
                 return res.end();
               }
 
@@ -1022,25 +1024,25 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
               const resultText = \`# 🔍 Language Detection Result\\n\\n**Detected Language**: \${detectedLanguage.charAt(0).toUpperCase() + detectedLanguage.slice(1)}\\n\\n**Confidence Indicators**:\\n\${confidenceIndicators.join('\\n')}\\n\\nUse this language for optimal analysis.\`;
 
-              res.write(`data: ${JSON.stringify({
+              res.write(\`data: \${JSON.stringify({
                 type: 'result',
                 data: {
                   language: detectedLanguage,
                   confidence: confidenceIndicators,
                   message: resultText
                 }
-              })}\n\n`);
+              })}\\n\\n\`);
               
-              res.write(`data: ${JSON.stringify({ type: 'complete' })}\\n\\n\`);
+              res.write(\`data: \${JSON.stringify({ type: 'complete' })}\\n\\n\`);
               res.end();
               break;
             }
 
             default:
-              res.write(`data: ${JSON.stringify({ 
+              res.write(\`data: \${JSON.stringify({ 
                 type: 'error', 
                 message: \`Unknown tool: \${tool}\` 
-              })}\n\n`);
+              })}\\n\\n\`);
               res.end();
           }
         } catch (error) {

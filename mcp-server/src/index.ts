@@ -1,16 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * SmartAudit AI MCP Server v2.0
+ * SmartAudit AI MCP Server
  * 
- * Enterprise-grade Model Context Protocol server for AI-powered smart contract auditing
- * Compatible with Claude Desktop, Cursor, Continue.dev, Codeium, Windsurf, and all MCP-enabled IDEs
+ * Universal smart contract auditing server compatible with all AI IDEs:
+ * - Claude Desktop, Cursor, Continue.dev, Codeium, Windsurf, etc.
  * 
- * Features:
- * - Real-time streaming security analysis
- * - Multi-language smart contract support (Solidity, Rust, Move, Cairo, Vyper)
- * - Credit management and audit history
- * - Robust error handling and validation
+ * Provides comprehensive blockchain security analysis through Model Context Protocol
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -23,47 +19,17 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import fetch from 'node-fetch';
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 
 // Load environment variables
-dotenv.config();
+config();
 
-// Configuration
-const API_BASE_URL = process.env.SMARTAUDIT_API_URL || 'http://localhost:5000';
+// API Configuration
+const API_BASE_URL = process.env.SMARTAUDIT_API_URL || 'https://smartaudit-ai-backend.replit.app';
 const DEFAULT_API_KEY = process.env.SMARTAUDIT_API_KEY || '';
 
-// Input validation schemas
-const AuditContractSchema = z.object({
-  contractCode: z.string().min(1, 'Contract code is required'),
-  language: z.enum(['solidity', 'rust', 'move', 'cairo', 'vyper', 'yul']).default('solidity'),
-  fileName: z.string().optional().default('contract.sol'),
-  apiKey: z.string().optional(),
-});
-
-const AnalyzeMultipleSchema = z.object({
-  contracts: z.array(z.object({
-    fileName: z.string(),
-    content: z.string().min(1),
-    language: z.string().optional(),
-  })).min(1, 'At least one contract is required'),
-  apiKey: z.string().optional(),
-});
-
-const AuditHistorySchema = z.object({
-  limit: z.number().min(1).max(50).default(10),
-  apiKey: z.string().optional(),
-});
-
-const DetectLanguageSchema = z.object({
-  contractCode: z.string().min(1, 'Contract code is required'),
-});
-
-const CreditBalanceSchema = z.object({
-  apiKey: z.string().optional(),
-});
-
 /**
- * SmartAudit AI API Client
+ * SmartAudit AI Client - Handles all API interactions
  */
 class SmartAuditClient {
   private apiKey: string;
@@ -74,178 +40,128 @@ class SmartAuditClient {
     this.baseUrl = API_BASE_URL;
   }
 
-  private validateApiKey(): void {
-    if (!this.apiKey) {
+  private async makeRequest(endpoint: string, options: any = {}): Promise<any> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+        'X-API-Key': this.apiKey,
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
       throw new McpError(
-        ErrorCode.InvalidRequest,
-        'SmartAudit API key is required. Get yours at https://smartaudit.ai/dashboard'
+        ErrorCode.InternalError,
+        `API request failed: ${response.status} ${error}`
       );
     }
+
+    return response.json();
+  }
+
+  private async makeStreamRequest(endpoint: string, options: any = {}): Promise<any> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+        'X-API-Key': this.apiKey,
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Streaming request failed: ${response.status} ${error}`
+      );
+    }
+
+    return response;
   }
 
   /**
-   * Make streaming request to MCP API endpoint
+   * Authenticate and get user information
    */
-  private async makeStreamingRequest(action: string, tool: string, args: any): Promise<string> {
-    this.validateApiKey();
-
-    try {
-      const response = await fetch(`${this.baseUrl}/api/stream/mcp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': this.apiKey,
-        },
-        body: JSON.stringify({
-          action,
-          tool,
-          arguments: args,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      // Process streaming response
-      let result = '';
-      let errorMessage = '';
-      
-      // Handle streaming response body
-      if (response.body) {
-        const body = response.body as any; // Type assertion for compatibility
-        const reader = body.getReader();
-        const decoder = new TextDecoder();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  
-                  if (data.type === 'content') {
-                    result += data.content;
-                  } else if (data.type === 'result' && data.data?.message) {
-                    result = data.data.message;
-                  } else if (data.type === 'error') {
-                    errorMessage = data.message;
-                    break;
-                  } else if (data.type === 'credits_deducted') {
-                    // Add credit info to result
-                    result += `\n\n**Credits Used**: ${data.creditsUsed} | **Remaining**: ${data.remainingCredits}\n\n`;
-                  } else if (data.type === 'complete') {
-                    break;
-                  }
-                } catch (parseError) {
-                  // Skip invalid JSON lines
-                }
-              }
-            }
-            
-            if (errorMessage) break;
-          }
-        } finally {
-          reader.releaseLock();
-        }
-      }
-
-      if (errorMessage) {
-        throw new Error(errorMessage);
-      }
-
-      return result || 'Operation completed successfully.';
-    } catch (error) {
-      console.error(`[API Error] ${tool}:`, error);
-      throw new McpError(
-        ErrorCode.InternalError,
-        `${tool} failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+  async getUserInfo() {
+    return this.makeRequest('/api/vscode/auth');
   }
 
-  async auditContract(contractCode: string, language: string, fileName: string): Promise<string> {
-    return this.makeStreamingRequest('call_tool', 'audit_smart_contract', {
-      contractCode,
-      language,
-      fileName,
+  /**
+   * Get user's credit balance
+   */
+  async getCreditBalance() {
+    const userInfo: any = await this.getUserInfo();
+    return {
+      credits: userInfo.user?.credits || 0,
+      plan: userInfo.user?.plan || 'free',
+      userId: userInfo.user?.id
+    };
+  }
+
+  /**
+   * Start streaming smart contract audit
+   */
+  async auditContract(contractCode: string, language: string = 'solidity', fileName?: string) {
+    const response = await this.makeStreamRequest('/api/vscode/audit/stream', {
+      method: 'POST',
+      body: JSON.stringify({
+        contractCode,
+        language,
+        fileName: fileName || 'contract.sol'
+      }),
     });
+
+    return response;
   }
 
-  async analyzeMultipleContracts(contracts: any[]): Promise<string> {
-    return this.makeStreamingRequest('call_tool', 'analyze_multiple_contracts', {
-      contracts,
-    });
+  /**
+   * Get audit history
+   */
+  async getAuditHistory(limit: number = 10) {
+    return this.makeRequest(`/api/vscode/audit/history?limit=${limit}`);
   }
 
-  async getCreditBalance(): Promise<string> {
-    return this.makeStreamingRequest('call_tool', 'get_credit_balance', {});
-  }
-
-  async getAuditHistory(limit: number): Promise<string> {
-    return this.makeStreamingRequest('call_tool', 'get_audit_history', {
-      limit,
-    });
-  }
-
-  async detectContractLanguage(contractCode: string): Promise<string> {
-    return this.makeStreamingRequest('call_tool', 'detect_contract_language', {
-      contractCode,
+  /**
+   * Start repository audit
+   */
+  async auditRepository(repoUrl: string, branch: string = 'main') {
+    return this.makeRequest('/api/audit/sessions', {
+      method: 'POST',
+      body: JSON.stringify({
+        repositoryUrl: repoUrl,
+        branch,
+        analysisType: 'repository'
+      }),
     });
   }
 }
 
 /**
- * Language Detection Utility
- */
-function detectContractLanguage(code: string): string {
-  const codeUpper = code.toUpperCase();
-  
-  if (codeUpper.includes('PRAGMA SOLIDITY') || codeUpper.includes('CONTRACT ')) {
-    return 'solidity';
-  }
-  if (codeUpper.includes('FN ') || codeUpper.includes('STRUCT ') || codeUpper.includes('IMPL ')) {
-    return 'rust';
-  }
-  if (codeUpper.includes('MODULE ') || codeUpper.includes('PUBLIC FUN ')) {
-    return 'move';
-  }
-  if (codeUpper.includes('%LANG STARKNET') || codeUpper.includes('@CONTRACT_INTERFACE')) {
-    return 'cairo';
-  }
-  if (codeUpper.includes('@EXTERNAL') || codeUpper.includes('@INTERNAL')) {
-    return 'vyper';
-  }
-  
-  return 'solidity';
-}
-
-/**
- * MCP Tool Definitions
+ * Tool Definitions for AI IDEs
  */
 const TOOLS = [
   {
     name: 'audit_smart_contract',
-    description: 'Perform comprehensive security audit of smart contract code with real-time AI analysis. Detects vulnerabilities, gas optimization issues, and provides detailed security recommendations for Solidity, Rust, Move, Cairo, and Vyper contracts.',
+    description: 'Perform comprehensive security audit of smart contract code with real-time analysis',
     inputSchema: {
       type: 'object',
       properties: {
         contractCode: {
           type: 'string',
-          description: 'The smart contract source code to analyze (paste from IDE)'
+          description: 'The smart contract source code to analyze'
         },
         language: {
           type: 'string',
           enum: ['solidity', 'rust', 'move', 'cairo', 'vyper', 'yul'],
           default: 'solidity',
-          description: 'Programming language of the contract (auto-detected if not specified)'
+          description: 'Programming language of the contract'
         },
         fileName: {
           type: 'string',
@@ -260,35 +176,31 @@ const TOOLS = [
     }
   },
   {
-    name: 'analyze_multiple_contracts',
-    description: 'Analyze multiple smart contract files at once from your IDE workspace. Perfect for auditing entire DeFi protocols, NFT collections, or multi-contract systems with cross-contract vulnerability detection.',
+    name: 'audit_repository',
+    description: 'Audit entire GitHub repository for smart contract security issues',
     inputSchema: {
       type: 'object',
       properties: {
-        contracts: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              fileName: { type: 'string' },
-              content: { type: 'string' },
-              language: { type: 'string' }
-            },
-            required: ['fileName', 'content']
-          },
-          description: 'Array of contract files from IDE workspace'
+        repoUrl: {
+          type: 'string',
+          description: 'GitHub repository URL (e.g., "https://github.com/user/repo")'
+        },
+        branch: {
+          type: 'string',
+          default: 'main',
+          description: 'Git branch to analyze'
         },
         apiKey: {
           type: 'string',
           description: 'Your SmartAudit AI API key'
         }
       },
-      required: ['contracts']
+      required: ['repoUrl']
     }
   },
   {
     name: 'get_credit_balance',
-    description: 'Check your remaining audit credits and subscription plan details. Shows current balance, plan type, and usage statistics.',
+    description: 'Check your remaining audit credits and subscription plan',
     inputSchema: {
       type: 'object',
       properties: {
@@ -302,15 +214,13 @@ const TOOLS = [
   },
   {
     name: 'get_audit_history',
-    description: 'Retrieve your recent smart contract audit history with detailed results, vulnerability counts, and timestamps.',
+    description: 'Retrieve your recent smart contract audit history',
     inputSchema: {
       type: 'object',
       properties: {
         limit: {
           type: 'number',
           default: 10,
-          minimum: 1,
-          maximum: 50,
           description: 'Number of recent audits to retrieve (max 50)'
         },
         apiKey: {
@@ -323,7 +233,7 @@ const TOOLS = [
   },
   {
     name: 'detect_contract_language',
-    description: 'Automatically detect the programming language of smart contract code with confidence indicators. Supports Solidity, Rust, Move, Cairo, Vyper, and Yul.',
+    description: 'Automatically detect the programming language of smart contract code',
     inputSchema: {
       type: 'object',
       properties: {
@@ -338,98 +248,141 @@ const TOOLS = [
 ];
 
 /**
- * SmartAudit MCP Server
+ * Language Detection Utility
  */
-class SmartAuditMCPServer {
-  private server: Server;
+function detectContractLanguage(code: string): string {
+  const codeUpper = code.toUpperCase();
+  
+  // Solidity detection
+  if (codeUpper.includes('PRAGMA SOLIDITY') || 
+      codeUpper.includes('CONTRACT ') || 
+      codeUpper.includes('FUNCTION ') ||
+      codeUpper.includes('MODIFIER ')) {
+    return 'solidity';
+  }
+  
+  // Rust detection
+  if (codeUpper.includes('FN ') || 
+      codeUpper.includes('STRUCT ') || 
+      codeUpper.includes('IMPL ') ||
+      codeUpper.includes('USE STD::')) {
+    return 'rust';
+  }
+  
+  // Move detection
+  if (codeUpper.includes('MODULE ') || 
+      codeUpper.includes('PUBLIC FUN ') || 
+      codeUpper.includes('RESOURCE ')) {
+    return 'move';
+  }
+  
+  // Cairo detection
+  if (codeUpper.includes('%LANG STARKNET') || 
+      codeUpper.includes('@CONTRACT_INTERFACE') || 
+      codeUpper.includes('STORAGE_VAR')) {
+    return 'cairo';
+  }
+  
+  // Vyper detection
+  if (codeUpper.includes('@EXTERNAL') || 
+      codeUpper.includes('@INTERNAL') || 
+      codeUpper.includes('DEF ') && codeUpper.includes('@')) {
+    return 'vyper';
+  }
+  
+  return 'solidity'; // Default fallback
+}
 
-  constructor() {
-    this.server = new Server(
-      {
-        name: 'smartaudit-ai',
-        version: '2.0.0',
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      }
-    );
-
-    this.setupHandlers();
-    this.setupErrorHandling();
+/**
+ * Process streaming audit response
+ */
+async function processStreamingAudit(response: any): Promise<string> {
+  let fullResult = '';
+  
+  if (!response.body) {
+    throw new McpError(ErrorCode.InternalError, 'No response body received');
   }
 
-  private setupErrorHandling(): void {
-    this.server.onerror = (error) => console.error('[MCP Server Error]', error);
-    
-    process.on('SIGINT', async () => {
-      console.error('[MCP Server] Shutting down gracefully...');
-      await this.server.close();
-      process.exit(0);
-    });
-  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
 
-  private setupHandlers(): void {
-    // List available tools
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return { tools: TOOLS };
-    });
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    // Handle tool calls
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
 
-      try {
-        switch (name) {
-          case 'audit_smart_contract':
-            return await this.handleAuditContract(args);
-          
-          case 'analyze_multiple_contracts':
-            return await this.handleAnalyzeMultiple(args);
-          
-          case 'get_credit_balance':
-            return await this.handleCreditBalance(args);
-          
-          case 'get_audit_history':
-            return await this.handleAuditHistory(args);
-          
-          case 'detect_contract_language':
-            return await this.handleDetectLanguage(args);
-          
-          default:
-            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6));
+            if (data.type === 'chunk' && data.data) {
+              fullResult += data.data;
+            }
+          } catch (e) {
+            // Ignore parse errors for streaming data
+          }
         }
-      } catch (error) {
-        console.error(`[Tool Error] ${name}:`, error);
-        
-        if (error instanceof McpError) {
-          throw error;
-        }
-        
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
       }
-    });
+    }
+  } finally {
+    reader.releaseLock();
   }
 
-  private async handleAuditContract(args: any) {
-    const validatedArgs = AuditContractSchema.parse(args);
-    const { contractCode, language, fileName, apiKey } = validatedArgs;
-    
-    const client = new SmartAuditClient(apiKey);
-    const detectedLanguage = language || detectContractLanguage(contractCode);
-    
-    const result = await client.auditContract(contractCode, detectedLanguage, fileName);
-    
-    return {
-      content: [{
-        type: 'text',
-        text: `# 🛡️ Smart Contract Security Audit Report
+  return fullResult || 'Analysis completed but no results received.';
+}
 
-**Contract**: ${fileName}
+/**
+ * Main MCP Server
+ */
+const server = new Server(
+  {
+    name: 'smartaudit-ai',
+    version: '1.0.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
+
+// List available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: TOOLS,
+  };
+});
+
+// Handle tool calls
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  try {
+    switch (name) {
+      case 'audit_smart_contract': {
+        const { contractCode, language, fileName, apiKey } = args as {
+          contractCode: string;
+          language?: string;
+          fileName?: string;
+          apiKey?: string;
+        };
+
+        const client = new SmartAuditClient(apiKey);
+        const detectedLanguage = language || detectContractLanguage(contractCode);
+        
+        // Start streaming audit
+        const response = await client.auditContract(contractCode, detectedLanguage, fileName);
+        const result = await processStreamingAudit(response);
+
+        return {
+          content: [{
+            type: 'text',
+            text: `# 🛡️ Smart Contract Security Audit Report
+
+**Contract**: ${fileName || 'Anonymous Contract'}
 **Language**: ${detectedLanguage.charAt(0).toUpperCase() + detectedLanguage.slice(1)}
 **Analysis Date**: ${new Date().toLocaleString()}
 
@@ -439,131 +392,138 @@ ${result}
 
 ---
 
-**Powered by SmartAudit AI** | [Get API Key](https://smartaudit.ai/dashboard)`
-      }]
-    };
-  }
+**Powered by SmartAudit AI** | Get your API key at [smartaudit.ai](https://smartaudit.ai/dashboard)`
+          }]
+        };
+      }
 
-  private async handleAnalyzeMultiple(args: any) {
-    const validatedArgs = AnalyzeMultipleSchema.parse(args);
-    const { contracts, apiKey } = validatedArgs;
-    
-    const client = new SmartAuditClient(apiKey);
-    const result = await client.analyzeMultipleContracts(contracts);
-    
-    return {
-      content: [{
-        type: 'text',
-        text: `# 📁 Multi-Contract Security Analysis
+      case 'audit_repository': {
+        const { repoUrl, branch, apiKey } = args as {
+          repoUrl: string;
+          branch?: string;
+          apiKey?: string;
+        };
 
-**Files Analyzed**: ${contracts.length}
-**Analysis Date**: ${new Date().toLocaleString()}
+        const client = new SmartAuditClient(apiKey);
+        const result: any = await client.auditRepository(repoUrl, branch || 'main');
 
----
+        return {
+          content: [{
+            type: 'text',
+            text: `# 📁 Repository Audit Started
 
-${result}
+**Repository**: ${repoUrl}
+**Branch**: ${branch || 'main'}
+**Session ID**: ${result.sessionId}
 
----
+Repository audit has been initiated. The analysis will scan all smart contracts in the repository for security vulnerabilities.
 
-**Powered by SmartAudit AI** | [Get API Key](https://smartaudit.ai/dashboard)`
-      }]
-    };
-  }
+Use the \`get_audit_history\` tool to check the progress and results.`
+          }]
+        };
+      }
 
-  private async handleCreditBalance(args: any) {
-    const validatedArgs = CreditBalanceSchema.parse(args);
-    const { apiKey } = validatedArgs;
-    
-    const client = new SmartAuditClient(apiKey);
-    const result = await client.getCreditBalance();
-    
-    return {
-      content: [{
-        type: 'text',
-        text: result
-      }]
-    };
-  }
+      case 'get_credit_balance': {
+        const { apiKey } = args as { apiKey?: string };
+        
+        const client = new SmartAuditClient(apiKey);
+        const balance = await client.getCreditBalance();
 
-  private async handleAuditHistory(args: any) {
-    const validatedArgs = AuditHistorySchema.parse(args);
-    const { limit, apiKey } = validatedArgs;
-    
-    const client = new SmartAuditClient(apiKey);
-    const result = await client.getAuditHistory(limit);
-    
-    return {
-      content: [{
-        type: 'text',
-        text: result
-      }]
-    };
-  }
+        return {
+          content: [{
+            type: 'text',
+            text: `# 💳 Credit Balance
 
-  private async handleDetectLanguage(args: any) {
-    const validatedArgs = DetectLanguageSchema.parse(args);
-    const { contractCode } = validatedArgs;
-    
-    // For language detection, we can use local logic or API
-    const detectedLanguage = detectContractLanguage(contractCode);
-    
-    const codeUpper = contractCode.toUpperCase();
-    const indicators = [
-      codeUpper.includes('PRAGMA SOLIDITY') && '✅ Solidity pragma detected',
-      codeUpper.includes('FN ') && '✅ Rust function syntax detected',
-      codeUpper.includes('MODULE ') && '✅ Move module detected',
-      codeUpper.includes('%LANG STARKNET') && '✅ Cairo/StarkNet detected',
-      codeUpper.includes('@EXTERNAL') && '✅ Vyper decorator detected',
-    ].filter(Boolean);
-    
-    return {
-      content: [{
-        type: 'text',
-        text: `# 🔍 Language Detection Result
+**Available Credits**: ${balance.credits}
+**Subscription Plan**: ${balance.plan.charAt(0).toUpperCase() + balance.plan.slice(1)}
+**User ID**: ${balance.userId}
+
+${balance.credits < 10 ? '⚠️ **Low Credits**: Consider upgrading your plan at [smartaudit.ai](https://smartaudit.ai/pricing)' : '✅ **Sufficient Credits**: Ready for analysis!'}`
+          }]
+        };
+      }
+
+      case 'get_audit_history': {
+        const { limit, apiKey } = args as { limit?: number; apiKey?: string };
+        
+        const client = new SmartAuditClient(apiKey);
+        const history: any = await client.getAuditHistory(limit || 10);
+
+        let historyText = '# 📋 Audit History\n\n';
+        
+        if (!history.audits || history.audits.length === 0) {
+          historyText += 'No audit history found. Start your first audit with the `audit_smart_contract` tool!';
+        } else {
+          history.audits.forEach((audit: any, index: number) => {
+            historyText += `## ${index + 1}. ${audit.fileName || 'Contract'}\n`;
+            historyText += `- **Status**: ${audit.status}\n`;
+            historyText += `- **Language**: ${audit.language}\n`;
+            historyText += `- **Date**: ${new Date(audit.createdAt).toLocaleString()}\n`;
+            historyText += `- **Vulnerabilities**: ${audit.vulnerabilityCount || 'N/A'}\n\n`;
+          });
+        }
+
+        return {
+          content: [{
+            type: 'text',
+            text: historyText
+          }]
+        };
+      }
+
+      case 'detect_contract_language': {
+        const { contractCode } = args as { contractCode: string };
+        const detectedLanguage = detectContractLanguage(contractCode);
+
+        return {
+          content: [{
+            type: 'text',
+            text: `# 🔍 Language Detection Result
 
 **Detected Language**: ${detectedLanguage.charAt(0).toUpperCase() + detectedLanguage.slice(1)}
 
 **Confidence Indicators**:
-${indicators.join('\n')}
+${contractCode.toUpperCase().includes('PRAGMA SOLIDITY') ? '✅ Solidity pragma detected' : ''}
+${contractCode.toUpperCase().includes('FN ') ? '✅ Rust function syntax detected' : ''}
+${contractCode.toUpperCase().includes('MODULE ') ? '✅ Move module detected' : ''}
+${contractCode.toUpperCase().includes('%LANG STARKNET') ? '✅ Cairo/StarkNet detected' : ''}
+${contractCode.toUpperCase().includes('@EXTERNAL') ? '✅ Vyper decorator detected' : ''}
 
-Use this language for optimal analysis with the \`audit_smart_contract\` tool.`
-      }]
-    };
-  }
+Use this language with the \`audit_smart_contract\` tool for optimal analysis.`
+          }]
+        };
+      }
 
-  async run(): Promise<void> {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
+      default:
+        throw new McpError(
+          ErrorCode.MethodNotFound,
+          `Unknown tool: ${name}`
+        );
+    }
+  } catch (error) {
+    console.error(`Error executing tool ${name}:`, error);
     
-    // Log to stderr (not stdout to avoid interfering with MCP protocol)
-    console.error('🔥 SmartAudit AI MCP Server v2.0 - Enterprise Ready');
-    console.error('📋 Available Tools: 5 comprehensive smart contract audit tools');
-    console.error('🔑 API Key:', DEFAULT_API_KEY ? '✅ Configured' : '❌ Not found (will use runtime key)');
-    console.error('🌐 Backend:', API_BASE_URL);
-    console.error('🚀 Ready for AI IDE connections!');
+    if (error instanceof McpError) {
+      throw error;
+    }
+    
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
-}
+});
 
 /**
- * Main Entry Point
+ * Start the MCP server
  */
 async function main() {
-  try {
-    const server = new SmartAuditMCPServer();
-    await server.run();
-  } catch (error) {
-    console.error('❌ Fatal error starting MCP server:', error);
-    process.exit(1);
-  }
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error('SmartAudit AI MCP Server running on stdio');
 }
 
-// Start the server
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-if (process.argv[1] === __filename) {
-  main();
-}
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
