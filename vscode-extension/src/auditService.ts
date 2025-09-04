@@ -415,7 +415,7 @@ export class AuditService {
                                     
                                     switch (data.type) {
                                         case 'connected':
-                                            panel.webview.postMessage({ type: 'status', message: 'Connected to AI...', status: 'analyzing' });
+                                            panel.webview.postMessage({ type: 'status', message: data.message || 'Connected to AI...' });
                                             break;
                                         case 'credits_deducted':
                                             panel.webview.postMessage({ 
@@ -425,7 +425,11 @@ export class AuditService {
                                             });
                                             break;
                                         case 'session_created':
-                                            panel.webview.postMessage({ type: 'status', message: 'AI analysis in progress...', status: 'analyzing' });
+                                            panel.webview.postMessage({ type: 'status', message: 'AI analysis in progress...' });
+                                            break;
+                                        case 'status':
+                                            // Handle server status messages
+                                            panel.webview.postMessage({ type: 'status', message: data.status === 'analyzing' ? 'AI analyzing contract...' : data.status });
                                             break;
                                         case 'chunk':
                                             fullResponse += data.data;
@@ -455,6 +459,11 @@ export class AuditService {
                                             // Final completion signal
                                             if (fullResponse) {
                                                 vulnerabilityCount = this.parseVulnerabilities(fullResponse).length;
+                                                panel.webview.postMessage({ 
+                                                    type: 'complete', 
+                                                    response: fullResponse,
+                                                    vulnerabilityCount: vulnerabilityCount
+                                                });
                                                 const result: AuditResult = {
                                                     sessionId: 'stream_' + Date.now(),
                                                     rawResponse: fullResponse,
