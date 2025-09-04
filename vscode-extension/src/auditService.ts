@@ -136,12 +136,14 @@ export class AuditService {
                             // Analysis complete
                             vscode.window.showInformationMessage(`✅ SmartAudit AI: Analysis completed! Processing results...`);
                             
+                            console.log(`[AUDIT] Server response:`, JSON.stringify(statusData, null, 2));
+                            
                             const result: AuditResult = {
                                 sessionId,
-                                rawResponse: statusData.result || '',
-                                formattedReport: statusData.result || '',
-                                vulnerabilityCount: null, // Will be calculated
-                                securityScore: null, // Will be calculated  
+                                rawResponse: statusData.report || statusData.result || '',
+                                formattedReport: statusData.report || statusData.result || '',
+                                vulnerabilityCount: statusData.vulnerabilityCount || null,
+                                securityScore: statusData.securityScore || null,  
                                 completedAt: new Date().toISOString()
                             };
                             
