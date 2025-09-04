@@ -5,40 +5,50 @@ import { auditSessions, auditResults, users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 
-// Clean and format text for better readability
+// Aggressively fix concatenated text with intelligent word separation
 function cleanAndFormatText(text: string): string {
   return text
-    // Remove JSON artifacts that leak through
-    .replace(/\{"[^"]+"\s*:\s*"[^"]*"/g, '')  // Remove JSON start patterns
-    .replace(/\}\s*\{/g, ' ')                 // Remove JSON separators
-    .replace(/[{}]/g, '')                     // Remove remaining braces
-    // Remove bold/italic markers
-    .replace(/\*\*([^*]+)\*\*/g, '$1')        // **bold** -> bold
-    .replace(/\*([^*]+)\*/g, '$1')            // *italic* -> italic
-    .replace(/__([^_]+)__/g, '$1')            // __bold__ -> bold
-    .replace(/_([^_]+)_/g, '$1')              // _italic_ -> italic
-    // Remove headers but keep content
-    .replace(/^#{1,6}\s+/gm, '')              // # Header -> Header
-    // Clean code blocks
-    .replace(/```[\s\S]*?```/g, '')           // Remove code blocks
-    .replace(/`([^`]+)`/g, '$1')              // `code` -> code
-    // Remove links but keep text
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // [text](url) -> text
-    // Remove horizontal rules
-    .replace(/^[-*_]{3,}$/gm, '')             // --- -> (empty)
-    // Fix common parsing issues
-    .replace(/(\w+)(\*\*)/g, '$1 ')           // word** -> word
-    .replace(/(\*\*)(\w+)/g, ' $2')           // **word -> word
-    // Add proper line breaks for sections
-    .replace(/(Vulnerability|Issue|Finding|Description|Impact|Recommendation|Fix):/gi, '\n\n$1:')
-    .replace(/Type\*\*:/gi, '\nType:')
-    .replace(/Severity\*\*:/gi, '\nSeverity:')
-    .replace(/AffectedContracts\/Files\*\*:/gi, '\nAffected Files:')
-    // Clean up extra whitespace but maintain structure
-    .replace(/\s+/g, ' ')                     // Multiple spaces -> single space
-    .replace(/\n\s+/g, '\n')                  // Remove leading whitespace on lines
-    .replace(/\s+\n/g, '\n')                  // Remove trailing whitespace on lines
-    .replace(/\n\n\n+/g, '\n\n')              // Multiple newlines -> double newline
+    // Remove JSON artifacts completely
+    .replace(/\{[^}]*\}/g, '')                 // Remove entire JSON objects
+    .replace(/["']/g, '')                      // Remove quotes
+    
+    // AGGRESSIVE word separation - add spaces everywhere they're missing
+    .replace(/([a-z])([A-Z])/g, '$1 $2')       // camelCase -> camel Case
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')  // ABCdef -> AB Cdef
+    .replace(/([0-9])([A-Za-z])/g, '$1 $2')    // 123abc -> 123 abc
+    .replace(/([A-Za-z])([0-9])/g, '$1 $2')    // abc123 -> abc 123
+    
+    // Add spaces before/after punctuation
+    .replace(/([a-zA-Z])([.,:;!?\-])/g, '$1 $2')  // word. -> word .
+    .replace(/([.,:;!?\-])([a-zA-Z])/g, '$1 $2')  // .word -> . word
+    .replace(/([a-zA-Z])(\()/g, '$1 $2')          // word( -> word (
+    .replace(/(\))([a-zA-Z])/g, '$1 $2')          // )word -> ) word
+    
+    // Fix specific technical term concatenations that I see in the images
+    .replace(/I'll/g, "I'll ")
+    .replace(/perform/g, " perform ")
+    .replace(/comprehensive/g, " comprehensive ")
+    .replace(/security/g, " security ")
+    .replace(/audit/g, " audit ")
+    .replace(/of/g, " of ")
+    .replace(/this/g, " this ")
+    .replace(/smart/g, " smart ")
+    .replace(/contract/g, " contract ")
+    
+    // Remove all markdown formatting aggressively  
+    .replace(/\*+/g, '')                       // Remove all asterisks
+    .replace(/_+/g, '')                        // Remove all underscores
+    .replace(/#+/g, '')                        // Remove all hashes
+    .replace(/`+/g, '')                        // Remove all backticks
+    
+    // Add structure for vulnerability reports
+    .replace(/(Severity|Type|Affected|Vulnerability|Issue|Description|Impact|Recommendation)/gi, '\n\n$1')
+    .replace(/:/g, ': ')                       // Ensure space after colons
+    
+    // Clean up the mess we just made
+    .replace(/\s{2,}/g, ' ')                   // Multiple spaces -> single space
+    .replace(/\s*\n\s*/g, '\n')                // Clean newlines
+    .replace(/\n{3,}/g, '\n\n')                // Max 2 consecutive newlines
     .trim();
 }
 
