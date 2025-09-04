@@ -542,7 +542,9 @@ class AuditService {
                             creditsEl.textContent = \`Credits used: \${message.creditsUsed} | Remaining: \${message.remainingCredits}\`;
                             break;
                         case 'chunk':
-                            contentEl.textContent += message.data;
+                            // Format the text with proper line breaks and structure
+                            const formattedChunk = message.data.replace(/\\n/g, '\\n');
+                            contentEl.textContent += formattedChunk;
                             contentEl.scrollTop = contentEl.scrollHeight;
                             break;
                         case 'complete':

@@ -5,26 +5,60 @@ import { auditSessions, auditResults, users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 
-// Clean markdown formatting from text
-function cleanMarkdownText(text: string): string {
+// Clean and format text for better readability
+function cleanAndFormatText(text: string): string {
   return text
+    // Remove JSON artifacts that leak through
+    .replace(/\{"[^"]+"\s*:\s*"[^"]*"/g, '')  // Remove JSON start patterns
+    .replace(/\}\s*\{/g, ' ')                 // Remove JSON separators
+    .replace(/[{}]/g, '')                     // Remove remaining braces
     // Remove bold/italic markers
-    .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold** -> bold
-    .replace(/\*([^*]+)\*/g, '$1')      // *italic* -> italic
-    .replace(/__([^_]+)__/g, '$1')      // __bold__ -> bold
-    .replace(/_([^_]+)_/g, '$1')        // _italic_ -> italic
-    // Remove headers
-    .replace(/^#{1,6}\s+/gm, '')        // # Header -> Header
-    // Remove code blocks
-    .replace(/```[\s\S]*?```/g, '')     // Remove code blocks
-    .replace(/`([^`]+)`/g, '$1')        // `code` -> code
-    // Remove links
+    .replace(/\*\*([^*]+)\*\*/g, '$1')        // **bold** -> bold
+    .replace(/\*([^*]+)\*/g, '$1')            // *italic* -> italic
+    .replace(/__([^_]+)__/g, '$1')            // __bold__ -> bold
+    .replace(/_([^_]+)_/g, '$1')              // _italic_ -> italic
+    // Remove headers but keep content
+    .replace(/^#{1,6}\s+/gm, '')              // # Header -> Header
+    // Clean code blocks
+    .replace(/```[\s\S]*?```/g, '')           // Remove code blocks
+    .replace(/`([^`]+)`/g, '$1')              // `code` -> code
+    // Remove links but keep text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // [text](url) -> text
     // Remove horizontal rules
-    .replace(/^[-*_]{3,}$/gm, '')       // --- -> (empty)
-    // Clean up extra whitespace
-    .replace(/\n\s*\n\s*\n/g, '\n\n')   // Multiple newlines -> double newline
+    .replace(/^[-*_]{3,}$/gm, '')             // --- -> (empty)
+    // Fix common parsing issues
+    .replace(/(\w+)(\*\*)/g, '$1 ')           // word** -> word
+    .replace(/(\*\*)(\w+)/g, ' $2')           // **word -> word
+    // Add proper line breaks for sections
+    .replace(/(Vulnerability|Issue|Finding|Description|Impact|Recommendation|Fix):/gi, '\n\n$1:')
+    .replace(/Type\*\*:/gi, '\nType:')
+    .replace(/Severity\*\*:/gi, '\nSeverity:')
+    .replace(/AffectedContracts\/Files\*\*:/gi, '\nAffected Files:')
+    // Clean up extra whitespace but maintain structure
+    .replace(/\s+/g, ' ')                     // Multiple spaces -> single space
+    .replace(/\n\s+/g, '\n')                  // Remove leading whitespace on lines
+    .replace(/\s+\n/g, '\n')                  // Remove trailing whitespace on lines
+    .replace(/\n\n\n+/g, '\n\n')              // Multiple newlines -> double newline
     .trim();
+}
+
+// Separate analysis content from status messages
+function filterAnalysisContent(text: string): string {
+  // Skip lines that look like status messages or JSON
+  return text
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      // Skip empty lines
+      if (!trimmed) return false;
+      // Skip JSON-like content
+      if (trimmed.includes('"status"') || trimmed.includes('"message"') || trimmed.includes('"type"')) return false;
+      // Skip obvious status messages
+      if (trimmed.includes('Kicking things off') || trimmed.includes('initializing')) return false;
+      // Keep actual analysis content
+      return true;
+    })
+    .join('\n');
 }
 
 // Request validation schemas
@@ -493,22 +527,40 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
                 try {
                   // Parse the JSON chunk to extract body text
                   const parsed = JSON.parse(data);
-                  if (parsed.body) {
-                    const cleanText = cleanMarkdownText(parsed.body);
-                    fullResponse += cleanText;
-                    // Stream clean text to VS Code
-                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanText })}\n\n`);
-                  } else {
-                    // Fallback for non-JSON data
-                    const cleanData = cleanMarkdownText(data);
-                    fullResponse += cleanData;
-                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanData })}\n\n`);
+                  if (parsed.body && typeof parsed.body === 'string') {
+                    // Filter out status messages and clean the text
+                    const filteredText = filterAnalysisContent(parsed.body);
+                    if (filteredText.trim()) {
+                      const cleanText = cleanAndFormatText(filteredText);
+                      if (cleanText.trim()) {
+                        fullResponse += cleanText;
+                        // Stream clean text to VS Code
+                        res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanText })}\n\n`);
+                      }
+                    }
+                  } else if (typeof data === 'string' && data.trim() && !data.includes('"status"')) {
+                    // Handle direct text content (not JSON)
+                    const filteredText = filterAnalysisContent(data);
+                    if (filteredText.trim()) {
+                      const cleanText = cleanAndFormatText(filteredText);
+                      if (cleanText.trim()) {
+                        fullResponse += cleanText;
+                        res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanText })}\n\n`);
+                      }
+                    }
                   }
                 } catch (parseError) {
-                  // Fallback for non-JSON data
-                  const cleanData = cleanMarkdownText(data);
-                  fullResponse += cleanData;
-                  res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanData })}\n\n`);
+                  // Handle non-JSON data
+                  if (typeof data === 'string' && data.trim() && !data.includes('"status"') && !data.includes('"message"')) {
+                    const filteredText = filterAnalysisContent(data);
+                    if (filteredText.trim()) {
+                      const cleanText = cleanAndFormatText(filteredText);
+                      if (cleanText.trim()) {
+                        fullResponse += cleanText;
+                        res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanText })}\n\n`);
+                      }
+                    }
+                  }
                 }
               }
             }
