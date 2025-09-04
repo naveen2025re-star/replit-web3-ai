@@ -2676,9 +2676,10 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Create audit session
       const sessionData = {
         userId,
+        sessionKey: `vscode_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Generate unique session key for VS Code
         contractCode,
         contractLanguage: language,
-        contractSource: "vscode",
+        contractSource: "vscode", 
         isPublic: false, // VS Code audits are always private
         publicTitle: fileName ? `VS Code: ${fileName}` : "VS Code Audit"
       };

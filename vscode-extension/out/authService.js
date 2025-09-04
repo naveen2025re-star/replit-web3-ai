@@ -29,7 +29,7 @@ class AuthService {
     constructor(context) {
         this.cachedUserInfo = null;
         this.lastAuthCheck = 0;
-        this.AUTH_CACHE_DURATION = 10 * 1000; // 10 seconds - reduced for development
+        this.AUTH_CACHE_DURATION = 5 * 1000; // 5 seconds - reduced for development
         this.context = context;
     }
     async validateApiKey() {
@@ -71,15 +71,20 @@ class AuthService {
                 return { success: false, error: 'Invalid API key format. Please generate a new key from the website.' };
             }
             console.log(`[AUTH] Validating API key format: ${keyId}...`);
-            // Step 2: Use the dedicated VS Code auth endpoint
+            // Step 2: Use the dedicated VS Code auth endpoint with timeout
             const authUrl = `${apiUrl}/api/vscode/auth`;
+            console.log(`[AUTH] Calling auth endpoint: ${authUrl}`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
             const authResponse = await fetch(authUrl, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
             if (!authResponse.ok) {
                 if (authResponse.status === 401) {
                     return { success: false, error: 'Invalid or expired API key' };
@@ -128,6 +133,9 @@ class AuthService {
         }
         catch (error) {
             console.error('[AUTH] Authentication failed:', error);
+            if (error.name === 'AbortError') {
+                return { success: false, error: 'Connection timeout. Please check your internet connection.' };
+            }
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
                 return { success: false, error: 'Cannot connect to SmartAudit API. Check API URL.' };
             }
