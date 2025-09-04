@@ -535,14 +535,72 @@ export class AuditService {
                     font-size: 12px;
                 }
                 .content {
-                    white-space: pre-wrap;
-                    font-family: 'Courier New', monospace;
-                    background: var(--vscode-textCodeBlock-background);
-                    padding: 15px;
-                    border-radius: 4px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 14px;
+                    background-color: var(--vscode-editor-background);
+                    padding: 20px;
+                    border-radius: 6px;
                     border: 1px solid var(--vscode-panel-border);
+                    margin: 15px 0;
                     max-height: 70vh;
                     overflow-y: auto;
+                    line-height: 1.6;
+                }
+                .content h1, .content h2, .content h3 {
+                    color: var(--vscode-terminal-ansiYellow);
+                    margin-top: 20px;
+                    margin-bottom: 10px;
+                    border-bottom: 1px solid var(--vscode-panel-border);
+                    padding-bottom: 5px;
+                }
+                .content h1 { font-size: 1.5em; }
+                .content h2 { font-size: 1.3em; }
+                .content h3 { font-size: 1.1em; }
+                .content strong {
+                    color: var(--vscode-terminal-ansiCyan);
+                    font-weight: 600;
+                }
+                .content ul, .content ol {
+                    margin: 10px 0;
+                    padding-left: 20px;
+                }
+                .content li {
+                    margin: 5px 0;
+                }
+                .content code {
+                    background-color: var(--vscode-textCodeBlock-background);
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                    font-size: 12px;
+                }
+                .content .vuln-critical { 
+                    background-color: rgba(255, 68, 68, 0.1);
+                    border-left: 4px solid #ff4444;
+                    padding: 10px;
+                    margin: 10px 0;
+                    border-radius: 0 4px 4px 0;
+                }
+                .content .vuln-high { 
+                    background-color: rgba(255, 136, 0, 0.1);
+                    border-left: 4px solid #ff8800;
+                    padding: 10px;
+                    margin: 10px 0;
+                    border-radius: 0 4px 4px 0;
+                }
+                .content .vuln-medium { 
+                    background-color: rgba(255, 170, 0, 0.1);
+                    border-left: 4px solid #ffaa00;
+                    padding: 10px;
+                    margin: 10px 0;
+                    border-radius: 0 4px 4px 0;
+                }
+                .content .vuln-low { 
+                    background-color: rgba(0, 170, 255, 0.1);
+                    border-left: 4px solid #00aaff;
+                    padding: 10px;
+                    margin: 10px 0;
+                    border-radius: 0 4px 4px 0;
                 }
                 .vulnerability {
                     background: var(--vscode-inputValidation-errorBackground);
@@ -586,6 +644,31 @@ export class AuditService {
                 const creditsEl = document.getElementById('credits');
                 const contentEl = document.getElementById('content');
                 
+                // Simple markdown to HTML converter
+                function formatMarkdownToHTML(text) {
+                    if (!text) return '';
+                    
+                    let html = text
+                        // Headers
+                        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                        // Bold
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        // Line breaks
+                        .replace(/\\n/g, '<br>')
+                        .replace(/\n/g, '<br>')
+                        // Code blocks (simple)
+                        .replace(/\`([^\`]+)\`/g, '<code>$1</code>')
+                        // Vulnerability severity styling
+                        .replace(/\*\*Critical\*\*/gi, '<span class="vuln-critical">🔴 <strong>CRITICAL</strong></span>')
+                        .replace(/\*\*High\*\*/gi, '<span class="vuln-high">🟠 <strong>HIGH</strong></span>')
+                        .replace(/\*\*Medium\*\*/gi, '<span class="vuln-medium">🟡 <strong>MEDIUM</strong></span>')
+                        .replace(/\*\*Low\*\*/gi, '<span class="vuln-low">🔵 <strong>LOW</strong></span>');
+                    
+                    return html;
+                }
+                
                 window.addEventListener('message', event => {
                     const message = event.data;
                     
@@ -598,7 +681,9 @@ export class AuditService {
                             creditsEl.textContent = \`Credits used: \${message.creditsUsed} | Remaining: \${message.remainingCredits}\`;
                             break;
                         case 'chunk':
-                            contentEl.textContent += message.data;
+                            // Convert markdown to HTML for better display
+                            const formattedChunk = formatMarkdownToHTML(message.data);
+                            contentEl.innerHTML += formattedChunk;
                             contentEl.scrollTop = contentEl.scrollHeight;
                             break;
                         case 'complete':
