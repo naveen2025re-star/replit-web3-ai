@@ -5,6 +5,28 @@ import { auditSessions, auditResults, users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 
+// Clean markdown formatting from text
+function cleanMarkdownText(text: string): string {
+  return text
+    // Remove bold/italic markers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold** -> bold
+    .replace(/\*([^*]+)\*/g, '$1')      // *italic* -> italic
+    .replace(/__([^_]+)__/g, '$1')      // __bold__ -> bold
+    .replace(/_([^_]+)_/g, '$1')        // _italic_ -> italic
+    // Remove headers
+    .replace(/^#{1,6}\s+/gm, '')        // # Header -> Header
+    // Remove code blocks
+    .replace(/```[\s\S]*?```/g, '')     // Remove code blocks
+    .replace(/`([^`]+)`/g, '$1')        // `code` -> code
+    // Remove links
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // [text](url) -> text
+    // Remove horizontal rules
+    .replace(/^[-*_]{3,}$/gm, '')       // --- -> (empty)
+    // Clean up extra whitespace
+    .replace(/\n\s*\n\s*\n/g, '\n\n')   // Multiple newlines -> double newline
+    .trim();
+}
+
 // Request validation schemas
 export const createAuditSchema = z.object({
   contractCode: z.string().min(10, "Contract code must be at least 10 characters"),
@@ -472,18 +494,21 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
                   // Parse the JSON chunk to extract body text
                   const parsed = JSON.parse(data);
                   if (parsed.body) {
-                    fullResponse += parsed.body;
+                    const cleanText = cleanMarkdownText(parsed.body);
+                    fullResponse += cleanText;
                     // Stream clean text to VS Code
-                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: parsed.body })}\n\n`);
+                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanText })}\n\n`);
                   } else {
                     // Fallback for non-JSON data
-                    fullResponse += data;
-                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
+                    const cleanData = cleanMarkdownText(data);
+                    fullResponse += cleanData;
+                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanData })}\n\n`);
                   }
                 } catch (parseError) {
                   // Fallback for non-JSON data
-                  fullResponse += data;
-                  res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
+                  const cleanData = cleanMarkdownText(data);
+                  fullResponse += cleanData;
+                  res.write(`data: ${JSON.stringify({ type: 'chunk', data: cleanData })}\n\n`);
                 }
               }
             }
