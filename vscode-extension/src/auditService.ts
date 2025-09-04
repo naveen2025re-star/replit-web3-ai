@@ -398,30 +398,50 @@ export class AuditService {
                 const decoder = new TextDecoder();
                 let fullResponse = '';
                 let vulnerabilityCount = 0;
+                let buffer = ''; // Buffer for incomplete SSE messages
 
                 try {
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
 
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
+                        const chunk = decoder.decode(value, { stream: true });
+                        buffer += chunk;
+                        console.log('[STREAMING] Raw chunk received:', chunk);
+                        console.log('[STREAMING] Current buffer:', buffer);
+                        
+                        // Process complete SSE messages (ending with \n\n)
+                        const messages = buffer.split('\n\n');
+                        buffer = messages.pop() || ''; // Keep incomplete message in buffer
+                        
+                        for (const message of messages) {
+                            const lines = message.split('\n');
 
-                        for (const line of lines) {
-                            if (line.trim() === '') continue; // Skip empty lines
-                            
-                            try {
-                                // Handle both SSE format (data: {...}) and direct JSON
-                                let data;
-                                if (line.startsWith('data: ')) {
-                                    data = JSON.parse(line.substring(6));
-                                } else if (line.trim().startsWith('{')) {
-                                    data = JSON.parse(line.trim());
-                                } else {
-                                    continue; // Skip non-JSON lines
-                                }
+                            for (const line of lines) {
+                                if (line.trim() === '') continue; // Skip empty lines
                                 
-                                console.log('[STREAMING] Received:', data);
+                                console.log('[STREAMING] Processing line:', line);
+                                
+                                try {
+                                    // Handle SSE format (data: {...})
+                                    let data;
+                                    if (line.startsWith('data: ')) {
+                                        const jsonStr = line.substring(6).trim();
+                                        if (jsonStr === '[DONE]') {
+                                            console.log('[STREAMING] Received completion signal');
+                                            continue;
+                                        }
+                                        console.log('[STREAMING] Parsing SSE data:', jsonStr);
+                                        data = JSON.parse(jsonStr);
+                                    } else if (line.trim().startsWith('{')) {
+                                        console.log('[STREAMING] Parsing direct JSON:', line.trim());
+                                        data = JSON.parse(line.trim());
+                                    } else {
+                                        console.log('[STREAMING] Skipping non-JSON line:', line);
+                                        continue; // Skip non-JSON lines
+                                    }
+                                    
+                                    console.log('[STREAMING] Parsed data:', data);
                                 
                                 switch (data.type) {
                                         case 'connected':
@@ -474,8 +494,9 @@ export class AuditService {
                                             reject(new Error(data.message));
                                             return;
                                     }
-                            } catch (parseError) {
-                                console.error('[STREAMING] Failed to parse line:', line, parseError);
+                                } catch (parseError) {
+                                    console.error('[STREAMING] Failed to parse line:', line, parseError);
+                                }
                             }
                         }
                     }
