@@ -43,8 +43,16 @@ export class AuditService {
             console.log('[AUDIT] Starting real analysis for:', fileName);
             vscode.window.showInformationMessage(`🔍 SmartAudit AI: Starting analysis of ${fileName}...`);
             
-            // Use the dedicated VS Code audit endpoint
-            console.log('[AUDIT] Creating VS Code audit...');
+            // Try streaming first, fallback to polling
+            try {
+                const streamingResult = await this.createStreamingAudit(contractCode, fileName, apiKey, apiUrl);
+                if (streamingResult) return streamingResult;
+            } catch (streamingError) {
+                console.warn('[AUDIT] Streaming failed, falling back to polling:', streamingError);
+            }
+            
+            // Fallback to polling method
+            console.log('[AUDIT] Using polling method...');
             const result = await this.createVSCodeAudit(contractCode, fileName, apiKey, apiUrl);
             return result;
 
@@ -343,6 +351,273 @@ export class AuditService {
         });
         
         return Math.max(0, Math.min(10, score));
+    }
+
+    private async createStreamingAudit(contractCode: string, fileName: string, apiKey: string, apiUrl: string): Promise<AuditResult | null> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                console.log('[AUDIT] Starting streaming audit...');
+                
+                // Create results panel first
+                const panel = vscode.window.createWebviewPanel(
+                    'smartauditResults',
+                    `SmartAudit AI: ${fileName}`,
+                    vscode.ViewColumn.Beside,
+                    {
+                        enableScripts: true,
+                        retainContextWhenHidden: true
+                    }
+                );
+
+                // Set initial content
+                panel.webview.html = this.getStreamingWebviewContent();
+                
+                // Start streaming request
+                const response = await fetch(`${apiUrl}/api/vscode/audit/stream`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({
+                        contractCode,
+                        language: this.detectLanguage(fileName),
+                        fileName
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Streaming failed: ${response.status}`);
+                }
+
+                if (!response.body) {
+                    throw new Error('No response body for streaming');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+                let vulnerabilityCount = 0;
+
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.substring(6));
+                                    
+                                    switch (data.type) {
+                                        case 'connected':
+                                            panel.webview.postMessage({ type: 'status', message: 'Connected to AI...', status: 'analyzing' });
+                                            break;
+                                        case 'credits_deducted':
+                                            panel.webview.postMessage({ 
+                                                type: 'credits', 
+                                                creditsUsed: data.creditsUsed,
+                                                remainingCredits: data.remainingCredits 
+                                            });
+                                            break;
+                                        case 'status':
+                                            panel.webview.postMessage({ type: 'status', message: 'AI analysis in progress...', status: data.status });
+                                            break;
+                                        case 'chunk':
+                                            fullResponse += data.data;
+                                            panel.webview.postMessage({ type: 'chunk', data: data.data });
+                                            break;
+                                        case 'analysis_complete':
+                                            vulnerabilityCount = this.parseVulnerabilities(fullResponse).length;
+                                            panel.webview.postMessage({ 
+                                                type: 'complete', 
+                                                response: fullResponse,
+                                                vulnerabilityCount: vulnerabilityCount
+                                            });
+                                            
+                                            const result: AuditResult = {
+                                                sessionId: data.result?.sessionId || '',
+                                                rawResponse: fullResponse,
+                                                formattedReport: fullResponse,
+                                                vulnerabilityCount: vulnerabilityCount,
+                                                securityScore: this.calculateSecurityScore(this.parseVulnerabilities(fullResponse)),
+                                                completedAt: new Date().toISOString()
+                                            };
+                                            
+                                            vscode.window.showInformationMessage(`✅ SmartAudit AI: Found ${vulnerabilityCount} issues in ${fileName}`);
+                                            resolve(result);
+                                            return;
+                                        case 'error':
+                                            panel.webview.postMessage({ type: 'error', message: data.message });
+                                            reject(new Error(data.message));
+                                            return;
+                                    }
+                                } catch (parseError) {
+                                    console.error('[STREAMING] Failed to parse data:', parseError);
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    reader.releaseLock();
+                }
+
+                // If we get here, analysis completed
+                if (fullResponse) {
+                    vulnerabilityCount = this.parseVulnerabilities(fullResponse).length;
+                    const result: AuditResult = {
+                        sessionId: 'stream_' + Date.now(),
+                        rawResponse: fullResponse,
+                        formattedReport: fullResponse,
+                        vulnerabilityCount: vulnerabilityCount,
+                        securityScore: this.calculateSecurityScore(this.parseVulnerabilities(fullResponse)),
+                        completedAt: new Date().toISOString()
+                    };
+                    resolve(result);
+                } else {
+                    reject(new Error('No response received from streaming'));
+                }
+
+            } catch (error: any) {
+                console.error('[STREAMING] Error:', error);
+                reject(error);
+            }
+        });
+    }
+
+    private getStreamingWebviewContent(): string {
+        return `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>SmartAudit AI Analysis</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                    background-color: var(--vscode-editor-background);
+                    color: var(--vscode-editor-foreground);
+                    line-height: 1.6;
+                }
+                .header {
+                    border-bottom: 1px solid var(--vscode-panel-border);
+                    padding-bottom: 15px;
+                    margin-bottom: 20px;
+                }
+                .status {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 10px;
+                }
+                .spinner {
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid var(--vscode-progressBar-background);
+                    border-top: 2px solid var(--vscode-progressBar-foreground);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                .credits {
+                    background: var(--vscode-badge-background);
+                    color: var(--vscode-badge-foreground);
+                    padding: 4px 8px;
+                    border-radius: 3px;
+                    font-size: 12px;
+                }
+                .content {
+                    white-space: pre-wrap;
+                    font-family: 'Courier New', monospace;
+                    background: var(--vscode-textCodeBlock-background);
+                    padding: 15px;
+                    border-radius: 4px;
+                    border: 1px solid var(--vscode-panel-border);
+                    max-height: 70vh;
+                    overflow-y: auto;
+                }
+                .vulnerability {
+                    background: var(--vscode-inputValidation-errorBackground);
+                    border-left: 4px solid var(--vscode-inputValidation-errorBorder);
+                    padding: 10px;
+                    margin: 10px 0;
+                    border-radius: 4px;
+                }
+                .summary {
+                    background: var(--vscode-textBlockQuote-background);
+                    border-left: 4px solid var(--vscode-textBlockQuote-border);
+                    padding: 15px;
+                    margin: 15px 0;
+                    border-radius: 4px;
+                }
+                .error {
+                    background: var(--vscode-inputValidation-errorBackground);
+                    color: var(--vscode-inputValidation-errorForeground);
+                    padding: 10px;
+                    border-radius: 4px;
+                    margin: 10px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>🛡️ SmartAudit AI Analysis</h2>
+                <div class="status" id="status">
+                    <div class="spinner"></div>
+                    <span>Initializing analysis...</span>
+                </div>
+                <div id="credits" class="credits" style="display: none;"></div>
+            </div>
+            <div class="content" id="content">Waiting for analysis to begin...</div>
+            
+            <script>
+                const vscode = acquireVsCodeApi();
+                const statusEl = document.getElementById('status');
+                const creditsEl = document.getElementById('credits');
+                const contentEl = document.getElementById('content');
+                
+                window.addEventListener('message', event => {
+                    const message = event.data;
+                    
+                    switch (message.type) {
+                        case 'status':
+                            statusEl.innerHTML = \`<div class="spinner"></div><span>\${message.message}</span>\`;
+                            break;
+                        case 'credits':
+                            creditsEl.style.display = 'block';
+                            creditsEl.textContent = \`Credits used: \${message.creditsUsed} | Remaining: \${message.remainingCredits}\`;
+                            break;
+                        case 'chunk':
+                            contentEl.textContent += message.data;
+                            contentEl.scrollTop = contentEl.scrollHeight;
+                            break;
+                        case 'complete':
+                            statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiGreen);">✅ Analysis Complete!</span>\`;
+                            const summary = document.createElement('div');
+                            summary.className = 'summary';
+                            summary.innerHTML = \`<strong>Analysis Summary:</strong><br>\${message.vulnerabilityCount} security issues found<br>Response length: \${message.response.length} characters\`;
+                            contentEl.parentNode.insertBefore(summary, contentEl);
+                            break;
+                        case 'error':
+                            statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiRed);">❌ Error</span>\`;
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'error';
+                            errorDiv.textContent = message.message;
+                            contentEl.parentNode.insertBefore(errorDiv, contentEl);
+                            break;
+                    }
+                });
+            </script>
+        </body>
+        </html>`;
     }
 
     private detectLanguage(fileName: string): string {

@@ -481,7 +481,7 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
     }
 
     // Save results to database
-    const auditResult = await storage.createAuditResult({
+    const auditResult = await (await import('./storage')).storage.createAuditResult({
       sessionId: auditId,
       rawResponse: fullResponse,
       formattedReport: fullResponse,
@@ -500,7 +500,7 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
 
     res.write(`data: ${JSON.stringify({ type: 'analysis_complete', result: auditResult })}\n\n`);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[PROCESS_AUDIT_STREAMING] Error:`, error);
     res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
     
