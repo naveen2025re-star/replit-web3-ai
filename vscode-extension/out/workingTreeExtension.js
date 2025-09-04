@@ -51,6 +51,15 @@ class SmartAuditDataProvider {
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
         this.authService = new authService_1.AuthService(context);
         this.auditService = new auditService_1.AuditService(context);
+        // Listen for configuration changes and refresh tree view
+        vscode.workspace.onDidChangeConfiguration((event) => {
+            if (event.affectsConfiguration('smartaudit')) {
+                console.log('[TREE] Settings changed, refreshing tree view...');
+                this.refresh();
+                // Also clear auth cache to force re-validation with new key
+                this.authService.clearCache();
+            }
+        });
     }
     refresh() {
         this._onDidChangeTreeData.fire();
@@ -166,12 +175,33 @@ class SmartAuditDataProvider {
     }
     getConfigItems() {
         const items = [];
-        items.push(new SmartAuditTreeItem('API Key: sa_1234567890abcdef...', vscode.TreeItemCollapsibleState.None, 'configItem', {
+        // Get current API key from settings (not cached)
+        const config = vscode.workspace.getConfiguration('smartaudit');
+        const currentApiKey = config.get('apiKey');
+        let apiKeyDisplay = 'API Key: Not Set';
+        if (currentApiKey && currentApiKey.trim().length > 0) {
+            // Show first 20 characters + ... for security
+            apiKeyDisplay = `API Key: ${currentApiKey.substring(0, 25)}...`;
+        }
+        items.push(new SmartAuditTreeItem(apiKeyDisplay, vscode.TreeItemCollapsibleState.None, 'configItem', {
             command: 'workbench.action.openSettings',
             title: 'Configure API Key',
             arguments: ['smartaudit.apiKey']
         }, new vscode.ThemeIcon('key')));
-        items.push(new SmartAuditTreeItem('API URL: a7be7c35-b776-43f4-ab98...', vscode.TreeItemCollapsibleState.None, 'configItem', {
+        // Get current API URL from settings
+        const currentApiUrl = config.get('apiUrl');
+        let apiUrlDisplay = 'API URL: Not Set';
+        if (currentApiUrl && currentApiUrl.trim().length > 0) {
+            // Show URL hostname for display
+            try {
+                const url = new URL(currentApiUrl);
+                apiUrlDisplay = `API URL: ${url.hostname}`;
+            }
+            catch {
+                apiUrlDisplay = `API URL: ${currentApiUrl.substring(0, 30)}...`;
+            }
+        }
+        items.push(new SmartAuditTreeItem(apiUrlDisplay, vscode.TreeItemCollapsibleState.None, 'configItem', {
             command: 'workbench.action.openSettings',
             title: 'Configure API URL',
             arguments: ['smartaudit.apiUrl']
