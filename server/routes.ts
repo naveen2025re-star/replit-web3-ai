@@ -2706,12 +2706,31 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
 
       const auditData = await auditResponse.json();
       
+      // CRITICAL FIX: Actually trigger the analysis with Shipable AI
+      // This was the missing step causing audits to never complete!
+      const shipableSessionKey = auditData.sessionKey;
+      console.log(`[VS CODE AUDIT] Starting analysis with Shipable session: ${shipableSessionKey}`);
+      
+      // Import and call processAudit to actually run the analysis
+      const { processAudit } = await import('./auditApi');
+      
+      // Process the audit in the background (don't await to respond quickly)
+      processAudit(session.id, shipableSessionKey, contractCode)
+        .then(() => {
+          console.log(`[VS CODE AUDIT] Analysis completed for session: ${session.id}`);
+        })
+        .catch((error) => {
+          console.error(`[VS CODE AUDIT] Analysis failed for session: ${session.id}`, error);
+          // Mark session as failed if analysis fails
+          storage.updateAuditSessionStatus(session.id, 'failed');
+        });
+      
       // Return session info for VS Code to poll for results
       res.json({
         success: true,
         sessionId: session.id,
-        sessionKey: auditData.sessionKey,
-        status: "analyzing",
+        sessionKey: shipableSessionKey,
+        status: "analyzing", 
         message: "Analysis started. Use /api/vscode/audit/status to check progress."
       });
 
