@@ -509,6 +509,53 @@ class AuditService {
                     border-radius: 4px;
                     margin: 10px 0;
                 }
+                .vulnerability-header {
+                    color: #f85149;
+                    font-weight: 600;
+                    margin: 16px 0 8px 0;
+                    font-size: 16px;
+                }
+                .description-header {
+                    color: #58a6ff;
+                    font-weight: 600;
+                    margin: 12px 0 6px 0;
+                }
+                .impact-header {
+                    color: #f79000;
+                    font-weight: 600;
+                    margin: 12px 0 6px 0;
+                }
+                .recommendation-header {
+                    color: #56d364;
+                    font-weight: 600;
+                    margin: 12px 0 6px 0;
+                }
+                .severity-header, .type-header, .affected-header {
+                    color: #e6edf3;
+                    font-weight: 600;
+                    margin: 8px 0 4px 0;
+                }
+                .severity-critical {
+                    color: #f85149;
+                    font-weight: 700;
+                    background: rgba(248, 81, 73, 0.1);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                }
+                .severity-medium {
+                    color: #f79000;
+                    font-weight: 600;
+                    background: rgba(247, 144, 0, 0.1);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                }
+                .severity-low {
+                    color: #56d364;
+                    font-weight: 500;
+                    background: rgba(86, 211, 100, 0.1);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                }
             </style>
         </head>
         <body>
@@ -530,6 +577,47 @@ class AuditService {
                 const creditsEl = document.getElementById('credits');
                 const contentEl = document.getElementById('content');
                 
+                // Live markdown-style formatter (like react-markdown does)
+                function formatTextLiveMarkdown(text) {
+                    return text
+                        // Add proper word spacing first
+                        .replace(/([a-z])([A-Z])/g, '$1 $2')                    // camelCase -> camel Case
+                        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')               // ABCdef -> AB Cdef
+                        .replace(/([a-zA-Z])([0-9])/g, '$1 $2')                 // word123 -> word 123
+                        .replace(/([0-9])([a-zA-Z])/g, '$1 $2')                 // 123word -> 123 word
+                        
+                        // Format key sections like markdown (similar to web interface)
+                        .replace(/(Vulnerability|Issue|Finding)\\s*:/gi, '<div class="vulnerability-header">🔍 $1:</div>')
+                        .replace(/(Description)\\s*:/gi, '<div class="description-header">📝 $1:</div>')
+                        .replace(/(Impact)\\s*:/gi, '<div class="impact-header">⚠️ $1:</div>')
+                        .replace(/(Recommendation|Fix)\\s*:/gi, '<div class="recommendation-header">✅ $1:</div>')
+                        .replace(/(Severity)\\s*:/gi, '<div class="severity-header">🚨 $1:</div>')
+                        .replace(/(Type)\\s*:/gi, '<div class="type-header">🔧 $1:</div>')
+                        .replace(/(Affected\\s*(?:Contracts?|Files?))\\s*:/gi, '<div class="affected-header">📂 $1:</div>')
+                        
+                        // Handle severity levels with colors
+                        .replace(/\\b(Critical|High)\\b/gi, '<span class="severity-critical">$1</span>')
+                        .replace(/\\b(Medium)\\b/gi, '<span class="severity-medium">$1</span>')
+                        .replace(/\\b(Low)\\b/gi, '<span class="severity-low">$1</span>')
+                        
+                        // Remove markdown artifacts
+                        .replace(/\\*\\*/g, '')                                 // Remove **
+                        .replace(/\\*/g, '')                                    // Remove *
+                        .replace(/_/g, '')                                      // Remove _
+                        .replace(/\`/g, '')                                     // Remove \`
+                        .replace(/#/g, '')                                      // Remove #
+                        
+                        // Add line breaks for better readability
+                        .replace(/\\./g, '.\\n')                                // Add line break after periods
+                        .replace(/;/g, ';\\n')                                  // Add line break after semicolons
+                        .replace(/:/g, ': ')                                    // Add space after colons
+                        
+                        // Clean up excess whitespace
+                        .replace(/\\s+/g, ' ')                                  // Multiple spaces -> single space
+                        .replace(/\\n\\s*\\n/g, '\\n')                          // Clean double newlines
+                        .trim();
+                }
+                
                 window.addEventListener('message', event => {
                     const message = event.data;
                     
@@ -542,9 +630,9 @@ class AuditService {
                             creditsEl.textContent = \`Credits used: \${message.creditsUsed} | Remaining: \${message.remainingCredits}\`;
                             break;
                         case 'chunk':
-                            // Format the text with proper line breaks and structure
-                            const formattedChunk = message.data.replace(/\\n/g, '\\n');
-                            contentEl.textContent += formattedChunk;
+                            // Apply real-time markdown-style formatting like the web interface
+                            const formattedChunk = formatTextLiveMarkdown(message.data);
+                            contentEl.innerHTML += formattedChunk;
                             contentEl.scrollTop = contentEl.scrollHeight;
                             break;
                         case 'complete':
