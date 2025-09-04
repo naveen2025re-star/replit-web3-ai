@@ -546,11 +546,15 @@ class AuditService {
                             contentEl.scrollTop = contentEl.scrollHeight;
                             break;
                         case 'complete':
-                            statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiGreen);">✅ Analysis Complete!</span>\`;
+                            statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiGreen); font-weight: 600;">✅ Analysis Complete!</span>\`;
                             const summary = document.createElement('div');
                             summary.className = 'summary';
-                            summary.innerHTML = \`<strong>Analysis Summary:</strong><br>\${message.vulnerabilityCount} security issues found<br>Response length: \${message.response.length} characters\`;
+                            summary.innerHTML = \`<strong>📊 Analysis Summary</strong><br><br>🔍 <strong>\${message.vulnerabilityCount || 0}</strong> security issues detected<br>📝 <strong>\${message.response ? message.response.length : 0}</strong> characters analyzed<br>⚡ <strong>Analysis completed successfully</strong>\`;
                             contentEl.parentNode.insertBefore(summary, contentEl);
+                            break;
+                        case 'analysis_complete':
+                            // Fallback for legacy event name
+                            statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiGreen); font-weight: 600;">✅ Analysis Complete!</span>\`;
                             break;
                         case 'error':
                             statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiRed);">❌ Error</span>\`;

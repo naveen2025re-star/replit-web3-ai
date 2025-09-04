@@ -512,7 +512,17 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
       })
       .where(eq(auditSessions.id, auditId));
 
-    res.write(`data: ${JSON.stringify({ type: 'analysis_complete', result: auditResult })}\n\n`);
+    // Send completion event
+    const vulnerabilityCount = (fullResponse.match(/vulnerability|issue|finding/gi) || []).length;
+    res.write(`data: ${JSON.stringify({ 
+      type: 'complete', 
+      vulnerabilityCount: vulnerabilityCount,
+      response: fullResponse,
+      result: auditResult 
+    })}\n\n`);
+    
+    // Close the stream
+    res.end();
 
   } catch (error: any) {
     console.error(`[PROCESS_AUDIT_STREAMING] Error:`, error);
