@@ -41,6 +41,10 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
                 this.authService.clearCache();
             }
         });
+        
+        // Clear any stuck analyzing state on startup
+        this.context.workspaceState.update('smartaudit.analyzing', false);
+        this.context.workspaceState.update('smartaudit.validating', false);
     }
 
     refresh(): void {
