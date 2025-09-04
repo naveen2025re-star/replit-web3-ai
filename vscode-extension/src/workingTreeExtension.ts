@@ -266,6 +266,26 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
                 ));
             }
         } else {
+            // Check if we're currently validating to avoid infinite loops
+            const isValidating = this.context.workspaceState.get('smartaudit.validating', false);
+            
+            if (!isValidating) {
+                // Start validation once
+                this.context.workspaceState.update('smartaudit.validating', true);
+                
+                // Validate in background
+                this.authService.validateApiKey().then(authResult => {
+                    this.context.workspaceState.update('smartaudit.validating', false);
+                    
+                    if (authResult.success && authResult.user) {
+                        this.context.workspaceState.update('smartaudit.user', authResult.user);
+                    } else {
+                        console.error('[VALIDATION] Failed:', authResult.error);
+                    }
+                    this.refresh();
+                });
+            }
+            
             items.push(new SmartAuditTreeItem(
                 '🔄 Validating API Key...',
                 vscode.TreeItemCollapsibleState.None,

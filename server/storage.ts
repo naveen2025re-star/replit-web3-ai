@@ -173,7 +173,7 @@ export class DatabaseStorage implements IStorage {
   async createAuditSession(insertSession: InsertAuditSession): Promise<AuditSession> {
     const [session] = await db
       .insert(auditSessions)
-      .values(insertSession)
+      .values([insertSession])
       .returning();
     return session;
   }
