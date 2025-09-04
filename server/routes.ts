@@ -2797,14 +2797,15 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Parse vulnerabilities for VS Code diagnostics
       const diagnostics = extractVSCodeDiagnostics(result.rawResponse || result.formattedReport || "");
 
-      // Parse vulnerability count from raw response if not already set
-      const parsedVulnCount = result.vulnerabilityCount || countVulnerabilities(result.rawResponse || result.formattedReport || "");
+      // Clean and parse the response
+      const cleanedResponse = cleanStreamingResponse(result.rawResponse || result.formattedReport || "");
+      const parsedVulnCount = result.vulnerabilityCount || countVulnerabilities(cleanedResponse);
       
       res.json({
         success: true,
         status: "completed",
         sessionId: sessionId,
-        report: result.formattedReport || result.rawResponse,
+        report: cleanedResponse,
         diagnostics: diagnostics,
         vulnerabilityCount: parsedVulnCount,
         creditsUsed: session.creditsUsed || 0
@@ -2964,8 +2965,108 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     return totalCount;
   }
 
-  // Helper function to extract VS Code diagnostics from audit results
+  // Helper function to clean streaming JSON chunks from response
+  function cleanStreamingResponse(text: string): string {
+    if (!text) return '';
+    
+    // Remove JSON chunk format like {"body": "text"}
+    let cleaned = text.replace(/\{"body":\s*"([^"]+)"\}/g, '$1');
+    
+    // Handle escaped quotes and newlines
+    cleaned = cleaned.replace(/\\"/g, '"');
+    cleaned = cleaned.replace(/\\n/g, '\n');
+    
+    // Remove any remaining JSON artifacts
+    cleaned = cleaned.replace(/\{\s*"[^"]*":\s*"/g, '');
+    cleaned = cleaned.replace(/"\s*\}/g, '');
+    
+    return cleaned.trim();
+  }
+
+  // Helper function to extract clean VS Code diagnostics from audit results
   function extractVSCodeDiagnostics(reportText: string) {
+    // Clean the response first to remove JSON chunks
+    const cleanedText = cleanStreamingResponse(reportText);
+    const diagnostics = [];
+    const lines = cleanedText.split('\n');
+    
+    // Enhanced vulnerability parsing for clean text
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Look for structured vulnerability patterns
+      if (line.includes('**') && /\*\*(critical|high|medium|low)\*\*/i.test(line)) {
+        const severityMatch = line.match(/\*\*(critical|high|medium|low)\*\*/i);
+        if (!severityMatch) continue;
+        
+        const severityText = severityMatch[1].toLowerCase();
+        let severity = 'warning';
+        let icon = '🔵';
+        
+        switch (severityText) {
+          case 'critical':
+            severity = 'error';
+            icon = '🔴';
+            break;
+          case 'high':
+            severity = 'error';
+            icon = '🟠';
+            break;
+          case 'medium':
+            severity = 'warning';
+            icon = '🟡';
+            break;
+          case 'low':
+            severity = 'information';
+            icon = '🔵';
+            break;
+        }
+        
+        // Extract title/description
+        let title = line.replace(/\*\*.*?\*\*/g, '').replace(/\d+\.\s*/, '').trim();
+        
+        // Look for description in next few lines
+        let description = '';
+        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+          const nextLine = lines[j].trim();
+          if (nextLine && !nextLine.startsWith('**') && nextLine.length > 10) {
+            description = nextLine;
+            break;
+          }
+        }
+        
+        // Combine title and description
+        let message = `${icon} ${severityText.toUpperCase()}: ${title}`;
+        if (description && description !== title) {
+          message += `\n${description}`;
+        }
+        
+        // Look for line numbers
+        const lineMatch = (title + ' ' + description).match(/line\s*(\d+)/i);
+        const lineNumber = lineMatch ? Math.max(0, parseInt(lineMatch[1]) - 1) : i;
+        
+        diagnostics.push({
+          line: lineNumber,
+          column: 0,
+          endLine: lineNumber,
+          endColumn: 100,
+          severity: severity,
+          message: message.trim(),
+          source: 'SmartAudit AI'
+        });
+      }
+    }
+    
+    // If no structured vulnerabilities found, use the original parsing
+    if (diagnostics.length === 0) {
+      return extractVSCodeDiagnosticsOriginal(cleanedText);
+    }
+    
+    return diagnostics;
+  }
+
+  // Original fallback diagnostic extraction
+  function extractVSCodeDiagnosticsOriginal(reportText: string) {
     const diagnostics = [];
     const lines = reportText.split('\n');
     
