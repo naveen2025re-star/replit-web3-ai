@@ -636,11 +636,33 @@ export class AuditService {
                 // Live markdown-style formatter (like react-markdown does)
                 function formatTextLiveMarkdown(text) {
                     return text
-                        // Add proper word spacing first
+                        // AGGRESSIVE word separation - handle all concatenated words
                         .replace(/([a-z])([A-Z])/g, '$1 $2')                    // camelCase -> camel Case
                         .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')               // ABCdef -> AB Cdef
                         .replace(/([a-zA-Z])([0-9])/g, '$1 $2')                 // word123 -> word 123
                         .replace(/([0-9])([a-zA-Z])/g, '$1 $2')                 // 123word -> 123 word
+                        
+                        // Handle specific concatenated patterns from the image
+                        .replace(/([a-z])([a-z]{6,})/g, '$1 $2')               // Long lowercase -> add breaks
+                        .replace(/(\w)of(\w)/g, '$1 of $2')                     // wordofword -> word of word
+                        .replace(/(\w)for(\w)/g, '$1 for $2')                   // wordforword -> word for word
+                        .replace(/(\w)and(\w)/g, '$1 and $2')                   // wordandword -> word and word
+                        .replace(/(\w)the(\w)/g, '$1 the $2')                   // wordtheword -> word the word
+                        .replace(/(\w)this(\w)/g, '$1 this $2')                 // wordthisword -> word this word
+                        .replace(/(\w)that(\w)/g, '$1 that $2')                 // wordthatword -> word that word
+                        .replace(/(\w)with(\w)/g, '$1 with $2')                 // wordwithword -> word with word
+                        .replace(/(\w)will(\w)/g, '$1 will $2')                 // wordwillword -> word will word
+                        .replace(/(\w)can(\w)/g, '$1 can $2')                   // wordcanword -> word can word
+                        .replace(/(\w)is(\w)/g, '$1 is $2')                     // wordisword -> word is word
+                        .replace(/(\w)are(\w)/g, '$1 are $2')                   // wordareword -> word are word
+                        .replace(/(\w)to(\w)/g, '$1 to $2')                     // wordtoword -> word to word
+                        .replace(/(\w)in(\w)/g, '$1 in $2')                     // wordinword -> word in word
+                        .replace(/(\w)on(\w)/g, '$1 on $2')                     // wordonword -> word on word
+                        .replace(/(\w)at(\w)/g, '$1 at $2')                     // wordatword -> word at word
+                        
+                        // Insert spaces before common words that get concatenated
+                        .replace(/([a-z])(comprehensive|security|audit|smart|contract|analysis|vulnerability|issue|description|recommendation|severity)/gi, '$1 $2')
+                        .replace(/(comprehensive|security|audit|smart|contract|analysis|vulnerability|issue|description|recommendation|severity)([a-z])/gi, '$1 $2')
                         
                         // Format key sections like markdown (similar to web interface)
                         .replace(/(Vulnerability|Issue|Finding)\\s*:/gi, '<div class="vulnerability-header">🔍 $1:</div>')
