@@ -439,6 +439,7 @@ class AuditService {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>SmartAudit AI Analysis</title>
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
             <style>
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -479,14 +480,50 @@ class AuditService {
                     font-size: 12px;
                 }
                 .content {
-                    white-space: pre-wrap;
-                    font-family: 'Courier New', monospace;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     background: var(--vscode-textCodeBlock-background);
                     padding: 15px;
                     border-radius: 4px;
                     border: 1px solid var(--vscode-panel-border);
                     max-height: 70vh;
                     overflow-y: auto;
+                    line-height: 1.6;
+                }
+                /* Markdown styling (like react-markdown) */
+                .content h1, .content h2, .content h3 {
+                    color: #58a6ff;
+                    margin: 1em 0 0.5em 0;
+                }
+                .content p {
+                    margin: 0.8em 0;
+                    color: var(--vscode-editor-foreground);
+                }
+                .content ul, .content ol {
+                    margin: 0.8em 0;
+                    padding-left: 2em;
+                }
+                .content li {
+                    margin: 0.4em 0;
+                }
+                .content code {
+                    background: var(--vscode-textPreformat-background);
+                    padding: 2px 4px;
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                }
+                .content pre {
+                    background: var(--vscode-textPreformat-background);
+                    padding: 1em;
+                    border-radius: 4px;
+                    overflow-x: auto;
+                }
+                .content strong {
+                    color: #f85149;
+                    font-weight: 600;
+                }
+                .content em {
+                    color: #f79000;
+                    font-style: italic;
                 }
                 .vulnerability {
                     background: var(--vscode-inputValidation-errorBackground);
@@ -577,67 +614,21 @@ class AuditService {
                 const creditsEl = document.getElementById('credits');
                 const contentEl = document.getElementById('content');
                 
-                // Live markdown-style formatter (like react-markdown does)
-                function formatTextLiveMarkdown(text) {
-                    return text
-                        // AGGRESSIVE word separation - handle all concatenated words
-                        .replace(/([a-z])([A-Z])/g, '$1 $2')                    // camelCase -> camel Case
-                        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')               // ABCdef -> AB Cdef
-                        .replace(/([a-zA-Z])([0-9])/g, '$1 $2')                 // word123 -> word 123
-                        .replace(/([0-9])([a-zA-Z])/g, '$1 $2')                 // 123word -> 123 word
-                        
-                        // Handle specific concatenated patterns from the image
-                        .replace(/([a-z])([a-z]{6,})/g, '$1 $2')               // Long lowercase -> add breaks
-                        .replace(/(\w)of(\w)/g, '$1 of $2')                     // wordofword -> word of word
-                        .replace(/(\w)for(\w)/g, '$1 for $2')                   // wordforword -> word for word
-                        .replace(/(\w)and(\w)/g, '$1 and $2')                   // wordandword -> word and word
-                        .replace(/(\w)the(\w)/g, '$1 the $2')                   // wordtheword -> word the word
-                        .replace(/(\w)this(\w)/g, '$1 this $2')                 // wordthisword -> word this word
-                        .replace(/(\w)that(\w)/g, '$1 that $2')                 // wordthatword -> word that word
-                        .replace(/(\w)with(\w)/g, '$1 with $2')                 // wordwithword -> word with word
-                        .replace(/(\w)will(\w)/g, '$1 will $2')                 // wordwillword -> word will word
-                        .replace(/(\w)can(\w)/g, '$1 can $2')                   // wordcanword -> word can word
-                        .replace(/(\w)is(\w)/g, '$1 is $2')                     // wordisword -> word is word
-                        .replace(/(\w)are(\w)/g, '$1 are $2')                   // wordareword -> word are word
-                        .replace(/(\w)to(\w)/g, '$1 to $2')                     // wordtoword -> word to word
-                        .replace(/(\w)in(\w)/g, '$1 in $2')                     // wordinword -> word in word
-                        .replace(/(\w)on(\w)/g, '$1 on $2')                     // wordonword -> word on word
-                        .replace(/(\w)at(\w)/g, '$1 at $2')                     // wordatword -> word at word
-                        
-                        // Insert spaces before common words that get concatenated
-                        .replace(/([a-z])(comprehensive|security|audit|smart|contract|analysis|vulnerability|issue|description|recommendation|severity)/gi, '$1 $2')
-                        .replace(/(comprehensive|security|audit|smart|contract|analysis|vulnerability|issue|description|recommendation|severity)([a-z])/gi, '$1 $2')
-                        
-                        // Format key sections like markdown (similar to web interface)
-                        .replace(/(Vulnerability|Issue|Finding)\\s*:/gi, '<div class="vulnerability-header">🔍 $1:</div>')
-                        .replace(/(Description)\\s*:/gi, '<div class="description-header">📝 $1:</div>')
-                        .replace(/(Impact)\\s*:/gi, '<div class="impact-header">⚠️ $1:</div>')
-                        .replace(/(Recommendation|Fix)\\s*:/gi, '<div class="recommendation-header">✅ $1:</div>')
-                        .replace(/(Severity)\\s*:/gi, '<div class="severity-header">🚨 $1:</div>')
-                        .replace(/(Type)\\s*:/gi, '<div class="type-header">🔧 $1:</div>')
-                        .replace(/(Affected\\s*(?:Contracts?|Files?))\\s*:/gi, '<div class="affected-header">📂 $1:</div>')
-                        
-                        // Handle severity levels with colors
-                        .replace(/\\b(Critical|High)\\b/gi, '<span class="severity-critical">$1</span>')
-                        .replace(/\\b(Medium)\\b/gi, '<span class="severity-medium">$1</span>')
-                        .replace(/\\b(Low)\\b/gi, '<span class="severity-low">$1</span>')
-                        
-                        // Remove markdown artifacts
-                        .replace(/\\*\\*/g, '')                                 // Remove **
-                        .replace(/\\*/g, '')                                    // Remove *
-                        .replace(/_/g, '')                                      // Remove _
-                        .replace(/\`/g, '')                                     // Remove \`
-                        .replace(/#/g, '')                                      // Remove #
-                        
-                        // Add line breaks for better readability
-                        .replace(/\\./g, '.\\n')                                // Add line break after periods
-                        .replace(/;/g, ';\\n')                                  // Add line break after semicolons
-                        .replace(/:/g, ': ')                                    // Add space after colons
-                        
-                        // Clean up excess whitespace
-                        .replace(/\\s+/g, ' ')                                  // Multiple spaces -> single space
-                        .replace(/\\n\\s*\\n/g, '\\n')                          // Clean double newlines
-                        .trim();
+                // Smart markdown parser using marked.js (like react-markdown)
+                function formatTextWithMarkdown(text) {
+                    // Simple word separation for concatenated text
+                    const spacedText = text
+                        .replace(/([a-z])([A-Z])/g, '$1 $2')
+                        .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
+                        .replace(/([0-9])([a-zA-Z])/g, '$1 $2');
+                    
+                    // Use marked.js to parse as markdown (handles formatting automatically)
+                    try {
+                        return marked.parse(spacedText);
+                    } catch (error) {
+                        // Fallback to simple formatting if marked fails
+                        return spacedText.replace(/\\n/g, '<br>');
+                    }
                 }
                 
                 window.addEventListener('message', event => {
@@ -652,8 +643,8 @@ class AuditService {
                             creditsEl.textContent = \`Credits used: \${message.creditsUsed} | Remaining: \${message.remainingCredits}\`;
                             break;
                         case 'chunk':
-                            // Apply real-time markdown-style formatting like the web interface
-                            const formattedChunk = formatTextLiveMarkdown(message.data);
+                            // Use proper markdown parsing like the web interface
+                            const formattedChunk = formatTextWithMarkdown(message.data);
                             contentEl.innerHTML += formattedChunk;
                             contentEl.scrollTop = contentEl.scrollHeight;
                             break;
