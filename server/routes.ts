@@ -2732,13 +2732,34 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         return res.status(404).json({ error: "Audit session not found" });
       }
 
+      // TIMEOUT HANDLING: Check if audit has been stuck too long (5+ minutes)
+      const AUDIT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+      const now = new Date();
+      const sessionCreated = new Date(session.createdAt);
+      const timeSinceCreated = now.getTime() - sessionCreated.getTime();
+      
+      // If audit is still pending/analyzing after 5 minutes, mark as failed
+      if ((session.status === 'pending' || session.status === 'analyzing') && 
+          timeSinceCreated > AUDIT_TIMEOUT_MS) {
+        console.log(`🔥 TIMEOUT: Marking session ${sessionId} as failed after ${Math.round(timeSinceCreated/1000)}s`);
+        await storage.updateAuditSessionStatus(sessionId, 'failed', now);
+        return res.json({
+          success: false,
+          status: "failed",
+          sessionId: sessionId,
+          error: "Analysis timeout - please try again with a smaller contract",
+          timeElapsed: Math.round(timeSinceCreated/1000)
+        });
+      }
+
       const result = await storage.getAuditResultBySessionId(sessionId);
       
       if (!result) {
         return res.json({
           success: true,
           status: session.status,
-          sessionId: sessionId
+          sessionId: sessionId,
+          timeElapsed: Math.round(timeSinceCreated/1000)
         });
       }
 

@@ -105,6 +105,7 @@ export class AuditService {
     private async pollForResults(sessionId: string, apiKey: string, apiUrl: string): Promise<AuditResult | null> {
         return new Promise(async (resolve, reject) => {
             try {
+                const startTime = Date.now();
                 console.log('[AUDIT] Polling for results, session:', sessionId);
                 
                 let attempts = 0;
@@ -113,6 +114,8 @@ export class AuditService {
                 const poll = async (): Promise<void> => {
                     try {
                         attempts++;
+                        const elapsed = Math.round((Date.now() - startTime) / 1000);
+                        console.log(`[POLL ${attempts}] Checking audit status... (${elapsed}s elapsed)`);
                         
                         const response = await fetch(`${apiUrl}/api/vscode/audit/status/${sessionId}`, {
                             method: 'GET',
