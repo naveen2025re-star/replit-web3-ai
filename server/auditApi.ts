@@ -546,18 +546,33 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
       result: auditResult 
     })}\n\n`);
     
-    // Close the stream
-    res.end();
+    // Close the stream safely
+    if (!res.headersSent && !res.destroyed) {
+      res.end();
+    }
 
   } catch (error: any) {
     console.error(`[PROCESS_AUDIT_STREAMING] Error:`, error);
-    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    
+    // Send error only if stream is still open
+    if (!res.headersSent && !res.destroyed) {
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    }
     
     // Mark as failed
-    await db
-      .update(auditSessions)
-      .set({ status: 'failed' })
-      .where(eq(auditSessions.id, auditId));
+    try {
+      await db
+        .update(auditSessions)
+        .set({ status: 'failed' })
+        .where(eq(auditSessions.id, auditId));
+    } catch (dbError) {
+      console.error(`[PROCESS_AUDIT_STREAMING] DB Error:`, dbError);
+    }
+  } finally {
+    // Safely close the stream
+    if (!res.headersSent && !res.destroyed) {
+      res.end();
+    }
   }
 }
 
