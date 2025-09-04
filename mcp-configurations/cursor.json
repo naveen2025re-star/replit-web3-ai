@@ -1,0 +1,9 @@
+{
+  "mcp": {
+    "servers": {
+      "smartaudit_ai": {
+        "url": "https://smartaudit-ai-backend.replit.app/mcp/stream"
+      }
+    }
+  }
+}
