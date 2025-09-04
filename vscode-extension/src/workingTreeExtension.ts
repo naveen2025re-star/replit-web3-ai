@@ -42,12 +42,12 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
             }
         });
         
-        // FORCE CLEAR all stuck states on startup - prevents "Analyzing Contract..." bug
+        // FORCE CLEAR all stuck states on startup - prevents stuck UI states
         this.context.workspaceState.update('smartaudit.analyzing', false);
         this.context.workspaceState.update('smartaudit.validating', false);
         this.context.workspaceState.update('smartaudit.hasResults', false);
         this.context.workspaceState.update('smartaudit.lastResults', undefined);
-        console.log('[TREE] Force cleared all stuck analyzing states on startup');
+        console.log('[TREE] Force cleared all stuck states on startup - fresh UI');
     }
 
     refresh(): void {
@@ -91,17 +91,18 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
         // Check if we have both API key and URL
         const hasConfig = apiKey && apiKey.trim().length > 0 && apiUrl && apiUrl.trim().length > 0;
         
-        // Get cached auth status
-        const isAuthenticated = this.authService.isAuthenticated();
-        const cachedUser = this.context.workspaceState.get('smartaudit.user');
-        
-        // Simulate analysis state for demo purposes
+        // Get auth status - check multiple sources for reliability  
+        const cachedUser = this.context.workspaceState.get('smartaudit.user') as any;
+        const isValidating = this.context.workspaceState.get('smartaudit.validating', false);
         const isAnalyzing = this.context.workspaceState.get('smartaudit.analyzing', false);
         const hasResults = this.context.workspaceState.get('smartaudit.hasResults', false);
         
+        // More reliable connection check - if we have user data with plan, we're connected
+        const isReallyConnected = cachedUser && (cachedUser.planTier || cachedUser.balance !== undefined);
+        
         const items: SmartAuditTreeItem[] = [];
 
-        // Status section - shows real connection state
+        // Status section - improved logic for better UX
         if (isAnalyzing) {
             items.push(new SmartAuditTreeItem(
                 '🔄 Analyzing Contract...',
@@ -112,7 +113,7 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
             ));
         } else if (hasResults) {
             items.push(new SmartAuditTreeItem(
-                '✅ Analysis Complete',
+                '✅ Analysis Complete - View Results Below',
                 vscode.TreeItemCollapsibleState.Collapsed,
                 'status',
                 undefined,
@@ -120,27 +121,37 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
             ));
         } else if (!hasConfig) {
             items.push(new SmartAuditTreeItem(
-                '🔴 Configuration Missing',
+                '🔴 Setup Required - Add API Key',
                 vscode.TreeItemCollapsibleState.Collapsed,
                 'status',
                 undefined,
                 new vscode.ThemeIcon('error')
             ));
-        } else if (isAuthenticated && cachedUser && (cachedUser as any).planTier) {
+        } else if (isReallyConnected) {
+            // FIXED: Use reliable connection check instead of stuck validation
+            const planDisplay = cachedUser.planTier || 'Connected';
             items.push(new SmartAuditTreeItem(
-                `🟢 Connected (${(cachedUser as any).planTier} Plan)`,
+                `🟢 Ready to Audit (${planDisplay})`,
                 vscode.TreeItemCollapsibleState.Collapsed,
                 'status',
                 undefined,
                 new vscode.ThemeIcon('check')
             ));
-        } else {
+        } else if (isValidating) {
             items.push(new SmartAuditTreeItem(
-                '🟡 Validating Connection...',
+                '🟡 Connecting to SmartAudit AI...',
                 vscode.TreeItemCollapsibleState.Collapsed,
                 'status',
                 undefined,
                 new vscode.ThemeIcon('sync~spin')
+            ));
+        } else {
+            items.push(new SmartAuditTreeItem(
+                '🔄 Click Refresh to Connect',
+                vscode.TreeItemCollapsibleState.Collapsed,
+                'status',
+                undefined,
+                new vscode.ThemeIcon('refresh')
             ));
         }
 
@@ -160,6 +171,21 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
                 'summary',
                 undefined,
                 new vscode.ThemeIcon('graph')
+            ));
+        }
+
+        // Quick Audit button - prominently displayed for easy access
+        if (isReallyConnected && !isAnalyzing) {
+            items.push(new SmartAuditTreeItem(
+                '🛡️ Audit Current File',
+                vscode.TreeItemCollapsibleState.None,
+                'quickAudit',
+                {
+                    command: 'smartaudit.auditFile',
+                    title: 'Audit Current Contract',
+                    arguments: []
+                },
+                new vscode.ThemeIcon('shield')
             ));
         }
 
