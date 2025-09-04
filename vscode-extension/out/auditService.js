@@ -439,7 +439,6 @@ class AuditService {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>SmartAudit AI Analysis</title>
-            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
             <style>
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -614,21 +613,54 @@ class AuditService {
                 const creditsEl = document.getElementById('credits');
                 const contentEl = document.getElementById('content');
                 
-                // Smart markdown parser using marked.js (like react-markdown)
-                function formatTextWithMarkdown(text) {
-                    // Simple word separation for concatenated text
+                // Streaming text buffer handler (based on streaming-markdown pattern)
+                let textBuffer = '';
+                
+                function processStreamingChunk(chunk) {
+                    // Add chunk to buffer
+                    textBuffer += chunk;
+                    
+                    // Split by word boundaries, keeping separators
+                    const words = textBuffer.split(/(\s+)/);
+                    
+                    // Keep the last word in buffer (might be incomplete)
+                    const lastWord = words.pop();
+                    textBuffer = lastWord || '';
+                    
+                    // Process complete words/phrases only
+                    if (words.length > 0) {
+                        const completeText = words.join('');
+                        return formatCompleteText(completeText);
+                    }
+                    
+                    return '';
+                }
+                
+                function flushBuffer() {
+                    if (textBuffer) {
+                        const remaining = formatCompleteText(textBuffer);
+                        textBuffer = '';
+                        return remaining;
+                    }
+                    return '';
+                }
+                
+                function formatCompleteText(text) {
+                    // Simple word spacing for concatenated text
                     const spacedText = text
                         .replace(/([a-z])([A-Z])/g, '$1 $2')
                         .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
                         .replace(/([0-9])([a-zA-Z])/g, '$1 $2');
                     
-                    // Use marked.js to parse as markdown (handles formatting automatically)
-                    try {
-                        return marked.parse(spacedText);
-                    } catch (error) {
-                        // Fallback to simple formatting if marked fails
-                        return spacedText.replace(/\\n/g, '<br>');
-                    }
+                    // Simple markdown-like formatting without breaking
+                    return spacedText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/\`(.*?)\`/g, '<code>$1</code>')
+                        .replace(/### (.*)/g, '<h3>$1</h3>')
+                        .replace(/## (.*)/g, '<h2>$1</h2>')
+                        .replace(/# (.*)/g, '<h1>$1</h1>')
+                        .replace(/\\n/g, '<br>');
                 }
                 
                 window.addEventListener('message', event => {
@@ -643,12 +675,20 @@ class AuditService {
                             creditsEl.textContent = \`Credits used: \${message.creditsUsed} | Remaining: \${message.remainingCredits}\`;
                             break;
                         case 'chunk':
-                            // Use proper markdown parsing like the web interface
-                            const formattedChunk = formatTextWithMarkdown(message.data);
-                            contentEl.innerHTML += formattedChunk;
-                            contentEl.scrollTop = contentEl.scrollHeight;
+                            // Process streaming text with word boundary detection
+                            const processedChunk = processStreamingChunk(message.data);
+                            if (processedChunk) {
+                                contentEl.innerHTML += processedChunk;
+                                contentEl.scrollTop = contentEl.scrollHeight;
+                            }
                             break;
                         case 'complete':
+                            // Flush any remaining buffer content
+                            const remaining = flushBuffer();
+                            if (remaining) {
+                                contentEl.innerHTML += remaining;
+                            }
+                            
                             statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiGreen); font-weight: 600;">✅ Analysis Complete!</span>\`;
                             const summary = document.createElement('div');
                             summary.className = 'summary';
