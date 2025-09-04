@@ -408,11 +408,22 @@ export class AuditService {
                         const lines = chunk.split('\n');
 
                         for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    const data = JSON.parse(line.substring(6));
-                                    
-                                    switch (data.type) {
+                            if (line.trim() === '') continue; // Skip empty lines
+                            
+                            try {
+                                // Handle both SSE format (data: {...}) and direct JSON
+                                let data;
+                                if (line.startsWith('data: ')) {
+                                    data = JSON.parse(line.substring(6));
+                                } else if (line.trim().startsWith('{')) {
+                                    data = JSON.parse(line.trim());
+                                } else {
+                                    continue; // Skip non-JSON lines
+                                }
+                                
+                                console.log('[STREAMING] Received:', data);
+                                
+                                switch (data.type) {
                                         case 'connected':
                                             panel.webview.postMessage({ type: 'status', message: 'Connected to AI...', status: 'analyzing' });
                                             break;
@@ -427,8 +438,16 @@ export class AuditService {
                                             panel.webview.postMessage({ type: 'status', message: 'AI analysis in progress...', status: data.status });
                                             break;
                                         case 'chunk':
-                                            fullResponse += data.data;
-                                            panel.webview.postMessage({ type: 'chunk', data: data.data });
+                                            // Clean JSON chunks first
+                                            let cleanData = data.data;
+                                            if (typeof cleanData === 'string') {
+                                                // Remove JSON chunk format like {"body": "text"}
+                                                cleanData = cleanData.replace(/\{"body":\s*"([^"]+)"\}/g, '$1');
+                                                cleanData = cleanData.replace(/\\"/g, '"');
+                                                cleanData = cleanData.replace(/\\n/g, '\n');
+                                            }
+                                            fullResponse += cleanData;
+                                            panel.webview.postMessage({ type: 'chunk', data: cleanData });
                                             break;
                                         case 'analysis_complete':
                                             vulnerabilityCount = this.parseVulnerabilities(fullResponse).length;
@@ -455,9 +474,8 @@ export class AuditService {
                                             reject(new Error(data.message));
                                             return;
                                     }
-                                } catch (parseError) {
-                                    console.error('[STREAMING] Failed to parse data:', parseError);
-                                }
+                            } catch (parseError) {
+                                console.error('[STREAMING] Failed to parse line:', line, parseError);
                             }
                         }
                     }
