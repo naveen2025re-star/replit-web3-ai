@@ -55,7 +55,7 @@ export class CreditService {
       'cairo': 1.4,
       'move': 1.3
     };
-    baseCredits *= languageMultipliers[factors.language.toLowerCase()] || 1.0;
+    baseCredits *= languageMultipliers[factors.language?.toLowerCase?.()] || 1.0;
     
     // Round up and apply caps
     const finalCredits = Math.ceil(baseCredits);

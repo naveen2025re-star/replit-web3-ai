@@ -518,9 +518,11 @@ class AuditService {
                     <div class="spinner"></div>
                     <span>Initializing analysis...</span>
                 </div>
-                <div id="credits" class="credits" style="display: none;"></div>
+                <div id="credits" class="credits" style="display: none;">Credits used: 0 | Remaining: 0</div>
             </div>
-            <div class="content" id="content">Waiting for analysis to begin...</div>
+            <div class="main-content">
+                <div class="content" id="content">Waiting for analysis to begin...</div>
+            </div>
             
             <script>
                 const vscode = acquireVsCodeApi();

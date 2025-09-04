@@ -2717,9 +2717,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // CRITICAL FIX: Deduct credits for VS Code audit  
       const { CreditService } = await import('./creditService');
       const deductionResult = await CreditService.deductCreditsForAudit(userId, session.id, {
-        isStreamingAudit: true,
-        contractComplexity: 'medium',
-        requestSource: 'vscode'
+        codeLength: contractCode.length,
+        complexity: 5,
+        hasMultipleFiles: false,
+        analysisType: 'security',
+        language: language || 'solidity',
+        isStreamingAudit: true
       });
       console.log(`[VS CODE AUDIT] Credits deducted: ${deductionResult.creditsDeducted} (remaining: ${deductionResult.remainingCredits})`);
       
@@ -2878,9 +2881,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         // Deduct credits
         const { CreditService } = await import('./creditService');
         const deductionResult = await CreditService.deductCreditsForAudit(userId, session.id, {
-          isStreamingAudit: true,
-          contractComplexity: 'medium',
-          requestSource: 'vscode'
+          codeLength: contractCode.length,
+          complexity: 5,
+          hasMultipleFiles: false,
+          analysisType: 'security',
+          language: language || 'solidity',
+          isStreamingAudit: true
         });
 
         res.write(`data: ${JSON.stringify({ 

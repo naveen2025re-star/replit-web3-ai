@@ -468,9 +468,23 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
             if (line.startsWith('data: ')) {
               const data = line.substring(6);
               if (data.trim() && data !== '[DONE]') {
-                fullResponse += data;
-                // Stream each chunk to VS Code
-                res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
+                try {
+                  // Parse the JSON chunk to extract body text
+                  const parsed = JSON.parse(data);
+                  if (parsed.body) {
+                    fullResponse += parsed.body;
+                    // Stream clean text to VS Code
+                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: parsed.body })}\n\n`);
+                  } else {
+                    // Fallback for non-JSON data
+                    fullResponse += data;
+                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
+                  }
+                } catch (parseError) {
+                  // Fallback for non-JSON data
+                  fullResponse += data;
+                  res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
+                }
               }
             }
           }
