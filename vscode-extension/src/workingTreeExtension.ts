@@ -155,7 +155,24 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
             ));
         }
 
-        // Results are now shown in the analysis panel only - cleaner sidebar
+        // Results section - only show when we have results
+        if (hasResults) {
+            items.push(new SmartAuditTreeItem(
+                '📊 Analysis Results (3 issues)',
+                vscode.TreeItemCollapsibleState.Collapsed,
+                'results',
+                undefined,
+                new vscode.ThemeIcon('list-tree')
+            ));
+            
+            items.push(new SmartAuditTreeItem(
+                '📈 Analysis Summary',
+                vscode.TreeItemCollapsibleState.Collapsed,
+                'summary',
+                undefined,
+                new vscode.ThemeIcon('graph')
+            ));
+        }
 
         // Quick Audit button - prominently displayed for easy access
         if (isReallyConnected && !isAnalyzing) {

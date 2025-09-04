@@ -462,39 +462,28 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
           if (done) break;
 
           const chunk = decoder.decode(value);
-          console.log(`[PROCESS_AUDIT_STREAMING] Received chunk:`, chunk);
           const lines = chunk.split('\n');
 
           for (const line of lines) {
-            console.log(`[PROCESS_AUDIT_STREAMING] Processing line:`, line);
             if (line.startsWith('data: ')) {
               const data = line.substring(6);
               if (data.trim() && data !== '[DONE]') {
-                console.log(`[PROCESS_AUDIT_STREAMING] Raw data:`, data);
                 try {
                   // Parse the JSON chunk to extract body text
                   const parsed = JSON.parse(data);
-                  console.log(`[PROCESS_AUDIT_STREAMING] Parsed data:`, parsed);
                   if (parsed.body) {
                     fullResponse += parsed.body;
                     // Stream clean text to VS Code
-                    const chunkMessage = { type: 'chunk', data: parsed.body };
-                    console.log(`[PROCESS_AUDIT_STREAMING] Sending chunk to VS Code:`, chunkMessage);
-                    res.write(`data: ${JSON.stringify(chunkMessage)}\n\n`);
+                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: parsed.body })}\n\n`);
                   } else {
                     // Fallback for non-JSON data
                     fullResponse += data;
-                    const chunkMessage = { type: 'chunk', data: data };
-                    console.log(`[PROCESS_AUDIT_STREAMING] Sending raw data to VS Code:`, chunkMessage);
-                    res.write(`data: ${JSON.stringify(chunkMessage)}\n\n`);
+                    res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
                   }
                 } catch (parseError) {
-                  console.log(`[PROCESS_AUDIT_STREAMING] Parse error:`, parseError);
                   // Fallback for non-JSON data
                   fullResponse += data;
-                  const chunkMessage = { type: 'chunk', data: data };
-                  console.log(`[PROCESS_AUDIT_STREAMING] Sending fallback data to VS Code:`, chunkMessage);
-                  res.write(`data: ${JSON.stringify(chunkMessage)}\n\n`);
+                  res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
                 }
               }
             }
@@ -504,9 +493,6 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
         reader.releaseLock();
       }
     }
-
-    console.log(`[PROCESS_AUDIT_STREAMING] Full response length:`, fullResponse.length);
-    console.log(`[PROCESS_AUDIT_STREAMING] Full response sample:`, fullResponse.substring(0, 500));
 
     // Save results to database
     const auditResult = await (await import('./storage')).storage.createAuditResult({
@@ -526,9 +512,7 @@ export async function processAuditStreaming(auditId: string, sessionKey: string,
       })
       .where(eq(auditSessions.id, auditId));
 
-    const completeMessage = { type: 'analysis_complete', result: auditResult };
-    console.log(`[PROCESS_AUDIT_STREAMING] Sending completion message:`, completeMessage);
-    res.write(`data: ${JSON.stringify(completeMessage)}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'analysis_complete', result: auditResult })}\n\n`);
 
   } catch (error: any) {
     console.error(`[PROCESS_AUDIT_STREAMING] Error:`, error);
