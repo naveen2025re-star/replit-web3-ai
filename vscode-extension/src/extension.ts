@@ -171,11 +171,6 @@ function initializeExtension(context: vscode.ExtensionContext) {
             }
         }
         */
-            if (detectedLang && (supportedLanguages.length === 0 || 
-                supportedLanguages.includes(detectedLang.language.name.toLowerCase()))) {
-                await auditDocument(document);
-            }
-        }
     });
     
     // Select blockchain language

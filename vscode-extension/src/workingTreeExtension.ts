@@ -42,9 +42,12 @@ export class SmartAuditDataProvider implements vscode.TreeDataProvider<SmartAudi
             }
         });
         
-        // Clear any stuck analyzing state on startup
+        // FORCE CLEAR all stuck states on startup - prevents "Analyzing Contract..." bug
         this.context.workspaceState.update('smartaudit.analyzing', false);
         this.context.workspaceState.update('smartaudit.validating', false);
+        this.context.workspaceState.update('smartaudit.hasResults', false);
+        this.context.workspaceState.update('smartaudit.lastResults', undefined);
+        console.log('[TREE] Force cleared all stuck analyzing states on startup');
     }
 
     refresh(): void {
@@ -722,10 +725,14 @@ export function activate(context: vscode.ExtensionContext) {
         });
         
         const clearResultsCommand = vscode.commands.registerCommand('smartaudit.clearResults', () => {
+            // FORCE CLEAR all states - fixes stuck "Analyzing..." UI
             context.workspaceState.update('smartaudit.analyzing', false);
+            context.workspaceState.update('smartaudit.validating', false);
             context.workspaceState.update('smartaudit.hasResults', false);
+            context.workspaceState.update('smartaudit.lastResults', undefined);
+            context.workspaceState.update('smartaudit.lastFileName', undefined);
             dataProvider.refresh();
-            vscode.window.showInformationMessage('🗑️ SmartAudit AI: Results cleared');
+            vscode.window.showInformationMessage('🗑️ SmartAudit AI: All states cleared - UI reset');
         });
         
         const showHistoryCommand = vscode.commands.registerCommand('smartaudit.showHistory', () => {

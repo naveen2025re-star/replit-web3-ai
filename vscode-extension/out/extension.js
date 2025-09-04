@@ -164,43 +164,38 @@ function initializeExtension(context) {
             }
         }
         */
-        if (detectedLang && (supportedLanguages.length === 0 ||
-            supportedLanguages.includes(detectedLang.language.name.toLowerCase()))) {
-            await auditDocument(document);
+    });
+    // Select blockchain language
+    const selectLanguageDisposable = vscode.commands.registerCommand('smartaudit.selectLanguage', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active file to set language for.');
+            return;
+        }
+        await languageSelector_1.LanguageSelector.showLanguageSelector(editor.document);
+    });
+    // Select target network
+    const selectNetworkDisposable = vscode.commands.registerCommand('smartaudit.selectNetwork', async () => {
+        const network = await languageSelector_1.LanguageSelector.showNetworkSelector();
+        if (network) {
+            const config = vscode.workspace.getConfiguration('smartaudit');
+            await config.update('preferredNetwork', network, vscode.ConfigurationTarget.Workspace);
+            vscode.window.showInformationMessage(`Target network set to: ${network}`);
         }
     });
+    context.subscriptions.push(auditFileDisposable, showHistoryDisposable, showCreditsDisposable, selectLanguageDisposable, selectNetworkDisposable, autoAuditDisposable);
+    // Set context for workspace with smart contracts
+    checkForSmartContracts();
+    // Watch for blockchain files
+    const supportedExts = blockchainLanguageDetector_1.BlockchainLanguageDetector.getSupportedLanguages()
+        .flatMap(lang => lang.fileExtensions)
+        .map(ext => `**/*${ext}`)
+        .join(',');
+    const watcher = vscode.workspace.createFileSystemWatcher(`{${supportedExts}}`);
+    watcher.onDidCreate(() => checkForSmartContracts());
+    watcher.onDidDelete(() => checkForSmartContracts());
+    context.subscriptions.push(watcher);
 }
-;
-// Select blockchain language
-const selectLanguageDisposable = vscode.commands.registerCommand('smartaudit.selectLanguage', async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        vscode.window.showWarningMessage('No active file to set language for.');
-        return;
-    }
-    await languageSelector_1.LanguageSelector.showLanguageSelector(editor.document);
-});
-// Select target network
-const selectNetworkDisposable = vscode.commands.registerCommand('smartaudit.selectNetwork', async () => {
-    const network = await languageSelector_1.LanguageSelector.showNetworkSelector();
-    if (network) {
-        const config = vscode.workspace.getConfiguration('smartaudit');
-        await config.update('preferredNetwork', network, vscode.ConfigurationTarget.Workspace);
-        vscode.window.showInformationMessage(`Target network set to: ${network}`);
-    }
-});
-context.subscriptions.push(auditFileDisposable, showHistoryDisposable, showCreditsDisposable, selectLanguageDisposable, selectNetworkDisposable, autoAuditDisposable);
-// Set context for workspace with smart contracts
-checkForSmartContracts();
-// Watch for blockchain files
-const supportedExts = blockchainLanguageDetector_1.BlockchainLanguageDetector.getSupportedLanguages()
-    .flatMap(lang => lang.fileExtensions)
-    .map(ext => `**/*${ext}`)
-    .join(',');
-const watcher = vscode.workspace.createFileSystemWatcher(`{${supportedExts}}`);
-watcher.onDidCreate(() => checkForSmartContracts());
-watcher.onDidDelete(() => checkForSmartContracts());
-context.subscriptions.push(watcher);
 async function auditDocument(document) {
     // Show immediate feedback that audit has started
     const statusMessage = vscode.window.setStatusBarMessage('🔍 SmartAudit AI: Starting analysis...', 3000);
