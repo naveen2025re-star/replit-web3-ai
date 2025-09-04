@@ -122,12 +122,16 @@ class AuditService {
                             // Analysis complete
                             vscode.window.showInformationMessage(`✅ SmartAudit AI: Analysis completed! Processing results...`);
                             console.log(`[AUDIT] Server response:`, JSON.stringify(statusData, null, 2));
+                            const responseText = statusData.report || statusData.result || '';
+                            // Parse vulnerabilities directly from response for accurate count
+                            const vulnerabilities = this.parseVulnerabilities(responseText);
+                            console.log(`[AUDIT] Found ${vulnerabilities.length} vulnerabilities in response`);
                             const result = {
                                 sessionId,
-                                rawResponse: statusData.report || statusData.result || '',
-                                formattedReport: statusData.report || statusData.result || '',
-                                vulnerabilityCount: statusData.vulnerabilityCount || null,
-                                securityScore: statusData.securityScore || null,
+                                rawResponse: responseText,
+                                formattedReport: responseText,
+                                vulnerabilityCount: vulnerabilities.length,
+                                securityScore: this.calculateSecurityScore(vulnerabilities),
                                 completedAt: new Date().toISOString()
                             };
                             resolve(result);

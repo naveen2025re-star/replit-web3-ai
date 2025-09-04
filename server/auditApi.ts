@@ -415,6 +415,103 @@ export const listAudits = async (req: Request, res: Response) => {
 };
 
 // Real AI audit processing using Shipable AI integration
+export async function processAuditStreaming(auditId: string, sessionKey: string, contractCode: string, res: any) {
+  try {
+    console.log(`[PROCESS_AUDIT_STREAMING] Starting streaming audit for ${auditId}`);
+    
+    // Update session status to analyzing
+    await db
+      .update(auditSessions)
+      .set({ status: 'analyzing' })
+      .where(eq(auditSessions.id, auditId));
+
+    res.write(`data: ${JSON.stringify({ type: 'status', status: 'analyzing' })}\n\n`);
+
+    // Call Shipable AI analysis endpoint with streaming
+    const SHIPABLE_API_BASE = "https://api.shipable.ai/v2";
+    const formData = new FormData();
+    const requestPayload = {
+      sessionKey: sessionKey,
+      messages: [{
+        role: "user",
+        content: `Please perform a comprehensive security audit of this smart contract code. Analyze for vulnerabilities, security issues, gas optimization opportunities, and best practices. Provide a detailed report with severity levels and recommendations.\n\n${contractCode}`
+      }],
+      token: process.env.SHIPABLE_JWT_TOKEN || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjQxMjcsImlhdCI6MTc1NTgzNTc0Mn0.D5xqjLJIm4BVUgx0UxtrzpaOtKur8r8rDX-YNIOM5UE",
+      stream: true
+    };
+    
+    formData.append("request", JSON.stringify(requestPayload));
+
+    const analysisResponse = await fetch(`${SHIPABLE_API_BASE}/chat/open-playground`, {
+      method: "POST",
+      body: formData
+    });
+
+    if (!analysisResponse.ok) {
+      throw new Error(`Analysis failed: ${analysisResponse.statusText}`);
+    }
+
+    let fullResponse = "";
+    const reader = analysisResponse.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (reader) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.substring(6);
+              if (data.trim() && data !== '[DONE]') {
+                fullResponse += data;
+                // Stream each chunk to VS Code
+                res.write(`data: ${JSON.stringify({ type: 'chunk', data: data })}\n\n`);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
+    // Save results to database
+    const auditResult = await storage.createAuditResult({
+      sessionId: auditId,
+      rawResponse: fullResponse,
+      formattedReport: fullResponse,
+      vulnerabilityCount: null,
+      securityScore: null
+    });
+
+    // Update session status
+    await db
+      .update(auditSessions)
+      .set({ 
+        status: 'completed',
+        completedAt: new Date()
+      })
+      .where(eq(auditSessions.id, auditId));
+
+    res.write(`data: ${JSON.stringify({ type: 'analysis_complete', result: auditResult })}\n\n`);
+
+  } catch (error) {
+    console.error(`[PROCESS_AUDIT_STREAMING] Error:`, error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    
+    // Mark as failed
+    await db
+      .update(auditSessions)
+      .set({ status: 'failed' })
+      .where(eq(auditSessions.id, auditId));
+  }
+}
+
 export async function processAudit(auditId: string, sessionKey: string, contractCode: string) {
   console.log(`[PROCESS_AUDIT] Starting real AI analysis for audit ${auditId}`);
   

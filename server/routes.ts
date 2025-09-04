@@ -2714,6 +2714,14 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Import and call processAudit to actually run the analysis
       const { processAudit } = await import('./auditApi');
       
+      // CRITICAL FIX: Deduct credits for VS Code audit  
+      const { CreditService } = await import('./creditService');
+      const deductionResult = await CreditService.deductCreditsForAudit(userId, session.id, {
+        contractLength: contractCode.length,
+        isStreamingAudit: true
+      });
+      console.log(`[VS CODE AUDIT] Credits deducted: ${deductionResult.creditsDeducted} (remaining: ${deductionResult.remainingCredits})`);
+      
       // Process the audit in the background (don't await to respond quickly)
       processAudit(session.id, shipableSessionKey, contractCode)
         .then(() => {
@@ -2785,13 +2793,16 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       // Parse vulnerabilities for VS Code diagnostics
       const diagnostics = extractVSCodeDiagnostics(result.rawResponse || result.formattedReport || "");
 
+      // Parse vulnerability count from raw response if not already set
+      const parsedVulnCount = result.vulnerabilityCount || countVulnerabilities(result.rawResponse || result.formattedReport || "");
+      
       res.json({
         success: true,
         status: "completed",
         sessionId: sessionId,
         report: result.formattedReport || result.rawResponse,
         diagnostics: diagnostics,
-        vulnerabilityCount: result.vulnerabilityCount,
+        vulnerabilityCount: parsedVulnCount,
         creditsUsed: session.creditsUsed || 0
       });
 
@@ -2826,6 +2837,124 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       res.status(500).json({ error: "Failed to fetch audit history" });
     }
   });
+
+  // VS Code streaming audit endpoint (like web interface)
+  app.post("/api/vscode/audit/stream", authenticateApiKey, requirePermission("audit:write"), async (req: any, res) => {
+    try {
+      const userId = req.apiUser?.userId;
+      const { contractCode, language = "solidity", fileName } = req.body;
+
+      if (!contractCode) {
+        return res.status(400).json({ error: "Contract code is required" });
+      }
+
+      // Set up Server-Sent Events headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      // Send initial connection message
+      res.write(`data: ${JSON.stringify({ type: 'connected', message: 'Starting analysis...' })}\n\n`);
+
+      try {
+        // Create audit session
+        const sessionData = {
+          userId,
+          sessionKey: `vscode_stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          contractCode,
+          contractLanguage: language,
+          contractSource: "vscode", 
+          isPublic: false,
+          publicTitle: fileName ? `VS Code: ${fileName}` : "VS Code Audit"
+        };
+
+        const session = await storage.createAuditSession(sessionData);
+        
+        // Deduct credits
+        const { CreditService } = await import('./creditService');
+        const deductionResult = await CreditService.deductCreditsForAudit(userId, session.id, {
+          contractLength: contractCode.length,
+          isStreamingAudit: true
+        });
+
+        res.write(`data: ${JSON.stringify({ 
+          type: 'credits_deducted', 
+          creditsUsed: deductionResult.creditsDeducted,
+          remainingCredits: deductionResult.remainingCredits 
+        })}\n\n`);
+
+        // Start Shipable AI session
+        const auditResponse = await fetch(`${SHIPABLE_API_BASE}/chat/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${JWT_TOKEN}`
+          },
+          body: JSON.stringify({
+            websiteUrl: 'https://smartaudit.ai',
+            question: `Please analyze this ${language} smart contract for security vulnerabilities. For each issue found, please include the line number where it occurs.\n\n\`\`\`${language}\n${contractCode}\n\`\`\``,
+            generateTitle: false
+          })
+        });
+
+        if (!auditResponse.ok) {
+          throw new Error(`Audit API error: ${auditResponse.status}`);
+        }
+
+        const auditData = await auditResponse.json();
+        const shipableSessionKey = auditData.sessionKey;
+
+        res.write(`data: ${JSON.stringify({ type: 'session_created', sessionId: session.id, sessionKey: shipableSessionKey })}\n\n`);
+
+        // Start streaming analysis (similar to web interface)
+        const { processAuditStreaming } = await import('./auditApi');
+        await processAuditStreaming(session.id, shipableSessionKey, contractCode, res);
+
+        res.write(`data: ${JSON.stringify({ type: 'completed' })}\n\n`);
+
+      } catch (error) {
+        console.error("VS Code streaming audit error:", error);
+        res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      }
+
+      res.end();
+
+    } catch (error) {
+      console.error("VS Code streaming setup error:", error);
+      res.status(500).json({ error: "Failed to start streaming audit" });
+    }
+  });
+
+  // Helper function to count vulnerabilities in response
+  function countVulnerabilities(reportText: string): number {
+    if (!reportText) return 0;
+    
+    const criticalMatches = (reportText.match(/critical.*?vulnerability/gi) || []).length;
+    const highMatches = (reportText.match(/high.*?vulnerability/gi) || []).length;
+    const mediumMatches = (reportText.match(/medium.*?vulnerability/gi) || []).length;
+    const lowMatches = (reportText.match(/low.*?vulnerability/gi) || []).length;
+    
+    // Also count explicit vulnerability patterns
+    const vulnPatterns = [
+      /\*\*vulnerability\*\*/gi,
+      /\*\*issue\*\*/gi,
+      /\*\*finding\*\*/gi,
+      /severity:\s*(critical|high|medium|low)/gi
+    ];
+    
+    let totalCount = criticalMatches + highMatches + mediumMatches + lowMatches;
+    
+    vulnPatterns.forEach(pattern => {
+      const matches = (reportText.match(pattern) || []).length;
+      totalCount = Math.max(totalCount, matches);
+    });
+    
+    return totalCount;
+  }
 
   // Helper function to extract VS Code diagnostics from audit results
   function extractVSCodeDiagnostics(reportText: string) {
