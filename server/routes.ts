@@ -2732,7 +2732,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         return res.status(404).json({ error: "Audit session not found" });
       }
 
-      const result = await storage.getAuditResult(sessionId);
+      const result = await storage.getAuditResultBySessionId(sessionId);
       
       if (!result) {
         return res.json({
