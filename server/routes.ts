@@ -671,9 +671,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
-  // ============================================================================
-  // MCP API Endpoint - Single endpoint to expose MCP tools via HTTP
-  // ============================================================================
+  // Standard MCP HTTP API will be implemented separately
   
   app.all("/api/stream/mcp", authenticateApiKey, async (req: any, res) => {
     try {

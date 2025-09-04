@@ -8,6 +8,30 @@ This is a full-stack web application that provides AI-powered smart contract aud
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### January 2025 - Standard MCP HTTP API Implementation
+
+**Standard MCP Server Deployment**: Successfully implemented and deployed a complete standard MCP HTTP server (`server/standardMCP.ts`) following Anthropic's MCP Streamable HTTP Transport specification (2025-03-26).
+
+**Key Features Implemented**:
+- Single `/mcp` endpoint with JSON-RPC 2.0 protocol
+- 4 comprehensive smart contract audit tools:
+  - `audit_smart_contract` - Real-time streaming security analysis
+  - `analyze_multiple_contracts` - Multi-file workspace auditing  
+  - `get_credit_balance` - Credit and plan management
+  - `detect_contract_language` - Automatic language detection
+- Full CORS support for universal AI IDE compatibility
+- Session management with `Mcp-Session-Id` headers
+- Server-Sent Events (SSE) for real-time streaming responses
+- Authentication via API key (X-API-Key or Authorization headers)
+
+**API Endpoint**: `http://localhost:5001/mcp`
+**Health Check**: `http://localhost:5001/health`
+**Documentation**: Complete usage examples in `server/README_MCP.md`
+
+**Universal Compatibility**: The MCP server works with any AI assistant (Claude, ChatGPT, etc.) and IDE extension that supports HTTP requests, making smart contract auditing accessible across all development environments.
+
 ## System Architecture
 
 ### Frontend Architecture
