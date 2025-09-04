@@ -148,16 +148,29 @@ function initializeExtension(context: vscode.ExtensionContext) {
         }
     });
     
-    // Auto-audit on save if enabled
+    // Auto-audit on save DISABLED to prevent unwanted credit usage
+    // Users must explicitly click "Audit" button to run analysis
     const autoAuditDisposable = vscode.workspace.onDidSaveTextDocument(async (document) => {
-        const config = vscode.workspace.getConfiguration('smartaudit');
-        const autoAudit = config.get<boolean>('autoAudit', false);
+        // Auto-audit feature disabled to prevent automatic credit consumption
+        // const config = vscode.workspace.getConfiguration('smartaudit');
+        // const autoAudit = config.get<boolean>('autoAudit', false);
         
+        // Auto-audit is disabled - users must manually trigger audits
+        console.log('[AUTO-AUDIT] Disabled to prevent automatic credit usage. Use manual audit button.');
+        return;
+        
+        /*
         if (autoAudit && BlockchainLanguageDetector.isSupportedFile(document)) {
             const detectedLang = BlockchainLanguageDetector.detectFromFile(document);
             const supportedLanguages = config.get<string[]>('supportedLanguages', []);
             
             // Check if this language is enabled for auto-audit
+            if (detectedLang && (supportedLanguages.length === 0 || 
+                supportedLanguages.includes(detectedLang.language.name.toLowerCase()))) {
+                await auditDocument(document);
+            }
+        }
+        */
             if (detectedLang && (supportedLanguages.length === 0 || 
                 supportedLanguages.includes(detectedLang.language.name.toLowerCase()))) {
                 await auditDocument(document);
