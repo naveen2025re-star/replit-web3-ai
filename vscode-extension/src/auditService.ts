@@ -669,55 +669,77 @@ export class AuditService {
                 const creditsEl = document.getElementById('credits');
                 const contentEl = document.getElementById('content');
                 
-                // Streaming text buffer handler (based on streaming-markdown pattern)
-                let textBuffer = '';
-                
-                function processStreamingChunk(chunk) {
-                    // Add chunk to buffer
-                    textBuffer += chunk;
-                    
-                    // Split by word boundaries, keeping separators
-                    const words = textBuffer.split(/(\s+)/);
-                    
-                    // Keep the last word in buffer (might be incomplete)
-                    const lastWord = words.pop();
-                    textBuffer = lastWord || '';
-                    
-                    // Process complete words/phrases only
-                    if (words.length > 0) {
-                        const completeText = words.join('');
-                        return formatCompleteText(completeText);
+                // StreamingMarkdownRenderer (based on Continue.dev/GitHub Copilot pattern)
+                class StreamingMarkdownRenderer {
+                    constructor() {
+                        this.content = '';
+                        this.updateTimeout = null;
                     }
                     
-                    return '';
-                }
-                
-                function flushBuffer() {
-                    if (textBuffer) {
-                        const remaining = formatCompleteText(textBuffer);
-                        textBuffer = '';
-                        return remaining;
+                    append(chunk) {
+                        this.content += chunk;
+                        this.scheduleUpdate();
                     }
-                    return '';
+                    
+                    scheduleUpdate() {
+                        // Debounce updates every 100ms (like Continue.dev)
+                        if (this.updateTimeout) {
+                            clearTimeout(this.updateTimeout);
+                        }
+                        this.updateTimeout = setTimeout(() => {
+                            this.renderToHtml();
+                        }, 100);
+                    }
+                    
+                    renderToHtml() {
+                        const processedContent = this.preprocess(this.content);
+                        const html = this.parseMarkdown(processedContent);
+                        contentEl.innerHTML = html;
+                        contentEl.scrollTop = contentEl.scrollHeight;
+                    }
+                    
+                    preprocess(text) {
+                        // Fix concatenated words (like "I'llperformacomprehensive")
+                        return text
+                            .replace(/([a-z])([A-Z])/g, '$1 $2')                    // camelCase
+                            .replace(/([a-zA-Z])([0-9])/g, '$1 $2')                 // word123
+                            .replace(/([0-9])([a-zA-Z])/g, '$1 $2')                 // 123word
+                            .replace(/(\\w)(of|for|and|the|this|that|with|will|can|is|are|to|in|on|at)(\\w)/g, '$1 $2 $3'); // common words
+                    }
+                    
+                    parseMarkdown(text) {
+                        // Auto-close code blocks (like GitHub Copilot)
+                        const fenced = this.ensureClosedFences(text);
+                        
+                        // Simple markdown parsing (safe for streaming)
+                        return fenced
+                            .replace(/\`\`\`([\\s\\S]*?)\`\`\`/g, '<pre><code>$1</code></pre>')
+                            .replace(/\`([^\`]+)\`/g, '<code>$1</code>')
+                            .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
+                            .replace(/\\*(.+?)\\*/g, '<em>$1</em>')
+                            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                            .replace(/\\n/g, '<br>');
+                    }
+                    
+                    ensureClosedFences(text) {
+                        // Auto-close unclosed code blocks (key insight from research)
+                        const count = (text.match(/\`\`\`/g) || []).length;
+                        if (count % 2 === 1) return text + '\\n\`\`\`';
+                        return text;
+                    }
+                    
+                    flush() {
+                        // Final render without debounce
+                        if (this.updateTimeout) {
+                            clearTimeout(this.updateTimeout);
+                        }
+                        this.renderToHtml();
+                    }
                 }
                 
-                function formatCompleteText(text) {
-                    // Simple word spacing for concatenated text
-                    const spacedText = text
-                        .replace(/([a-z])([A-Z])/g, '$1 $2')
-                        .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
-                        .replace(/([0-9])([a-zA-Z])/g, '$1 $2');
-                    
-                    // Simple markdown-like formatting without breaking
-                    return spacedText
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/\`(.*?)\`/g, '<code>$1</code>')
-                        .replace(/### (.*)/g, '<h3>$1</h3>')
-                        .replace(/## (.*)/g, '<h2>$1</h2>')
-                        .replace(/# (.*)/g, '<h1>$1</h1>')
-                        .replace(/\\n/g, '<br>');
-                }
+                const renderer = new StreamingMarkdownRenderer();
                 
                 window.addEventListener('message', event => {
                     const message = event.data;
@@ -731,19 +753,12 @@ export class AuditService {
                             creditsEl.textContent = \`Credits used: \${message.creditsUsed} | Remaining: \${message.remainingCredits}\`;
                             break;
                         case 'chunk':
-                            // Process streaming text with word boundary detection
-                            const processedChunk = processStreamingChunk(message.data);
-                            if (processedChunk) {
-                                contentEl.innerHTML += processedChunk;
-                                contentEl.scrollTop = contentEl.scrollHeight;
-                            }
+                            // Use StreamingMarkdownRenderer (like Continue.dev/GitHub Copilot)
+                            renderer.append(message.data);
                             break;
                         case 'complete':
-                            // Flush any remaining buffer content
-                            const remaining = flushBuffer();
-                            if (remaining) {
-                                contentEl.innerHTML += remaining;
-                            }
+                            // Final flush without debounce
+                            renderer.flush();
                             
                             statusEl.innerHTML = \`<span style="color: var(--vscode-terminal-ansiGreen); font-weight: 600;">✅ Analysis Complete!</span>\`;
                             const summary = document.createElement('div');
