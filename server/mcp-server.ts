@@ -442,17 +442,38 @@ ${fullResponse || 'Multi-contract security analysis completed.'}
         case 'get_credit_balance': {
           const { apiKey = DEFAULT_API_KEY } = GetCreditBalanceSchema.parse(args);
           
-          const response = await fetch(`${SMARTAUDIT_API_URL}/api/vscode/auth`, {
+          // First authenticate and get user ID from API key
+          const authResponse = await fetch(`${SMARTAUDIT_API_URL}/api/vscode/auth`, {
             headers: {
               'X-API-Key': apiKey
             }
           });
 
-          if (!response.ok) {
-            throw new Error('Failed to fetch credit balance');
+          if (!authResponse.ok) {
+            throw new Error('Invalid API key or authentication failed');
           }
 
-          const userInfo = await response.json();
+          const authData = await authResponse.json();
+          const userId = authData.user?.id;
+          
+          if (!userId) {
+            throw new Error('User ID not found');
+          }
+          
+          // Get comprehensive credit data using the real credit service
+          const creditData = await CreditService.getUserCredits(userId);
+          const planTier = await CreditService.getUserPlanTier(userId);
+          
+          // Format recent transactions
+          let transactionHistory = '';
+          if (creditData.recentTransactions && creditData.recentTransactions.length > 0) {
+            transactionHistory = '\n### Recent Transactions\n';
+            creditData.recentTransactions.slice(0, 5).forEach((tx: any) => {
+              const date = new Date(tx.createdAt).toLocaleDateString();
+              const amount = tx.amount > 0 ? `+${tx.amount}` : tx.amount.toString();
+              transactionHistory += `- ${date}: ${amount} credits (${tx.type}) - ${tx.reason}\n`;
+            });
+          }
           
           return {
             content: [
@@ -460,11 +481,21 @@ ${fullResponse || 'Multi-contract security analysis completed.'}
                 type: 'text',
                 text: `# 💳 Credit Balance
 
-**Available Credits**: ${userInfo.user?.credits || 0}  
-**Subscription Plan**: ${(userInfo.user?.plan || 'free').charAt(0).toUpperCase() + (userInfo.user?.plan || 'free').slice(1)}  
-**User ID**: ${userInfo.user?.id || 'Unknown'}
+**Available Credits**: ${creditData.balance.toLocaleString()}
+**Plan Tier**: ${planTier || 'Free'}
+**Total Credits Earned**: ${creditData.totalEarned.toLocaleString()}
+**Total Credits Used**: ${creditData.totalUsed.toLocaleString()}
+**User ID**: ${userId}
 
-Use your credits wisely for smart contract security analysis!`
+### Usage Summary
+- Current Balance: ${creditData.balance} credits
+- Credits Spent: ${creditData.totalUsed} credits
+- Credits Earned: ${creditData.totalEarned} credits
+- Efficiency Rate: ${creditData.totalEarned > 0 ? Math.round((creditData.totalUsed / creditData.totalEarned) * 100) : 0}%${transactionHistory}
+
+---
+
+*Use your credits wisely for smart contract security analysis!*`
               }
             ]
           };
