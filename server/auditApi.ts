@@ -774,7 +774,7 @@ export async function processAudit(auditId: string, sessionKey: string, contract
         sessionKey,
         status: 'completed',
         timestamp: new Date().toISOString(),
-      }, session.userId);
+      }, session.userId || undefined);
     }
     
   } catch (error) {
@@ -803,7 +803,7 @@ export async function processAudit(auditId: string, sessionKey: string, contract
         status: 'failed',
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
-      }, session.userId);
+      }, session.userId || undefined);
     }
   }
 }
