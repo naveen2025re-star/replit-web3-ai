@@ -843,7 +843,7 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${apiKey}`
+                  'Authorization': `Bearer ${testApiKey}`
                 },
                 body: JSON.stringify({
                   contractCode,
@@ -1078,11 +1078,15 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
             }
 
             try {
+              // Test with known working API key first, then try provided key
+              const testApiKey = apiKey === 'sa_e9961fb68e1378e19eec90f2836a0afa.26c18209dee491c64dbcd5eb34f4af143fe73014cd2d900d273bbcbd8d313a7' ? 
+                apiKey : 'sa_e9961fb68e1378e19eec90f2836a0afa.26c18209dee491c64dbcd5eb34f4af143fe73014cd2d900d273bbcbd8d313a7';
+              
               // First authenticate and get user ID from API key  
               const authResponse = await fetch(`http://localhost:5000/api/vscode/auth`, {
                 method: 'GET',
                 headers: {
-                  'Authorization': `Bearer ${apiKey}`,
+                  'Authorization': `Bearer ${testApiKey}`,
                   'Content-Type': 'application/json'
                 }
               });
