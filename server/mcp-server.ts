@@ -445,7 +445,7 @@ ${fullResponse || 'Multi-contract security analysis completed.'}
           // First authenticate and get user ID from API key
           const authResponse = await fetch(`${SMARTAUDIT_API_URL}/api/vscode/auth`, {
             headers: {
-              'X-API-Key': apiKey
+              'Authorization': `Bearer ${apiKey}`
             }
           });
 
