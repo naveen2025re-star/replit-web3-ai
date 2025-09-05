@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "smartaudit_ai": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://smartaudit-ai-backend.replit.app/mcp/stream"]
-    }
-  }
-}
