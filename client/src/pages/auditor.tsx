@@ -783,14 +783,17 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
       });
 
       if (response.ok) {
-        // Refetch audit history to show updated title
-        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        // Force refetch audit history to show updated title
+        await queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        await queryClient.refetchQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        
         toast({
           title: "Title updated",
           description: "Audit title has been successfully updated.",
         });
       } else {
-        throw new Error('Failed to update title');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update title');
       }
     } catch (error) {
       console.error('Error updating audit title:', error);

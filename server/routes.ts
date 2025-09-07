@@ -698,6 +698,42 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Update audit session title
+  app.patch("/api/audit/session/:sessionId/title", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { title } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      if (!title || title.trim() === '') {
+        return res.status(400).json({ message: "Title is required" });
+      }
+
+      // Check if session exists first
+      const session = await storage.getAuditSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const updated = await storage.updateAuditTitle(sessionId, title.trim());
+      
+      if (!updated) {
+        return res.status(500).json({ message: "Failed to update title" });
+      }
+
+      console.log(`Successfully updated audit session title: ${sessionId} -> "${title}"`);
+      res.json({ success: true, message: "Title updated successfully", title: updated.publicTitle });
+    } catch (error) {
+      console.error("Failed to update audit session title:", error);
+      res.status(500).json({ 
+        message: "Failed to update audit session title. Please try again." 
+      });
+    }
+  });
+
   // Delete audit session
   app.delete("/api/audit/session/:sessionId", async (req, res) => {
     try {
