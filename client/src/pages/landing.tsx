@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { Shield, Code, Upload, ArrowRight, Github, Globe, Lock, User, Clock, AlertTriangle, CheckCircle, Users, TrendingUp, Star } from "lucide-react";
+import { Shield, Code, Upload, ArrowRight, Github, Globe, Lock, User, Clock, AlertTriangle, CheckCircle, Users, TrendingUp, Star, Coins } from "lucide-react";
 import { LandingWalletConnect } from "@/components/landing-wallet-connect";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 import * as THREE from "three";
@@ -279,9 +279,22 @@ export default function Landing() {
               </span>
             </h1>
             
+            {/* Free Credits Highlight */}
+            <div className="mb-6">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-400/30 rounded-full px-6 py-3 mb-4">
+                <Coins className="h-5 w-5 text-green-400" />
+                <span className="text-green-400 font-bold text-lg">1,000 FREE Credits</span>
+                <span className="text-gray-300">on signup</span>
+                <CheckCircle className="h-5 w-5 text-green-400" />
+              </div>
+              <p className="text-sm text-gray-400">
+                No credit card required • Analyze ~10-20 contracts • Start securing your code instantly
+              </p>
+            </div>
+            
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Total funds that could have been saved by AI Smart Contract Audits: 
-              <span className="text-green-400 font-semibold"> $4,249,000</span>
+              AI-powered security analysis that could have saved developers
+              <span className="text-green-400 font-semibold"> $4.2M+ in exploit losses</span>
             </p>
             
             {/* Main Input Section */}

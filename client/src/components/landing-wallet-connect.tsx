@@ -87,12 +87,21 @@ export function LandingWalletConnect({ children, contractInput }: LandingWalletC
               Connect Your Wallet
             </DialogTitle>
             <DialogDescription className="text-gray-300">
-              Choose your preferred wallet to connect and start auditing smart contracts
+              Connect your wallet to get 1,000 free credits and start auditing smart contracts immediately
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="bg-green-500/10 border border-green-400/20 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 text-green-400 text-sm font-medium mb-1">
+                <CheckCircle className="h-4 w-4" />
+                <span>1,000 Free Credits Included</span>
+              </div>
+              <p className="text-xs text-gray-400">
+                No payment required • Analyze multiple contracts • Get started immediately
+              </p>
+            </div>
             <p className="text-sm text-gray-400 mb-4">
-              Choose a wallet to connect. You'll need to sign a message afterward to authenticate securely.
+              Choose a wallet to connect. You'll sign a secure message to authenticate and claim your free credits.
             </p>
             {connectors.map((connector) => (
               <Button
@@ -193,13 +202,19 @@ export function LandingWalletConnect({ children, contractInput }: LandingWalletC
                   <CheckCircle className="h-8 w-8 text-green-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-green-400 mb-2">Authentication Successful!</h3>
-                  <p className="text-gray-400 mb-4">
-                    Welcome to SmartAudit AI! Redirecting to the auditor interface...
-                  </p>
+                  <h3 className="text-xl font-semibold text-green-400 mb-2">Welcome to SmartAudit AI!</h3>
+                  <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-400/20 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-center gap-2 text-green-400 font-bold text-lg mb-2">
+                      <CheckCircle className="h-5 w-5" />
+                      <span>1,000 Free Credits Added!</span>
+                    </div>
+                    <p className="text-sm text-gray-400">
+                      Ready to analyze ~10-20 smart contracts • No payment required
+                    </p>
+                  </div>
                   <div className="flex items-center justify-center gap-2 text-sm text-blue-400">
-                    <Clock className="h-4 w-4" />
-                    <span>Redirecting in a moment...</span>
+                    <ArrowRight className="h-4 w-4" />
+                    <span>Taking you to the auditor...</span>
                   </div>
                 </div>
               </div>

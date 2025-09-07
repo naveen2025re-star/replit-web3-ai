@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import CreditDisplay from "@/components/CreditDisplay";
 import CreditPurchase from "@/components/CreditPurchase";
+import { CreditCostPreview } from "@/components/CreditCostPreview";
 import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { ContractFetcher } from "@/components/ContractFetcher";
@@ -1214,6 +1215,17 @@ Focus on payment security and marketplace vulnerabilities.`)}
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Credit Cost Preview */}
+            {inputValue.trim().length > 50 && (
+              <div className="mb-3">
+                <CreditCostPreview
+                  contractCode={inputValue}
+                  contractLanguage="solidity"
+                  userCredits={credits?.balance || 0}
+                />
               </div>
             )}
 
