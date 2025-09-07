@@ -233,16 +233,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAuditSession(sessionId: string): Promise<boolean> {
-    // First delete related audit results
-    await db.delete(auditResults).where(eq(auditResults.sessionId, sessionId));
-    
-    // Then delete the audit session
-    const [deleted] = await db
-      .delete(auditSessions)
-      .where(eq(auditSessions.id, sessionId))
-      .returning();
-    
-    return !!deleted;
+    try {
+      // Start a transaction to ensure all deletions succeed or fail together
+      await db.transaction(async (tx) => {
+        // First, delete related credit transactions to avoid foreign key constraint
+        await tx.delete(creditTransactions)
+          .where(eq(creditTransactions.sessionId, sessionId));
+        
+        // Then delete related audit results
+        await tx.delete(auditResults)
+          .where(eq(auditResults.sessionId, sessionId));
+        
+        // Finally, delete the audit session itself
+        await tx.delete(auditSessions)
+          .where(eq(auditSessions.id, sessionId));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting audit session:', error);
+      return false;
+    }
   }
 
   async getAuditSessionDetails(sessionId: string): Promise<any> {

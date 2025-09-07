@@ -707,17 +707,24 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         return res.status(400).json({ message: "Session ID is required" });
       }
 
-      const deleted = await storage.deleteAuditSession(sessionId);
-      
-      if (!deleted) {
+      // Check if session exists first
+      const session = await storage.getAuditSession(sessionId);
+      if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
 
+      const deleted = await storage.deleteAuditSession(sessionId);
+      
+      if (!deleted) {
+        return res.status(500).json({ message: "Failed to delete session due to database constraints" });
+      }
+
+      console.log(`Successfully deleted audit session: ${sessionId}`);
       res.json({ success: true, message: "Session deleted successfully" });
     } catch (error) {
       console.error("Failed to delete audit session:", error);
       res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to delete audit session" 
+        message: "Failed to delete audit session. Please try again." 
       });
     }
   });
