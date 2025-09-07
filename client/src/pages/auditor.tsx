@@ -34,6 +34,7 @@ import {
 import CreditDisplay from "@/components/CreditDisplay";
 import CreditPurchase from "@/components/CreditPurchase";
 import { CreditCostPreview } from "@/components/CreditCostPreview";
+import { WelcomeModal } from "@/components/WelcomeModal";
 import { AuditVisibilitySelector } from "@/components/audit-visibility-selector";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { ContractFetcher } from "@/components/ContractFetcher";
@@ -95,6 +96,7 @@ export default function AuditorPage() {
   const [showFileUploader, setShowFileUploader] = useState(false);
   const [showContractFetcher, setShowContractFetcher] = useState(false);
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -106,6 +108,14 @@ export default function AuditorPage() {
       setLocation('/auth');
     }
   }, [isConnected, isAuthenticated, setLocation]);
+
+  // Check if user is new (has 1000 credits and no audit history)
+  useEffect(() => {
+    if (user && credits && auditHistory) {
+      const isNewUserCheck = credits.balance === 1000 && auditHistory.length === 0;
+      setIsNewUser(isNewUserCheck);
+    }
+  }, [user, credits, auditHistory]);
 
   // Handle session URL parameter for direct links from GitHub integration
   useEffect(() => {
@@ -1336,6 +1346,20 @@ Focus on payment security and marketplace vulnerabilities.`)}
         open={showCreditPurchase}
         onOpenChange={setShowCreditPurchase}
         userId={user?.id}
+      />
+
+      {/* Welcome Modal for New Users */}
+      <WelcomeModal
+        isNewUser={isNewUser}
+        userCredits={credits?.balance || 0}
+        onGetStarted={(template) => {
+          if (template) {
+            setInputValue(template);
+            setTimeout(() => {
+              textareaRef.current?.focus();
+            }, 100);
+          }
+        }}
       />
 
       {/* New Audit Confirmation Modal */}
