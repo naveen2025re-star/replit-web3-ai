@@ -646,6 +646,32 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Get user's audit sessions
+  app.get("/api/audit/user-sessions/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 50;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      const sessions = await storage.getUserAuditSessions(userId, pageSize, {
+        page,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+      
+      res.json({ sessions, total: sessions.length });
+    } catch (error) {
+      console.error("Failed to get user audit sessions:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to get user audit sessions" 
+      });
+    }
+  });
+
   // Additional routes continue here...
   // (The rest of the web interface routes would continue in the same pattern)
 

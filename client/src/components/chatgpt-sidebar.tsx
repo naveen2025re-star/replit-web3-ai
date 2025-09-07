@@ -58,6 +58,8 @@ export function ChatGPTSidebar({
   onEditAuditTitle,
   onDeleteAudit
 }: ChatGPTSidebarProps) {
+  // Debug: Log audit history data
+  console.log('ChatGPTSidebar received auditHistory:', auditHistory, 'length:', auditHistory?.length);
   const [searchTerm, setSearchTerm] = useState('');
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -75,12 +77,19 @@ export function ChatGPTSidebar({
   const archivedChats = auditHistory.filter(session => session.isArchived);
 
   // Filter sessions by search term and exclude archived
-  const filteredSessions = auditHistory.filter(session => 
-    !session.isArchived && (
-      session.publicTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.contractLanguage?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  const filteredSessions = auditHistory.filter(session => {
+    if (session.isArchived) return false;
+    
+    // If no search term, include all non-archived sessions
+    if (!searchTerm.trim()) return true;
+    
+    // Otherwise filter by search term
+    const searchLower = searchTerm.toLowerCase();
+    const titleMatch = session.publicTitle?.toLowerCase().includes(searchLower) || false;
+    const languageMatch = session.contractLanguage?.toLowerCase().includes(searchLower) || false;
+    
+    return titleMatch || languageMatch;
+  });
 
   // Separate pinned and regular sessions
   const pinnedSessions = filteredSessions.filter(s => s.isPinned);
