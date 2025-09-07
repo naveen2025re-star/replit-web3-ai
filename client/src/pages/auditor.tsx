@@ -109,13 +109,7 @@ export default function AuditorPage() {
     }
   }, [isConnected, isAuthenticated, setLocation]);
 
-  // Check if user is new (has 1000 credits and no audit history)
-  useEffect(() => {
-    if (user && credits && auditHistory) {
-      const isNewUserCheck = credits.balance === 1000 && auditHistory.length === 0;
-      setIsNewUser(isNewUserCheck);
-    }
-  }, [user, credits, auditHistory]);
+  // This useEffect will be moved after the data queries are declared
 
   // Handle session URL parameter for direct links from GitHub integration
   useEffect(() => {
@@ -334,6 +328,14 @@ export default function AuditorPage() {
     enabled: !!user?.id,
     refetchInterval: 30000,
   });
+
+  // Check if user is new (has 1000 credits and no audit history)
+  useEffect(() => {
+    if (user && credits && auditHistory) {
+      const isNewUserCheck = credits.balance === 1000 && auditHistory.length === 0;
+      setIsNewUser(isNewUserCheck);
+    }
+  }, [user, credits?.balance, auditHistory?.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

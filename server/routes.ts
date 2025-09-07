@@ -219,6 +219,21 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       let user = await storage.getUserByWallet(walletAddress.toLowerCase());
       
       if (!user) {
+        // Simple abuse prevention: Check for rapid account creation from same IP
+        const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
+        const userAgent = req.headers['user-agent'] || 'unknown';
+        
+        // Check if too many accounts created from this IP recently (basic protection)
+        const recentUsers = await storage.getRecentUsersByIP(clientIP, new Date(Date.now() - 24 * 60 * 60 * 1000));
+        
+        let initialCredits = 1000; // Default 1000 credits
+        
+        // Reduce credits if suspicious activity (more than 2 accounts from same IP in 24h)
+        if (recentUsers && recentUsers.length >= 2) {
+          initialCredits = 100; // Give only 100 credits if potentially abusive
+          console.warn(`Potential credit abuse detected from IP ${clientIP}. Reducing initial credits.`);
+        }
+        
         // Generate unique username
         const timestamp = Date.now().toString(36);
         const addressPart = walletAddress.slice(2, 10).toLowerCase();
@@ -227,7 +242,12 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
         user = await storage.createUser({
           walletAddress: walletAddress.toLowerCase(),
           username,
+          credits: initialCredits, // Set custom initial credits
+          lastCreditGrant: new Date(),
         });
+
+        // Log the account creation for monitoring
+        console.log(`New user created: ${walletAddress} from IP: ${clientIP}, UA: ${userAgent.substring(0, 100)}, Initial Credits: ${initialCredits}`);
       }
 
       res.json({

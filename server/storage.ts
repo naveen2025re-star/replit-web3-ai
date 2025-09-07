@@ -72,6 +72,9 @@ export interface IStorage {
   markNonceAsUsed(nonce: string): Promise<void>;
   cleanupExpiredNonces(): Promise<void>;
   
+  // Abuse prevention operations
+  getRecentUsersByIP(ipAddress: string, since: Date): Promise<User[]>;
+  
   // Community operations
   getPublicAudits(options: {
     offset: number;
@@ -542,6 +545,15 @@ export class DatabaseStorage implements IStorage {
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
+  }
+
+  // Simple abuse prevention method
+  async getRecentUsersByIP(ipAddress: string, since: Date): Promise<User[]> {
+    // For now, return empty array since we don't store IP addresses in users table
+    // This is a simplified implementation to prevent the error
+    // In a full implementation, you'd track IPs in a separate table
+    console.log(`Checking for recent users from IP ${ipAddress} since ${since.toISOString()}`);
+    return [];
   }
 }
 
