@@ -672,12 +672,16 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
       setCurrentSessionId(sessionId);
       
       // Fetch the audit session details
+      console.log('Loading audit session:', sessionId);
       const response = await fetch(`/api/audit/session/${sessionId}`);
+      console.log('Response status:', response.status, response.ok);
+      
       if (!response.ok) {
-        throw new Error('Failed to load audit session');
+        throw new Error(`Failed to load audit session: ${response.status}`);
       }
       
       const sessionData = await response.json();
+      console.log('Session data received:', sessionData);
       
       // Create user message with the original contract code
       if (sessionData.contractCode) {
@@ -707,12 +711,19 @@ Please provide a comprehensive security audit focusing on vulnerabilities, gas o
           title: "Audit loaded",
           description: "Previous audit session restored successfully.",
         });
+      } else {
+        console.warn('Session data missing contractCode:', sessionData);
+        toast({
+          title: "Warning",
+          description: "Session loaded but contract code is missing.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error loading audit session:', error);
       toast({
         title: "Error",
-        description: "Failed to load audit session. Please try again.",
+        description: `Failed to load audit session: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }

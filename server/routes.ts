@@ -633,6 +633,32 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Get audit session (alias for results endpoint for backward compatibility)
+  app.get("/api/audit/session/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const session = await storage.getAuditSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const result = await storage.getAuditResultBySessionId(sessionId);
+      
+      // Return the session data with result nested, matching the expected frontend format
+      res.json({
+        ...session,
+        result
+      });
+
+    } catch (error) {
+      console.error("Failed to get audit session:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to get audit session" 
+      });
+    }
+  });
+
   // Get recent audit sessions
   app.get("/api/audit/sessions", async (req, res) => {
     try {
@@ -668,6 +694,30 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
       console.error("Failed to get user audit sessions:", error);
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to get user audit sessions" 
+      });
+    }
+  });
+
+  // Delete audit session
+  app.delete("/api/audit/session/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      const deleted = await storage.deleteAuditSession(sessionId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      res.json({ success: true, message: "Session deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete audit session:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to delete audit session" 
       });
     }
   });
