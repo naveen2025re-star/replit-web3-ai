@@ -20,7 +20,7 @@ export const users: any = pgTable("users", {
   totalCreditsEarned: integer("total_credits_earned").default(1000).notNull(), // Track total earned including initial
   lastCreditGrant: timestamp("last_credit_grant").defaultNow(), // Track when last credits were granted
   referralCode: text("referral_code").unique(), // User's unique referral code
-  referredBy: varchar("referred_by").references(() => users.id), // Who referred this user
+  referredBy: varchar("referred_by").references((): any => users.id), // Who referred this user
   referralCount: integer("referral_count").default(0).notNull(), // Total successful referrals
   referralCreditsEarned: integer("referral_credits_earned").default(0).notNull(), // Credits earned from referrals
   createdAt: timestamp("created_at").defaultNow().notNull(),
