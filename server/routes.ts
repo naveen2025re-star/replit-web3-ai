@@ -734,6 +734,78 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Update audit session pin status
+  app.patch("/api/audit/session/:sessionId/pin", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { isPinned } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      if (typeof isPinned !== 'boolean') {
+        return res.status(400).json({ message: "isPinned must be a boolean" });
+      }
+
+      // Check if session exists first
+      const session = await storage.getAuditSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const updated = await storage.updateAuditPinStatus(sessionId, isPinned);
+      
+      if (!updated) {
+        return res.status(500).json({ message: "Failed to update pin status" });
+      }
+
+      console.log(`Successfully ${isPinned ? 'pinned' : 'unpinned'} audit session: ${sessionId}`);
+      res.json({ success: true, message: `Session ${isPinned ? 'pinned' : 'unpinned'} successfully`, isPinned: updated.isPinned });
+    } catch (error) {
+      console.error("Failed to update audit session pin status:", error);
+      res.status(500).json({ 
+        message: "Failed to update pin status. Please try again." 
+      });
+    }
+  });
+
+  // Update audit session archive status
+  app.patch("/api/audit/session/:sessionId/archive", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { isArchived } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      if (typeof isArchived !== 'boolean') {
+        return res.status(400).json({ message: "isArchived must be a boolean" });
+      }
+
+      // Check if session exists first
+      const session = await storage.getAuditSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const updated = await storage.updateAuditArchiveStatus(sessionId, isArchived);
+      
+      if (!updated) {
+        return res.status(500).json({ message: "Failed to update archive status" });
+      }
+
+      console.log(`Successfully ${isArchived ? 'archived' : 'unarchived'} audit session: ${sessionId}`);
+      res.json({ success: true, message: `Session ${isArchived ? 'archived' : 'unarchived'} successfully`, isArchived: updated.isArchived });
+    } catch (error) {
+      console.error("Failed to update audit session archive status:", error);
+      res.status(500).json({ 
+        message: "Failed to update archive status. Please try again." 
+      });
+    }
+  });
+
   // Delete audit session
   app.delete("/api/audit/session/:sessionId", async (req, res) => {
     try {

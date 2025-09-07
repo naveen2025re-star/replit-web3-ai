@@ -151,13 +151,17 @@ export function ChatGPTSidebar({
       });
 
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        // Force refetch to immediately show pin status change
+        await queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        await queryClient.refetchQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        
         toast({
           title: newPinStatus ? "Chat pinned" : "Chat unpinned",
           description: newPinStatus ? "Chat has been pinned to the top." : "Chat has been unpinned.",
         });
       } else {
-        throw new Error('Failed to update pin status');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update pin status');
       }
     } catch (error) {
       console.error('Error updating pin status:', error);
@@ -182,13 +186,17 @@ export function ChatGPTSidebar({
       });
 
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        // Force refetch to immediately show archive status change
+        await queryClient.invalidateQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        await queryClient.refetchQueries({ queryKey: ['/api/audit/user-sessions', user?.id] });
+        
         toast({
           title: newArchiveStatus ? "Chat archived" : "Chat unarchived",
           description: newArchiveStatus ? "Chat has been moved to archive." : "Chat has been restored from archive.",
         });
       } else {
-        throw new Error('Failed to update archive status');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update archive status');
       }
     } catch (error) {
       console.error('Error updating archive status:', error);
