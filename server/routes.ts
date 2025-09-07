@@ -837,6 +837,98 @@ This request will not trigger any blockchain transaction or cost any gas fees.`;
     }
   });
 
+  // Credit balance API
+  app.get("/api/credits/balance", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      const creditData = await CreditService.getUserCredits(userId);
+      
+      res.json({
+        balance: creditData.balance,
+        totalUsed: creditData.totalUsed,
+        totalEarned: creditData.totalEarned,
+        lastGrant: creditData.lastGrant,
+        transactions: creditData.recentTransactions.slice(0, 5) // Latest 5 for quick view
+      });
+    } catch (error) {
+      console.error("Failed to get credit balance:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to get credit balance" 
+      });
+    }
+  });
+
+  // Credit transactions API
+  app.get("/api/credits/transactions/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      const creditData = await CreditService.getUserCredits(userId);
+      
+      // Format transactions for the frontend
+      const formattedTransactions = creditData.recentTransactions.map((transaction: any) => ({
+        id: transaction.id,
+        date: transaction.createdAt,
+        amount: transaction.amount,
+        type: transaction.type,
+        reason: transaction.reason,
+        metadata: transaction.metadata,
+        balanceAfter: transaction.balanceAfter,
+        createdAt: transaction.createdAt
+      }));
+      
+      res.json(formattedTransactions);
+    } catch (error) {
+      console.error("Failed to get credit transactions:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to get credit transactions" 
+      });
+    }
+  });
+
+  // Live scans API (recent public audits for analytics)
+  app.get("/api/live-scans", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      // Get recent public audit sessions as "live scans"
+      const publicAuditsResult = await storage.getPublicAudits({ 
+        offset: 0, 
+        limit 
+      });
+      
+      // Format for live scans display
+      const liveScans = publicAuditsResult.audits.map((audit: any) => ({
+        id: audit.id,
+        contractLanguage: audit.contractLanguage,
+        contractSource: audit.contractSource || 'manual',
+        createdAt: audit.createdAt,
+        completedAt: audit.completedAt,
+        status: audit.status,
+        publicTitle: audit.publicTitle || `${audit.contractLanguage} Contract Analysis`,
+        vulnerabilities: audit.result?.vulnerabilityCount || { high: 0, medium: 0, low: 0, informational: 0 },
+        securityScore: audit.result?.securityScore,
+        user: audit.user
+      }));
+      
+      res.json(liveScans);
+    } catch (error) {
+      console.error("Failed to get live scans:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to get live scans" 
+      });
+    }
+  });
+
   // Additional routes continue here...
   // (The rest of the web interface routes would continue in the same pattern)
 
